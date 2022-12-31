@@ -158,6 +158,8 @@ class TPHypergraph
     vptr_ = hgraph.vptr_;
     vertex_weights_ = hgraph.vertex_weights_;
     hyperedge_weights_ = hgraph.hyperedge_weights_;
+    // vertex_c_attr
+    vertex_c_attr_ = hgraph.vertex_c_attr_;
     // fixed vertices
     fixed_vertex_flag_ = hgraph.fixed_vertex_flag_;
     fixed_attr_ = hgraph.fixed_attr_;
@@ -192,6 +194,8 @@ class TPHypergraph
     vptr_ = hgraph.vptr_;
     vertex_weights_ = hgraph.vertex_weights_;
     hyperedge_weights_ = hgraph.hyperedge_weights_;
+    // vertex_c_attr
+    vertex_c_attr_ = hgraph.vertex_c_attr_;
     // fixed vertices
     fixed_vertex_flag_ = hgraph.fixed_vertex_flag_;
     fixed_attr_ = hgraph.fixed_attr_;

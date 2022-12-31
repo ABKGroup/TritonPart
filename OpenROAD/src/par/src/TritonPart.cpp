@@ -44,6 +44,7 @@
 
 #include "Coarsening.h"
 #include "KPMRefinement.h"
+#include "ILPbasedRefinement.h"
 #include "Multilevel.h"
 #include "Partitioner.h"
 #include "TPHypergraph.h"
@@ -73,7 +74,6 @@
 #include "sta/Units.hh"
 #include "utl/Logger.h"
 // julia interfaces
-#include <julia.h>
 //#include "julia_init.h"
 //#include "spectral.h"
 
@@ -570,9 +570,8 @@ void TritonPart::tritonPartHypergraph(const char* hypergraph_file_arg,
                                       int hyperedge_dimension_arg,
                                       unsigned int seed_arg)
 {
-  std::cout << "Starting TritonPart Partitioner" << std::endl;
+  logger_->report("Starting TritonPart Partitioner");
   auto start_time_stamp_global = std::chrono::high_resolution_clock::now();
-
   // Parameters
   num_parts_ = num_parts_arg;
   ub_factor_ = balance_constraint_arg;
@@ -582,17 +581,17 @@ void TritonPart::tritonPartHypergraph(const char* hypergraph_file_arg,
   // local parameters
   std::string hypergraph_file = hypergraph_file_arg;
   std::string fixed_file = fixed_file_arg;
-  std::cout << "Partition Parameters**" << std::endl;
-  std::cout << "Number of partitions = " << num_parts_ << std::endl;
-  std::cout << "UBfactor = " << ub_factor_ << std::endl;
-  std::cout << "Vertex dimensions = " << vertex_dimensions_ << std::endl;
-  std::cout << "Hyperedge dimensions = " << hyperedge_dimensions_ << std::endl;
+  logger_->report("Partition Parameters**");
+  logger_->report("Number of partitions = {}", num_parts_);
+  logger_->report("UBfactor = {}", ub_factor_);
+  logger_->report("Vertex dimensions = {}", vertex_dimensions_);
+  logger_->report("Hyperedge dimensions = {}", hyperedge_dimensions_);
   // build hypergraph
   ReadHypergraph(hypergraph_file, fixed_file);
   BuildHypergraph();
-  std::cout << "Hypergraph Information**" << std::endl;
-  std::cout << "#Vertices = " << num_vertices_ << std::endl;
-  std::cout << "#Hyperedges = " << num_hyperedges_ << std::endl;
+  logger_->report("Hypergraph Information**");
+  logger_->report("#Vertices = {}", num_vertices_);
+  logger_->report("#Hyperedges = {}", num_hyperedges_);
   // create coarsening class
   std::vector<float> e_wt_factors(hyperedge_dimensions_, 1.0);
   std::vector<float> v_wt_factors(vertex_dimensions_, 1.0);
@@ -604,23 +603,8 @@ void TritonPart::tritonPartHypergraph(const char* hypergraph_file_arg,
   std::vector<float> max_vertex_weights
       = DivideFactor(hypergraph_->GetTotalVertexWeights(), alpha * num_parts_);
   int smallest_v_size_cgraph = 250;
-  // int smallest_v_size_cgraph = 30 * num_parts_;
   int smallest_e_size_cgraph = 50;
   float coarsening_ratio = 1.5;
-  /*std::mt19937 gen;
-  gen.seed(seed_);
-  std::uniform_real_distribution<float> c_distribution(1.0, 3.25);
-  float contraction_mult = c_distribution(gen);
-  std::uniform_real_distribution<> w_distribution(100, 200);
-  float weight_limit = ceil(w_distribution(gen));
-  float mult_factor = contraction_mult / (weight_limit * num_parts_);
-  std::cout << "[DEBUG] Parameters " << contraction_mult << " " << weight_limit
-            << " " << mult_factor << std::endl;
-  std::vector<float> max_vertex_weights
-      = MultiplyFactor(hypergraph_->GetTotalVertexWeights(), mult_factor);
-  int smallest_v_size_cgraph = 200;
-  int smallest_e_size_cgraph = 50;
-  float coarsening_ratio = 1.5;*/
   int max_coarsen_iters = 20;
   CoarseningPtr coarsening
       = std::make_shared<Coarsening>(e_wt_factors,
@@ -663,9 +647,9 @@ void TritonPart::tritonPartHypergraph(const char* hypergraph_file_arg,
                                         max_num_fm_pass,
                                         seed_,
                                         logger_);
+
   // create the ilp refiner class
-  int wavefront
-      = 50;  // wavefront is the number of vertices the ILP will consider
+  int wavefront = 50;  // wavefront is the number of vertices the ILP will consider
   IlpRefinerPtr ilprefiner = std::make_shared<IlpRefiner>(num_parts_,
                                                           seed_,
                                                           wavefront,
@@ -676,47 +660,37 @@ void TritonPart::tritonPartHypergraph(const char* hypergraph_file_arg,
 
   // create the multilevel class
   bool v_cycle_flag = true;
-  bool spec_flag = false;
-  /*MultiLevelHierarchyPtr multilevel_hierarchy =
-     std::make_shared<MultiLevelHierarchy>( coarsening, partitioners,
-     num_parts_, v_cycle_flag, spec_flag, logger_);*/
+  RefineType refine_type = KPMREFINEMENT;
+  int num_initial_solutions = 20; // number of initial random solutions
+  int num_best_initial_solutions = 3; // number of best initial solutions
+  int num_ubfactor_delta = 5; // allowing marginal imbalance to improve QoR
+  int max_num_vcycle = 5; // maximum number of vcycles
 
   MultiLevelHierarchyPtr multilevel_hierarchy
       = std::make_shared<MultiLevelHierarchy>(coarsening,
                                               partitioners,
+                                              kpmrefiner,
                                               ilprefiner,
                                               num_parts_,
                                               v_cycle_flag,
-                                              spec_flag,
+                                              num_initial_solutions,
+                                              num_best_initial_solutions,
+                                              num_ubfactor_delta, 
+                                              max_num_vcycle, 
+                                              seed_, 
+                                              ub_factor_,
+                                              refine_type, 
                                               logger_);
 
-  /*MultiLevelHierarchyPtr multilevel_hierarchy
-      = std::make_shared<MultiLevelHierarchy>(coarsening,
-                                              partitioners,
-                                              kpmrefiner,
-                                              num_parts_,
-                                              v_cycle_flag,
-                                              spec_flag,
-                                              logger_);*/
-  // std::vector<int> solution = multilevel_hierarchy->SpecRun(hypergraph,
-  // vertex_balance);
-
   HGraph hypergraph_processed = preProcessHypergraph();
+  logger_->report("\nPost processing hypergraph information**");
+  logger_->report("#Vertices = {}", hypergraph_processed->GetNumVertices());
+  logger_->report("#Hyperedges = {}", hypergraph_processed->GetNumHyperedges());
 
-  std::cout << "\nPost processing hypergraph information**" << std::endl;
-  std::cout << "#Vertices = " << hypergraph_processed->GetNumVertices()
-            << std::endl;
-  std::cout << "#Hyperedges = " << hypergraph_processed->GetNumHyperedges()
-            << std::endl;
-
-  // std::vector<int> solution = multilevel_hierarchy->CallFlow(hypergraph_file,
-  // hypergraph_, vertex_balance);
-  std::vector<int> solution = multilevel_hierarchy->CallFlow(
-      hypergraph_file, hypergraph_, hypergraph_processed, vertex_balance);
+  std::vector<int> solution = multilevel_hierarchy->CallFlow(hypergraph_processed, vertex_balance);
   // check the existing solution
   std::pair<float, std::vector<std::vector<float>>> cutsize_balance
       = partitioners->GoldenEvaluator(hypergraph_, solution, true);
-
   // write the solution
   std::string solution_file
       = hypergraph_file + std::string(".part.") + std::to_string(num_parts_);
@@ -727,128 +701,8 @@ void TritonPart::tritonPartHypergraph(const char* hypergraph_file_arg,
             end_timestamp_global - start_time_stamp_global)
             .count();
   total_global_time *= 1e-9;
-  std::cout << "Total runtime " << total_global_time << std::endl;
-  std::cout << "Exiting TritonPart " << std::endl;
+  logger_->report("Total runtime {}", total_global_time);
+  logger_->report("Exiting TritonPart");
 }
-
-/*
-void TritonPart::tritonPartHypergraph(const char* hypergraph_file_arg,
-                                      const char* fixed_file_arg,
-                                      unsigned int num_parts_arg,
-                                      float balance_constraint_arg,
-                                      int vertex_dimension_arg,
-                                      int hyperedge_dimension_arg,
-                                      unsigned int seed_arg)
-{
-  logger_->info(PAR, 2901, "Staring TritonPart (TritonPartHypergraph)");
-  auto start_timestamp_global = std::chrono::high_resolution_clock::now();
-
-  // Parameters
-  num_parts_ = num_parts_arg;
-  ub_factor_ = balance_constraint_arg;
-  seed_ = seed_arg;
-  vertex_dimensions_ = vertex_dimension_arg;
-  hyperedge_dimensions_ = hyperedge_dimension_arg;
-  // local Parameters
-  std::string hypergraph_file = hypergraph_file_arg;
-  std::string fixed_file = fixed_file_arg;
-  logger_->info(PAR, 2902, "num_parts = {}\n"
-                           "UBfactor = {}\n"
-                           "seed = {}\n"
-                           "vertex_dimensions = {}\n"
-                           "hyperedge_dimensions = {}\n",
-                           num_parts_, ub_factor_, seed_,
-                           vertex_dimensions_, hyperedge_dimensions_);
-  // build hypergraph
-  ReadHypergraph(hypergraph_file, fixed_file);
-  BuildHypergraph();
-  logger_->info(PAR, 2903, "num_vertices = {}\n"
-                           "num_hyperedges = {}\n",
-                            num_vertices_, num_hyperedges_);
-
-  // Create the Coarsening class
-  // the parameters for coarsening class
-  std::vector<float> e_wt_factors(hyperedge_dimensions_, 1.0);
-  std::vector<float> v_wt_factors(vertex_dimensions_, 1.0);
-  std::vector<float> p_wt_factors(placement_dimensions_ + 100, 1.0);
-  float timing_factor = 1.0;
-  int path_traverse_step = 2;
-  std::vector<float> tot_vertex_weights = hypergraph_->GetTotalVertexWeights();
-  std::vector<float> max_vertex_weights =
-DivideFactor(hypergraph_->GetTotalVertexWeights(), 2 * num_parts_);
-  //int global_net_threshold = 50;
-  int smallest_v_size_cgraph = 50;
-  int smallest_e_size_cgraph = 50;
-  float coarsening_ratio = 1.7;
-  int max_coarsen_iters = 20;
-  CoarseningPtr coarsening = std::make_shared<Coarsening>(
-                                     e_wt_factors, v_wt_factors, p_wt_factors,
-                                     timing_factor,  path_traverse_step,
-                                     max_vertex_weights,  global_net_threshold_,
-                                     smallest_v_size_cgraph,
-smallest_e_size_cgraph, coarsening_ratio, max_coarsen_iters, seed_, logger_);
-
-  // Create the Partitioner class
-  std::vector<std::vector<float> > vertex_balance =
-hypergraph_->GetVertexBalance(num_parts_, ub_factor_);
-  std::vector<std::vector<float> > hyperedge_balance;
-  float path_wt_factor = 1.0;
-  float snaking_wt_factor = 1.0;
-  float early_stop_ratio = 0.5;
-  int max_num_fm_pass = 10;
-  PartitionersPtr partitioners = std::make_shared<Partitioners>(
-                                   num_parts_,
-                                   e_wt_factors, path_wt_factor,
-                                   snaking_wt_factor, early_stop_ratio,
-                                   max_num_fm_pass, seed_, logger_);
-
-  // Create the Multilevel class
-  bool v_cycle_flag = true;
-  bool spec_flag = true;
-  MultiLevelHierarchyPtr multilevel_hierarchy =
-                                 std::make_shared<MultiLevelHierarchy>(
-                                 coarsening, partitioners,
-                                 v_cycle_flag, spec_flag,
-                                 logger_);
-  if (spec_flag == true) {
-    std::string hint_hgraph = "reduced.hgr";
-    int num_eigen_vectors = 1;  // number of eigen vectors generated by spectral
-    int num_solver_iters = 20; // number of iterations of spectral solver
-    int expander_cycles = 2; // the number of cycles used for graph conversion
-    int embed_placement_dimensions = placement_dimensions_ + num_eigen_vectors;
-    std::vector<float> vertex_w_factor(vertex_dimensions_, 1.0);
-    hypergraph_->WriteReducedHypergraph(hint_hgraph, vertex_w_factor,
-e_wt_factors); multilevel_hierarchy->SpecifySpecParams(hint_hgraph, num_parts_,
-                                            num_eigen_vectors,
-                                            num_solver_iters,
-                                            expander_cycles,
-                                            embed_placement_dimensions,
-                                            seed_,
-                                            ub_factor_);
-  }
-
-  std::vector<int> solution = multilevel_hierarchy->SpecRun(hypergraph_,
-                                                            vertex_balance);
-
-  // check the existing solution
-  std::pair<float, std::vector<std::vector<float> > >
-    cutsize_balance = partitioners->GoldenEvaluator(hypergraph_, solution,
-true);
-
-  // write the solution
-  std::string solution_file = hypergraph_file + std::string(".part.")
-                              + std::to_string(num_parts_);
-  WriteSolution(solution_file.c_str(), solution);
-
-  auto end_timestamp_global = std::chrono::high_resolution_clock::now();
-  double total_global_time
-      = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            end_timestamp_global - start_timestamp_global)
-            .count();
-  total_global_time *= 1e-9;
-  logger_->info(PAR, 2904, "Total Runtime: {:0.2f} sec",  total_global_time);
-  logger_->info(PAR, 2905, "Exiting TritonPart (TritonPartHypergraph)");
-}
-*/
 
 }  // namespace par

@@ -44,164 +44,77 @@
 
 namespace par {
 
+enum RefineType
+{
+  KFMREFINEMENT,  // direct k-way FM refinement
+  KPMREFINEMENT,  // pair-wise k-way FM refinement
+  KILPREFINEMENT  // pair-wise ILP-based refinement
+};
+
 class MultiLevelHierarchy
 {
  public:
   explicit MultiLevelHierarchy() {}
   MultiLevelHierarchy(CoarseningPtr coarsening,
                       PartitionersPtr partitioners,
-                      bool v_cycle_flag,
-                      bool spectral_flag,
-                      utl::Logger* logger)
-  {
-    coarsening_ = coarsening;
-    partitioners_ = partitioners;
-    v_cycle_flag_ = v_cycle_flag;
-    spectral_flag_ = spectral_flag;
-    logger_ = logger;
-  }
-
-  MultiLevelHierarchy(CoarseningPtr coarsening,
-                      PartitionersPtr partitioners,
                       KPMrefinementPtr kpmrefiner,
-                      bool v_cycle_flag,
-                      bool spectral_flag,
-                      utl::Logger* logger)
-  {
-    coarsening_ = coarsening;
-    partitioners_ = partitioners;
-    kpmrefiner_ = kpmrefiner;
-    v_cycle_flag_ = v_cycle_flag;
-    spectral_flag_ = spectral_flag;
-    logger_ = logger;
-  }
-
-  MultiLevelHierarchy(CoarseningPtr coarsening,
-                      PartitionersPtr partitioners,
-                      int num_parts,
-                      bool v_cycle_flag,
-                      bool spectral_flag,
-                      utl::Logger* logger)
-  {
-    coarsening_ = coarsening;
-    partitioners_ = partitioners;
-    num_parts_ = num_parts;
-    v_cycle_flag_ = v_cycle_flag;
-    spectral_flag_ = spectral_flag;
-    logger_ = logger;
-  }
-
-  MultiLevelHierarchy(CoarseningPtr coarsening,
-                      PartitionersPtr partitioners,
-                      KPMrefinementPtr kpmrefiner,
-                      int num_parts,
-                      bool v_cycle_flag,
-                      bool spectral_flag,
-                      utl::Logger* logger)
-  {
-    coarsening_ = coarsening;
-    partitioners_ = partitioners;
-    kpmrefiner_ = kpmrefiner;
-    num_parts_ = num_parts;
-    v_cycle_flag_ = v_cycle_flag;
-    spectral_flag_ = spectral_flag;
-    logger_ = logger;
-  }
-
-  MultiLevelHierarchy(CoarseningPtr coarsening,
-                      PartitionersPtr partitioners,
                       IlpRefinerPtr ilprefiner,
-                      int num_parts,
-                      bool v_cycle_flag,
-                      bool spectral_flag,
+                      int num_parts, // number of blocks
+                      bool v_cycle_flag, // vcycle flag
+                      int num_initial_solutions, // number of initial random solutions
+                      int num_best_initial_solutions, // number of best initial solutions
+                      int num_ubfactor_delta, // allowing marginal imbalance to improve QoR
+                      int max_num_vcycle, // maximum number of vcycles
+                      int seed, // random seed
+                      float ub_factor, // ubfactor
+                      RefineType refine_type, // refinement type
                       utl::Logger* logger)
   {
     coarsening_ = coarsening;
     partitioners_ = partitioners;
+    kpmrefiner_ = kpmrefiner;
     ilprefiner_ = ilprefiner;
     num_parts_ = num_parts;
-    v_cycle_flag_ = v_cycle_flag;
-    spectral_flag_ = spectral_flag;
+    v_cycle_flag_ = v_cycle_flag;          
+    num_initial_solutions_ = num_initial_solutions; 
+    num_best_initial_solutions_ = num_best_initial_solutions;
+    num_ubfactor_delta_ = num_ubfactor_delta;
+    max_num_vcycle_ = max_num_vcycle;
+    seed_ = seed;                        
+    ub_factor_ = ub_factor;
+    refine_type_ = refine_type;
     logger_ = logger;
   }
+
+
   // New implementation
-  std::vector<int> CallFlow(std::string hypergraph_file,
-                            HGraph hgraph,
-                            HGraph hgraph_pr,
+  std::vector<int> CallFlow(HGraph hgraph,
                             std::vector<std::vector<float>> max_block_balance);
-  std::vector<int> RunFlow(HGraph hgraph,
-                           HGraph hgraph_pr,
-                           std::vector<std::vector<float>> max_vertex_balance,
-                           std::vector<int> initial_solution,
-                           bool read_spec_embedding_flag = false);
-
-  // Run Spec Enhancement
-  void CallSpecPart(HGraph hgraph, std::vector<int>& hint_solution);
-  std::vector<int> SpecRun(HGraph hgraph,
-                           std::vector<std::vector<float>> max_block_balance);
-  // Run the multilevel partitioning  (hgraph will be modified)
-  std::vector<int> RunZhiang(HGraph hgraph,
-                             std::vector<std::vector<float>> max_vertex_balance,
-                             std::vector<int> initial_solution,
-                             bool read_spec_embedding_flag = false);
-  void SpecifySpecParams(std::string hint_hgraph,
-                         int num_parts,
-                         int num_eigen_vectors,
-                         int num_solver_iters,
-                         int expander_cycles,
-                         int embed_placement_dimensions,
-                         int seed,
-                         float ub_factor);
-
  private:
   bool v_cycle_flag_ = true;                // enable v-cycle
-  bool spectral_flag_ = true;               // enable spectral embedding
   CoarseningPtr coarsening_ = nullptr;      // coarsening operator
   PartitionersPtr partitioners_ = nullptr;  // partitioners operator
   KPMrefinementPtr kpmrefiner_ = nullptr;   // kpmrefiner operator
   IlpRefinerPtr ilprefiner_ = nullptr;         // ilprefiner operator
   utl::Logger* logger_ = nullptr;
-  std::string hint_hgraph_ = "";
-  std::string hint_solution_file_ = "";
-  std::string cluster_file_ = "clusters.dat";
-  std::string embedding_file_ = "eigenvecs.dat";
   int num_parts_ = 2;          // number of blocks
-  int num_eigen_vectors_ = 2;  // number of eigen vectors generated by spectral
-  int num_solver_iters_ = 20;  // number of iterations of spectral solver
-  int expander_cycles_ = 2;    // the number of cycles used for graph conversion
-  int embed_placement_dimensions_ = 2;  // number of embedded factor
+  int num_initial_solutions_ = 20; // number of initial random solutions
+  int num_best_initial_solutions_ = 3; // number of best initial solutions
+  int num_ubfactor_delta_ = 5; // allowing marginal imbalance to improve QoR
+  int max_num_vcycle_ = 5; // maximum number of vcycles
   int seed_ = 0;                        // random seed
   float ub_factor_ = 1.0;               // ubfactor
-  int Nruns_ = 1;                       // number of initial partitions
-  std::vector<bool> edge_mask_;
-  void CallJulia();
-  // solving standard eigenvalue problem
-  void StandardSpec(std::string hypergraph_file);
-
-  std::vector<int> CutOverlay(HGraph hgraph, const std::vector<int>& solution);
-
-  // Get Initial solution
-  std::vector<int> InitialRun(
-      HGraph hgraph_origin,
-      std::vector<std::vector<float>> max_block_balance);
-
-  void SingleCycle(std::vector<HGraph>& hgraph_vec,
-                   std::vector<int>& initial_solution,
+  RefineType refine_type_ = KPMREFINEMENT; // refinement type
+  
+  // The main function
+  void RunFlow(HGraph hgraph,
+               std::vector<std::vector<float>> max_vertex_balance,
+               std::vector<int>& solution);
+ 
+  void SingleCycle(std::vector<HGraph> hgraph_vec,
+                   std::vector<int>* solution,
                    std::vector<std::vector<float>> max_block_balance,
                    bool v_cycle);
-
-  void VCycle(std::vector<HGraph>& hgraph_vec,
-              std::vector<int>& initial_solution,
-              std::vector<std::vector<float>> max_block_balance);
-
-  // Run Multiple Coarsening with different random seeds
-  // to improve the stability and reduce the variance
-  void InitialPartitioning(
-      HGraph hgraph,
-      const std::vector<std::vector<float>>* max_block_balance,
-      std::vector<HGraph>* hgraphs,
-      std::vector<int>* initial_solution,
-      int seed);
 };
 
 using MultiLevelHierarchyPtr = std::shared_ptr<MultiLevelHierarchy>;
