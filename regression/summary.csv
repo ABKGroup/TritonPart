@@ -1,0 +1,1 @@
+benchmark,UBfactor,Nparts,seed,hmetis_runtime (s),hmetis_cutsize,hmetis_balance,khmetis_runtime (s),khmetis_cutsize,khmetis_balance,tritonpart_runtime (s),tritonpart_cutsize,tritonpart_balance,best_cutsize,best_partitioner

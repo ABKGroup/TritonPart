@@ -1,0 +1,749 @@
+*******************************************************************************
+ HMETIS 1.5.3  Copyright 1998, Regents of the University of Minnesota
+
+HyperGraph Information -----------------------------------------------------
+ Name: /home/zf4_projects/TritonPart/TritonPart_v1.0/regression/hmetis_rpt/bitonic_mesh.hgr, #Vtxs: 192064, #Hedges: 235328, #Parts: 2, UBfactor: 0.05
+ Options: HFC, FM, Reconst-False, V-cycles @ End, No Fixed Vertices
+
+Recursive Partitioning... --------------------------------------------------
+
+  Bisecting a hgraph of size [vertices=192064, hedges=235328, balance=0.50]
+    Cut of trial    0:	    643 [0.48]
+    Cut of trial    1:	    635 [0.50]
+    Cut of trial    2:	    643 [0.48]
+    Cut of trial    3:	    639 [0.49]
+    Cut of trial    4:	    651 [0.45]
+    Cut of trial    5:	    653 [0.46]
+    Cut of trial    6:	    845 [0.50]
+    Cut of trial    7:	    637 [0.48]
+    Cut of trial    8:	    815 [0.46]
+    Cut of trial    9:	    637 [0.48]
+    The mincut for this bisection = 594, (average = 679.8) (balance = 0.50)
+
+ --------------------------------------------------------------------------
+  Summary for the 2-way partition:
+                Hyperedge Cut:       594		(minimize)
+      Sum of External Degrees:      1188		(minimize)
+                  Scaled Cost:  6.44e-08		(minimize)
+                   Absorption: 235137.97		(maximize)
+
+      Partition Sizes & External Degrees:
+	 95840[ 594]  96224[ 594] 
+
+Timing Information ---------------------------------------------------------
+  Partitioning Time:		  14.711sec
+           I/O Time:		   0.929sec
+*******************************************************************************
+*******************************************************************************
+ HMETIS 1.5.3  Copyright 1998, Regents of the University of Minnesota
+
+HyperGraph Information -----------------------------------------------------
+ Name: /home/zf4_projects/TritonPart/TritonPart_v1.0/regression/khmetis_rpt/bitonic_mesh.hgr, #Vtxs: 192064, #Hedges: 235328, #Parts: 2, UBfactor: 1.05
+ Options: HFC, Cut-minimization, V-cycle for Min
+
+K-way Partitioning... ------------------------------------------------------
+
+  Partitioning a hgraph of size [vertices=192064, hedges=235328, balance=1.05]
+    Cut/SOED of trial    0:	    639   1278 [1.00]
+    Cut/SOED of trial    1:	    620   1240 [1.03]
+    Cut/SOED of trial    2:	    683   1366 [1.00]
+    Cut/SOED of trial    3:	    633   1266 [1.00]
+    Cut/SOED of trial    4:	    679   1358 [1.00]
+    Cut/SOED of trial    5:	    639   1278 [1.01]
+    Cut/SOED of trial    6:	    683   1366 [1.00]
+    Cut/SOED of trial    7:	    642   1284 [1.02]
+    Cut/SOED of trial    8:	    678   1356 [1.01]
+    Cut/SOED of trial    9:	    754   1508 [1.00]
+    The mincut for this partitioning = 620, (average = 665.0) (balance = 1.03)
+
+ --------------------------------------------------------------------------
+  Summary for the 2-way partition:
+                Hyperedge Cut:       620		(minimize)
+      Sum of External Degrees:      1240		(minimize)
+                  Scaled Cost:  6.73e-08		(minimize)
+                   Absorption: 235166.11		(maximize)
+
+      Partition Sizes & External Degrees:
+	 98886[ 620]  93178[ 620] 
+
+Timing Information ---------------------------------------------------------
+  Partitioning Time:		  11.398sec
+           I/O Time:		   0.613sec
+*******************************************************************************
+OpenROAD v2.0-5276-g3a9d69752 
+This program is licensed under the BSD-3 license. See the LICENSE file for details.
+Components of this program may be licensed under more restrictive licenses which must be honored.
+[INFO PAR-2901] Staring TritonPart
+[INFO PAR-2113] Number of vertices : 192064
+[INFO PAR-2114] Number of hyperedges : 235328
+[INFO PAR-2115] Number of vertex dimensions : 1
+[INFO PAR-2116] Number of hyperedge dimensions : 1
+[INFO PAR-2117] Imbalance factor: 5.0
+[INFO PAR-2092] Max-Min balance constraints: [  105635.203125 , 86428.796875  ]
+[INFO PAR-2100] ********************************************************************************
+[INFO PAR-2101] Multilevel Coarsening Phase
+[INFO PAR-2102] ********************************************************************************
+[INFO PAR-2106] Level               Vertices            Hyperedges          
+[INFO PAR-2107] ---------------------------------------------------
+[INFO PAR-2108] 0                   192064              235328              
+[INFO PAR-2108] 1                   112978              153176              
+[INFO PAR-2108] 2                   66457               114860              
+[INFO PAR-2108] 3                   39092               89561               
+[INFO PAR-2108] 4                   22995               69175               
+[INFO PAR-2108] 5                   13526               49476               
+[INFO PAR-2108] 6                   7956                33092               
+[INFO PAR-2108] 7                   4679                20538               
+[INFO PAR-2108] 8                   2752                11936               
+[INFO PAR-2108] 9                   1618                6346                
+[INFO PAR-2108] 10                  951                 3397                
+[INFO PAR-2108] 11                  559                 1802                
+[INFO PAR-2108] 12                  328                 975                 
+[INFO PAR-2109] 13                  192                 482                 
+[INFO PAR-2110] ---------------------------------------------------
+[INFO PAR-2111] [Coarsen]  Runtime : 1.92 sec
+[INFO PAR-2112] ********************************************************************************
+[INFO PAR-2097] ********************************************************************************
+[INFO PAR-2098] Initial Partitioning Phase
+[INFO PAR-2099] ********************************************************************************
+[INFO PAR-2030] [Initial Partitioning Phase]  Optimal Attempt Partitioning:
+[INFO PAR-2501] Number of variables = 1156
+[INFO PAR-2502] Number of constraints = 11859
+[INFO PAR-2031] [Initial Partitioning Phase]  Cut Size Recorded: 806.0
+[INFO PAR-2032] [Initial Partitioning Phase]  Runtime : 47.93 sec
+[INFO PAR-2033] ********************************************************************************
+[INFO PAR-2037] Level               Vertices            Hyperedges          Cutsize Recorded    
+[INFO PAR-2038] ----------------------------------------------------------------------------
+[INFO PAR-2039] 13                  192                 482                 806.0               
+[INFO PAR-2040] 12                  328                 975                 806.0               
+[INFO PAR-2040] 11                  559                 1802                806.0               
+[INFO PAR-2040] 10                  951                 3397                806.0               
+[INFO PAR-2040] 9                   1618                6346                806.0               
+[INFO PAR-2040] 8                   2752                11936               770.0               
+[INFO PAR-2040] 7                   4679                20538               770.0               
+[INFO PAR-2040] 6                   7956                33092               756.0               
+[INFO PAR-2040] 5                   13526               49476               745.0               
+[INFO PAR-2040] 4                   22995               69175               717.0               
+[INFO PAR-2040] 3                   39092               89561               689.0               
+[INFO PAR-2040] 2                   66457               114860              658.0               
+[INFO PAR-2040] 1                   112978              153176              626.0               
+[INFO PAR-2040] 0                   192064              235328              604.0               
+[INFO PAR-2041] ----------------------------------------------------------------------------
+[INFO PAR-2042] Total hyperedges cut: 604.0
+[INFO PAR-2043] Areas of partitions: [  45.000104%  54.999896% ]
+[INFO PAR-2044] [Multilevel Refine]  Runtime : 1.00 sec
+[INFO PAR-2045] ********************************************************************************
+[INFO PAR-2093] Total I/O Runtime: 0.42 sec
+[INFO PAR-2094] Total V-Cycle Runtime: 51.05 sec
+[INFO PAR-2095] Total Runtime: 51.47 sec
+[INFO PAR-2096] Exiting TritonPart
+*******************************************************************************
+ HMETIS 1.5.3  Copyright 1998, Regents of the University of Minnesota
+
+HyperGraph Information -----------------------------------------------------
+ Name: /home/zf4_projects/TritonPart/TritonPart_v1.0/regression/hmetis_rpt/bitonic_mesh.hgr, #Vtxs: 192064, #Hedges: 235328, #Parts: 2, UBfactor: 0.05
+ Options: HFC, FM, Reconst-False, V-cycles @ End, No Fixed Vertices
+
+Recursive Partitioning... --------------------------------------------------
+
+  Bisecting a hgraph of size [vertices=192064, hedges=235328, balance=0.50]
+    Cut of trial    0:	    643 [0.48]
+    Cut of trial    1:	    664 [0.45]
+    Cut of trial    2:	    824 [0.47]
+    Cut of trial    3:	    637 [0.48]
+    Cut of trial    4:	    647 [0.48]
+    Cut of trial    5:	    641 [0.50]
+    Cut of trial    6:	    645 [0.48]
+    Cut of trial    7:	    656 [0.45]
+    Cut of trial    8:	    649 [0.48]
+    Cut of trial    9:	    637 [0.50]
+    The mincut for this bisection = 585, (average = 664.3) (balance = 0.48)
+
+ --------------------------------------------------------------------------
+  Summary for the 2-way partition:
+                Hyperedge Cut:       585		(minimize)
+      Sum of External Degrees:      1170		(minimize)
+                  Scaled Cost:  6.36e-08		(minimize)
+                   Absorption: 235218.55		(maximize)
+
+      Partition Sizes & External Degrees:
+	100639[ 585]  91425[ 585] 
+
+Timing Information ---------------------------------------------------------
+  Partitioning Time:		  13.704sec
+           I/O Time:		   0.944sec
+*******************************************************************************
+*******************************************************************************
+ HMETIS 1.5.3  Copyright 1998, Regents of the University of Minnesota
+
+HyperGraph Information -----------------------------------------------------
+ Name: /home/zf4_projects/TritonPart/TritonPart_v1.0/regression/khmetis_rpt/bitonic_mesh.hgr, #Vtxs: 192064, #Hedges: 235328, #Parts: 2, UBfactor: 1.05
+ Options: HFC, Cut-minimization, V-cycle for Min
+
+K-way Partitioning... ------------------------------------------------------
+
+  Partitioning a hgraph of size [vertices=192064, hedges=235328, balance=1.05]
+    Cut/SOED of trial    0:	    666   1332 [1.01]
+    Cut/SOED of trial    1:	    611   1222 [1.01]
+    Cut/SOED of trial    2:	    646   1292 [1.02]
+    Cut/SOED of trial    3:	    669   1338 [1.00]
+    Cut/SOED of trial    4:	    685   1370 [1.01]
+    Cut/SOED of trial    5:	    617   1234 [1.01]
+    Cut/SOED of trial    6:	    684   1368 [1.01]
+    Cut/SOED of trial    7:	    656   1312 [1.01]
+    Cut/SOED of trial    8:	    837   1674 [1.01]
+    Cut/SOED of trial    9:	    736   1472 [1.00]
+    The mincut for this partitioning = 611, (average = 680.7) (balance = 1.01)
+
+ --------------------------------------------------------------------------
+  Summary for the 2-way partition:
+                Hyperedge Cut:       611		(minimize)
+      Sum of External Degrees:      1222		(minimize)
+                  Scaled Cost:  6.63e-08		(minimize)
+                   Absorption: 235110.86		(maximize)
+
+      Partition Sizes & External Degrees:
+	 96976[ 611]  95088[ 611] 
+
+Timing Information ---------------------------------------------------------
+  Partitioning Time:		  14.652sec
+           I/O Time:		   0.611sec
+*******************************************************************************
+OpenROAD v2.0-5276-g3a9d69752 
+This program is licensed under the BSD-3 license. See the LICENSE file for details.
+Components of this program may be licensed under more restrictive licenses which must be honored.
+[INFO PAR-2901] Staring TritonPart
+[INFO PAR-2113] Number of vertices : 192064
+[INFO PAR-2114] Number of hyperedges : 235328
+[INFO PAR-2115] Number of vertex dimensions : 1
+[INFO PAR-2116] Number of hyperedge dimensions : 1
+[INFO PAR-2117] Imbalance factor: 5.0
+[INFO PAR-2092] Max-Min balance constraints: [  105635.203125 , 86428.796875  ]
+[INFO PAR-2100] ********************************************************************************
+[INFO PAR-2101] Multilevel Coarsening Phase
+[INFO PAR-2102] ********************************************************************************
+[INFO PAR-2106] Level               Vertices            Hyperedges          
+[INFO PAR-2107] ---------------------------------------------------
+[INFO PAR-2108] 0                   192064              235328              
+[INFO PAR-2108] 1                   112978              153176              
+[INFO PAR-2108] 2                   66457               114860              
+[INFO PAR-2108] 3                   39092               89561               
+[INFO PAR-2108] 4                   22995               69175               
+[INFO PAR-2108] 5                   13526               49476               
+[INFO PAR-2108] 6                   7956                33092               
+[INFO PAR-2108] 7                   4679                20538               
+[INFO PAR-2108] 8                   2752                11936               
+[INFO PAR-2108] 9                   1618                6346                
+[INFO PAR-2108] 10                  951                 3397                
+[INFO PAR-2108] 11                  559                 1802                
+[INFO PAR-2108] 12                  328                 975                 
+[INFO PAR-2109] 13                  192                 482                 
+[INFO PAR-2110] ---------------------------------------------------
+[INFO PAR-2111] [Coarsen]  Runtime : 1.78 sec
+[INFO PAR-2112] ********************************************************************************
+[INFO PAR-2097] ********************************************************************************
+[INFO PAR-2098] Initial Partitioning Phase
+[INFO PAR-2099] ********************************************************************************
+[INFO PAR-2030] [Initial Partitioning Phase]  Optimal Attempt Partitioning:
+[INFO PAR-2501] Number of variables = 1156
+[INFO PAR-2502] Number of constraints = 11859
+[INFO PAR-2031] [Initial Partitioning Phase]  Cut Size Recorded: 806.0
+[INFO PAR-2032] [Initial Partitioning Phase]  Runtime : 47.71 sec
+[INFO PAR-2033] ********************************************************************************
+[INFO PAR-2037] Level               Vertices            Hyperedges          Cutsize Recorded    
+[INFO PAR-2038] ----------------------------------------------------------------------------
+[INFO PAR-2039] 13                  192                 482                 806.0               
+[INFO PAR-2040] 12                  328                 975                 806.0               
+[INFO PAR-2040] 11                  559                 1802                806.0               
+[INFO PAR-2040] 10                  951                 3397                806.0               
+[INFO PAR-2040] 9                   1618                6346                806.0               
+[INFO PAR-2040] 8                   2752                11936               770.0               
+[INFO PAR-2040] 7                   4679                20538               770.0               
+[INFO PAR-2040] 6                   7956                33092               756.0               
+[INFO PAR-2040] 5                   13526               49476               745.0               
+[INFO PAR-2040] 4                   22995               69175               717.0               
+[INFO PAR-2040] 3                   39092               89561               689.0               
+[INFO PAR-2040] 2                   66457               114860              658.0               
+[INFO PAR-2040] 1                   112978              153176              626.0               
+[INFO PAR-2040] 0                   192064              235328              604.0               
+[INFO PAR-2041] ----------------------------------------------------------------------------
+[INFO PAR-2042] Total hyperedges cut: 604.0
+[INFO PAR-2043] Areas of partitions: [  45.000104%  54.999896% ]
+[INFO PAR-2044] [Multilevel Refine]  Runtime : 1.03 sec
+[INFO PAR-2045] ********************************************************************************
+[INFO PAR-2093] Total I/O Runtime: 0.41 sec
+[INFO PAR-2094] Total V-Cycle Runtime: 50.72 sec
+[INFO PAR-2095] Total Runtime: 51.14 sec
+[INFO PAR-2096] Exiting TritonPart
+*******************************************************************************
+ HMETIS 1.5.3  Copyright 1998, Regents of the University of Minnesota
+
+HyperGraph Information -----------------------------------------------------
+ Name: /home/zf4_projects/TritonPart/TritonPart_v1.0/regression/hmetis_rpt/bitonic_mesh.hgr, #Vtxs: 192064, #Hedges: 235328, #Parts: 2, UBfactor: 0.05
+ Options: HFC, FM, Reconst-False, V-cycles @ End, No Fixed Vertices
+
+Recursive Partitioning... --------------------------------------------------
+
+  Bisecting a hgraph of size [vertices=192064, hedges=235328, balance=0.50]
+    Cut of trial    0:	    647 [0.48]
+    Cut of trial    1:	    639 [0.50]
+    Cut of trial    2:	    826 [0.47]
+    Cut of trial    3:	    664 [0.45]
+    Cut of trial    4:	    643 [0.48]
+    Cut of trial    5:	    637 [0.48]
+    Cut of trial    6:	    649 [0.48]
+    Cut of trial    7:	    640 [0.49]
+    Cut of trial    8:	    641 [0.48]
+    Cut of trial    9:	    642 [0.46]
+    The mincut for this bisection = 585, (average = 662.8) (balance = 0.48)
+
+ --------------------------------------------------------------------------
+  Summary for the 2-way partition:
+                Hyperedge Cut:       585		(minimize)
+      Sum of External Degrees:      1170		(minimize)
+                  Scaled Cost:  6.36e-08		(minimize)
+                   Absorption: 235218.55		(maximize)
+
+      Partition Sizes & External Degrees:
+	 91425[ 585] 100639[ 585] 
+
+Timing Information ---------------------------------------------------------
+  Partitioning Time:		  13.923sec
+           I/O Time:		   0.942sec
+*******************************************************************************
+*******************************************************************************
+ HMETIS 1.5.3  Copyright 1998, Regents of the University of Minnesota
+
+HyperGraph Information -----------------------------------------------------
+ Name: /home/zf4_projects/TritonPart/TritonPart_v1.0/regression/khmetis_rpt/bitonic_mesh.hgr, #Vtxs: 192064, #Hedges: 235328, #Parts: 2, UBfactor: 1.05
+ Options: HFC, Cut-minimization, V-cycle for Min
+
+K-way Partitioning... ------------------------------------------------------
+
+  Partitioning a hgraph of size [vertices=192064, hedges=235328, balance=1.05]
+    Cut/SOED of trial    0:	    816   1632 [1.01]
+    Cut/SOED of trial    1:	    611   1222 [1.00]
+    Cut/SOED of trial    2:	    711   1422 [1.00]
+    Cut/SOED of trial    3:	    636   1272 [1.01]
+    Cut/SOED of trial    4:	    685   1370 [1.00]
+    Cut/SOED of trial    5:	    634   1268 [1.01]
+    Cut/SOED of trial    6:	    688   1376 [1.00]
+    Cut/SOED of trial    7:	    641   1282 [1.01]
+    Cut/SOED of trial    8:	    700   1400 [1.01]
+    Cut/SOED of trial    9:	    698   1396 [1.03]
+    The mincut for this partitioning = 611, (average = 682.0) (balance = 1.00)
+
+ --------------------------------------------------------------------------
+  Summary for the 2-way partition:
+                Hyperedge Cut:       611		(minimize)
+      Sum of External Degrees:      1222		(minimize)
+                  Scaled Cost:  6.63e-08		(minimize)
+                   Absorption: 235208.45		(maximize)
+
+      Partition Sizes & External Degrees:
+	 95748[ 611]  96316[ 611] 
+
+Timing Information ---------------------------------------------------------
+  Partitioning Time:		  11.561sec
+           I/O Time:		   0.603sec
+*******************************************************************************
+OpenROAD v2.0-5276-g3a9d69752 
+This program is licensed under the BSD-3 license. See the LICENSE file for details.
+Components of this program may be licensed under more restrictive licenses which must be honored.
+[INFO PAR-2901] Staring TritonPart
+[INFO PAR-2113] Number of vertices : 192064
+[INFO PAR-2114] Number of hyperedges : 235328
+[INFO PAR-2115] Number of vertex dimensions : 1
+[INFO PAR-2116] Number of hyperedge dimensions : 1
+[INFO PAR-2117] Imbalance factor: 5.0
+[INFO PAR-2092] Max-Min balance constraints: [  105635.203125 , 86428.796875  ]
+[INFO PAR-2100] ********************************************************************************
+[INFO PAR-2101] Multilevel Coarsening Phase
+[INFO PAR-2102] ********************************************************************************
+[INFO PAR-2106] Level               Vertices            Hyperedges          
+[INFO PAR-2107] ---------------------------------------------------
+[INFO PAR-2108] 0                   192064              235328              
+[INFO PAR-2108] 1                   112978              153144              
+[INFO PAR-2108] 2                   66457               114852              
+[INFO PAR-2108] 3                   39092               89623               
+[INFO PAR-2108] 4                   22995               69233               
+[INFO PAR-2108] 5                   13526               50023               
+[INFO PAR-2108] 6                   7956                33153               
+[INFO PAR-2108] 7                   4679                20535               
+[INFO PAR-2108] 8                   2752                11895               
+[INFO PAR-2108] 9                   1618                6483                
+[INFO PAR-2108] 10                  951                 3469                
+[INFO PAR-2108] 11                  559                 1872                
+[INFO PAR-2108] 12                  328                 971                 
+[INFO PAR-2108] 13                  192                 504                 
+[INFO PAR-2109] 14                  115                 220                 
+[INFO PAR-2110] ---------------------------------------------------
+[INFO PAR-2111] [Coarsen]  Runtime : 1.88 sec
+[INFO PAR-2112] ********************************************************************************
+[INFO PAR-2097] ********************************************************************************
+[INFO PAR-2098] Initial Partitioning Phase
+[INFO PAR-2099] ********************************************************************************
+[INFO PAR-2030] [Initial Partitioning Phase]  Optimal Attempt Partitioning:
+[INFO PAR-2501] Number of variables = 555
+[INFO PAR-2502] Number of constraints = 5353
+[INFO PAR-2031] [Initial Partitioning Phase]  Cut Size Recorded: 821.0
+[INFO PAR-2032] [Initial Partitioning Phase]  Runtime : 15.83 sec
+[INFO PAR-2033] ********************************************************************************
+[INFO PAR-2037] Level               Vertices            Hyperedges          Cutsize Recorded    
+[INFO PAR-2038] ----------------------------------------------------------------------------
+[INFO PAR-2039] 14                  115                 220                 821.0               
+[INFO PAR-2040] 13                  192                 504                 821.0               
+[INFO PAR-2040] 12                  328                 971                 821.0               
+[INFO PAR-2040] 11                  559                 1872                821.0               
+[INFO PAR-2040] 10                  951                 3469                820.0               
+[INFO PAR-2040] 9                   1618                6483                819.0               
+[INFO PAR-2040] 8                   2752                11895               819.0               
+[INFO PAR-2040] 7                   4679                20535               819.0               
+[INFO PAR-2040] 6                   7956                33153               814.0               
+[INFO PAR-2040] 5                   13526               50023               800.0               
+[INFO PAR-2040] 4                   22995               69233               737.0               
+[INFO PAR-2040] 3                   39092               89623               714.0               
+[INFO PAR-2040] 2                   66457               114852              697.0               
+[INFO PAR-2040] 1                   112978              153144              666.0               
+[INFO PAR-2040] 0                   192064              235328              637.0               
+[INFO PAR-2041] ----------------------------------------------------------------------------
+[INFO PAR-2042] Total hyperedges cut: 637.0
+[INFO PAR-2043] Areas of partitions: [  47.800733%  52.199267% ]
+[INFO PAR-2044] [Multilevel Refine]  Runtime : 0.78 sec
+[INFO PAR-2045] ********************************************************************************
+[INFO PAR-2093] Total I/O Runtime: 0.42 sec
+[INFO PAR-2094] Total V-Cycle Runtime: 18.68 sec
+[INFO PAR-2095] Total Runtime: 19.10 sec
+[INFO PAR-2096] Exiting TritonPart
+*******************************************************************************
+ HMETIS 1.5.3  Copyright 1998, Regents of the University of Minnesota
+
+HyperGraph Information -----------------------------------------------------
+ Name: /home/zf4_projects/TritonPart/TritonPart_v1.0/regression/hmetis_rpt/bitonic_mesh.hgr, #Vtxs: 192064, #Hedges: 235328, #Parts: 2, UBfactor: 0.05
+ Options: HFC, FM, Reconst-False, V-cycles @ End, No Fixed Vertices
+
+Recursive Partitioning... --------------------------------------------------
+
+  Bisecting a hgraph of size [vertices=192064, hedges=235328, balance=0.50]
+    Cut of trial    0:	    651 [0.45]
+    Cut of trial    1:	    637 [0.48]
+    Cut of trial    2:	    645 [0.48]
+    Cut of trial    3:	    637 [0.50]
+    Cut of trial    4:	    645 [0.48]
+    Cut of trial    5:	    637 [0.48]
+    Cut of trial    6:	    854 [0.48]
+    Cut of trial    7:	    655 [0.45]
+    Cut of trial    8:	    773 [0.46]
+    Cut of trial    9:	    656 [0.49]
+    The mincut for this bisection = 585, (average = 679.0) (balance = 0.48)
+
+ --------------------------------------------------------------------------
+  Summary for the 2-way partition:
+                Hyperedge Cut:       585		(minimize)
+      Sum of External Degrees:      1170		(minimize)
+                  Scaled Cost:  6.36e-08		(minimize)
+                   Absorption: 235218.55		(maximize)
+
+      Partition Sizes & External Degrees:
+	100639[ 585]  91425[ 585] 
+
+Timing Information ---------------------------------------------------------
+  Partitioning Time:		  14.139sec
+           I/O Time:		   0.931sec
+*******************************************************************************
+*******************************************************************************
+ HMETIS 1.5.3  Copyright 1998, Regents of the University of Minnesota
+
+HyperGraph Information -----------------------------------------------------
+ Name: /home/zf4_projects/TritonPart/TritonPart_v1.0/regression/khmetis_rpt/bitonic_mesh.hgr, #Vtxs: 192064, #Hedges: 235328, #Parts: 2, UBfactor: 1.05
+ Options: HFC, Cut-minimization, V-cycle for Min
+
+K-way Partitioning... ------------------------------------------------------
+
+  Partitioning a hgraph of size [vertices=192064, hedges=235328, balance=1.05]
+    Cut/SOED of trial    0:	    640   1280 [1.02]
+    Cut/SOED of trial    1:	    609   1218 [1.00]
+    Cut/SOED of trial    2:	    717   1434 [1.00]
+    Cut/SOED of trial    3:	    621   1242 [1.03]
+    Cut/SOED of trial    4:	    673   1346 [1.00]
+    Cut/SOED of trial    5:	    635   1270 [1.00]
+    Cut/SOED of trial    6:	    670   1340 [1.01]
+    Cut/SOED of trial    7:	    655   1310 [1.02]
+    Cut/SOED of trial    8:	    675   1350 [1.00]
+    Cut/SOED of trial    9:	    692   1384 [1.01]
+    The mincut for this partitioning = 609, (average = 658.7) (balance = 1.00)
+
+ --------------------------------------------------------------------------
+  Summary for the 2-way partition:
+                Hyperedge Cut:       609		(minimize)
+      Sum of External Degrees:      1218		(minimize)
+                  Scaled Cost:  6.60e-08		(minimize)
+                   Absorption: 235167.83		(maximize)
+
+      Partition Sizes & External Degrees:
+	 96461[ 609]  95603[ 609] 
+
+Timing Information ---------------------------------------------------------
+  Partitioning Time:		  11.656sec
+           I/O Time:		   0.610sec
+*******************************************************************************
+OpenROAD v2.0-5276-g3a9d69752 
+This program is licensed under the BSD-3 license. See the LICENSE file for details.
+Components of this program may be licensed under more restrictive licenses which must be honored.
+[INFO PAR-2901] Staring TritonPart
+[INFO PAR-2113] Number of vertices : 192064
+[INFO PAR-2114] Number of hyperedges : 235328
+[INFO PAR-2115] Number of vertex dimensions : 1
+[INFO PAR-2116] Number of hyperedge dimensions : 1
+[INFO PAR-2117] Imbalance factor: 5.0
+[INFO PAR-2092] Max-Min balance constraints: [  105635.203125 , 86428.796875  ]
+[INFO PAR-2100] ********************************************************************************
+[INFO PAR-2101] Multilevel Coarsening Phase
+[INFO PAR-2102] ********************************************************************************
+[INFO PAR-2106] Level               Vertices            Hyperedges          
+[INFO PAR-2107] ---------------------------------------------------
+[INFO PAR-2108] 0                   192064              235328              
+[INFO PAR-2108] 1                   112978              153351              
+[INFO PAR-2108] 2                   66457               114932              
+[INFO PAR-2108] 3                   39092               89516               
+[INFO PAR-2108] 4                   22995               69272               
+[INFO PAR-2108] 5                   13526               49441               
+[INFO PAR-2108] 6                   7956                32735               
+[INFO PAR-2108] 7                   4679                20447               
+[INFO PAR-2108] 8                   2752                11703               
+[INFO PAR-2108] 9                   1618                6394                
+[INFO PAR-2108] 10                  951                 3365                
+[INFO PAR-2108] 11                  559                 1752                
+[INFO PAR-2108] 12                  328                 911                 
+[INFO PAR-2109] 13                  192                 464                 
+[INFO PAR-2110] ---------------------------------------------------
+[INFO PAR-2111] [Coarsen]  Runtime : 1.90 sec
+[INFO PAR-2112] ********************************************************************************
+[INFO PAR-2097] ********************************************************************************
+[INFO PAR-2098] Initial Partitioning Phase
+[INFO PAR-2099] ********************************************************************************
+[INFO PAR-2030] [Initial Partitioning Phase]  Optimal Attempt Partitioning:
+[INFO PAR-2501] Number of variables = 1120
+[INFO PAR-2502] Number of constraints = 11585
+[INFO PAR-2031] [Initial Partitioning Phase]  Cut Size Recorded: 720.0
+[INFO PAR-2032] [Initial Partitioning Phase]  Runtime : 31.81 sec
+[INFO PAR-2033] ********************************************************************************
+[INFO PAR-2037] Level               Vertices            Hyperedges          Cutsize Recorded    
+[INFO PAR-2038] ----------------------------------------------------------------------------
+[INFO PAR-2039] 13                  192                 464                 720.0               
+[INFO PAR-2040] 12                  328                 911                 720.0               
+[INFO PAR-2040] 11                  559                 1752                720.0               
+[INFO PAR-2040] 10                  951                 3365                720.0               
+[INFO PAR-2040] 9                   1618                6394                720.0               
+[INFO PAR-2040] 8                   2752                11703               720.0               
+[INFO PAR-2040] 7                   4679                20447               720.0               
+[INFO PAR-2040] 6                   7956                32735               720.0               
+[INFO PAR-2040] 5                   13526               49441               701.0               
+[INFO PAR-2040] 4                   22995               69272               680.0               
+[INFO PAR-2040] 3                   39092               89516               638.0               
+[INFO PAR-2040] 2                   66457               114932              620.0               
+[INFO PAR-2040] 1                   112978              153351              604.0               
+[INFO PAR-2040] 0                   192064              235328              584.0               
+[INFO PAR-2041] ----------------------------------------------------------------------------
+[INFO PAR-2042] Total hyperedges cut: 584.0
+[INFO PAR-2043] Areas of partitions: [  54.999896%  45.000104% ]
+[INFO PAR-2044] [Multilevel Refine]  Runtime : 1.02 sec
+[INFO PAR-2045] ********************************************************************************
+[INFO PAR-2093] Total I/O Runtime: 0.42 sec
+[INFO PAR-2094] Total V-Cycle Runtime: 34.94 sec
+[INFO PAR-2095] Total Runtime: 35.35 sec
+[INFO PAR-2096] Exiting TritonPart
+*******************************************************************************
+ HMETIS 1.5.3  Copyright 1998, Regents of the University of Minnesota
+
+HyperGraph Information -----------------------------------------------------
+ Name: /home/zf4_projects/TritonPart/TritonPart_v1.0/regression/hmetis_rpt/bitonic_mesh.hgr, #Vtxs: 192064, #Hedges: 235328, #Parts: 2, UBfactor: 0.05
+ Options: HFC, FM, Reconst-False, V-cycles @ End, No Fixed Vertices
+
+Recursive Partitioning... --------------------------------------------------
+
+  Bisecting a hgraph of size [vertices=192064, hedges=235328, balance=0.50]
+    Cut of trial    0:	    647 [0.48]
+    Cut of trial    1:	    637 [0.48]
+    Cut of trial    2:	    645 [0.48]
+    Cut of trial    3:	    660 [0.45]
+    Cut of trial    4:	    653 [0.45]
+    Cut of trial    5:	    648 [0.49]
+    Cut of trial    6:	    649 [0.48]
+    Cut of trial    7:	    646 [0.47]
+    Cut of trial    8:	    708 [0.49]
+    Cut of trial    9:	    652 [0.47]
+    The mincut for this bisection = 585, (average = 654.5) (balance = 0.48)
+
+ --------------------------------------------------------------------------
+  Summary for the 2-way partition:
+                Hyperedge Cut:       585		(minimize)
+      Sum of External Degrees:      1170		(minimize)
+                  Scaled Cost:  6.36e-08		(minimize)
+                   Absorption: 235218.55		(maximize)
+
+      Partition Sizes & External Degrees:
+	 91425[ 585] 100639[ 585] 
+
+Timing Information ---------------------------------------------------------
+  Partitioning Time:		  14.040sec
+           I/O Time:		   0.943sec
+*******************************************************************************
+*******************************************************************************
+ HMETIS 1.5.3  Copyright 1998, Regents of the University of Minnesota
+
+HyperGraph Information -----------------------------------------------------
+ Name: /home/zf4_projects/TritonPart/TritonPart_v1.0/regression/khmetis_rpt/bitonic_mesh.hgr, #Vtxs: 192064, #Hedges: 235328, #Parts: 2, UBfactor: 1.05
+ Options: HFC, Cut-minimization, V-cycle for Min
+
+K-way Partitioning... ------------------------------------------------------
+
+  Partitioning a hgraph of size [vertices=192064, hedges=235328, balance=1.05]
+    Cut/SOED of trial    0:	    665   1330 [1.00]
+    Cut/SOED of trial    1:	    617   1234 [1.00]
+    Cut/SOED of trial    2:	    688   1376 [1.00]
+    Cut/SOED of trial    3:	    639   1278 [1.00]
+    Cut/SOED of trial    4:	    686   1372 [1.01]
+    Cut/SOED of trial    5:	    724   1448 [1.00]
+    Cut/SOED of trial    6:	    821   1642 [1.01]
+    Cut/SOED of trial    7:	    701   1402 [1.01]
+    Cut/SOED of trial    8:	    677   1354 [1.00]
+    Cut/SOED of trial    9:	    734   1468 [1.00]
+    The mincut for this partitioning = 617, (average = 695.2) (balance = 1.00)
+
+ --------------------------------------------------------------------------
+  Summary for the 2-way partition:
+                Hyperedge Cut:       617		(minimize)
+      Sum of External Degrees:      1234		(minimize)
+                  Scaled Cost:  6.69e-08		(minimize)
+                   Absorption: 235191.84		(maximize)
+
+      Partition Sizes & External Degrees:
+	 95764[ 617]  96300[ 617] 
+
+Timing Information ---------------------------------------------------------
+  Partitioning Time:		  10.092sec
+           I/O Time:		   0.618sec
+*******************************************************************************
+OpenROAD v2.0-5276-g3a9d69752 
+This program is licensed under the BSD-3 license. See the LICENSE file for details.
+Components of this program may be licensed under more restrictive licenses which must be honored.
+[INFO PAR-2901] Staring TritonPart
+[INFO PAR-2113] Number of vertices : 192064
+[INFO PAR-2114] Number of hyperedges : 235328
+[INFO PAR-2115] Number of vertex dimensions : 1
+[INFO PAR-2116] Number of hyperedge dimensions : 1
+[INFO PAR-2117] Imbalance factor: 5.0
+[INFO PAR-2092] Max-Min balance constraints: [  105635.203125 , 86428.796875  ]
+[INFO PAR-2100] ********************************************************************************
+[INFO PAR-2101] Multilevel Coarsening Phase
+[INFO PAR-2102] ********************************************************************************
+[INFO PAR-2106] Level               Vertices            Hyperedges          
+[INFO PAR-2107] ---------------------------------------------------
+[INFO PAR-2108] 0                   192064              235328              
+[INFO PAR-2108] 1                   112978              153230              
+[INFO PAR-2108] 2                   66457               114977              
+[INFO PAR-2108] 3                   39092               89559               
+[INFO PAR-2108] 4                   22995               69204               
+[INFO PAR-2108] 5                   13526               49717               
+[INFO PAR-2108] 6                   7956                33379               
+[INFO PAR-2108] 7                   4679                20770               
+[INFO PAR-2108] 8                   2752                12003               
+[INFO PAR-2108] 9                   1618                6641                
+[INFO PAR-2108] 10                  951                 3444                
+[INFO PAR-2108] 11                  559                 1839                
+[INFO PAR-2108] 12                  328                 936                 
+[INFO PAR-2109] 13                  192                 480                 
+[INFO PAR-2110] ---------------------------------------------------
+[INFO PAR-2111] [Coarsen]  Runtime : 1.88 sec
+[INFO PAR-2112] ********************************************************************************
+[INFO PAR-2097] ********************************************************************************
+[INFO PAR-2098] Initial Partitioning Phase
+[INFO PAR-2099] ********************************************************************************
+[INFO PAR-2030] [Initial Partitioning Phase]  Optimal Attempt Partitioning:
+[INFO PAR-2501] Number of variables = 1152
+[INFO PAR-2502] Number of constraints = 11319
+[INFO PAR-2031] [Initial Partitioning Phase]  Cut Size Recorded: 722.0
+[INFO PAR-2032] [Initial Partitioning Phase]  Runtime : 41.35 sec
+[INFO PAR-2033] ********************************************************************************
+[INFO PAR-2037] Level               Vertices            Hyperedges          Cutsize Recorded    
+[INFO PAR-2038] ----------------------------------------------------------------------------
+[INFO PAR-2039] 13                  192                 480                 722.0               
+[INFO PAR-2040] 12                  328                 936                 722.0               
+[INFO PAR-2040] 11                  559                 1839                722.0               
+[INFO PAR-2040] 10                  951                 3444                722.0               
+[INFO PAR-2040] 9                   1618                6641                722.0               
+[INFO PAR-2040] 8                   2752                12003               722.0               
+[INFO PAR-2040] 7                   4679                20770               722.0               
+[INFO PAR-2040] 6                   7956                33379               722.0               
+[INFO PAR-2040] 5                   13526               49717               716.0               
+[INFO PAR-2040] 4                   22995               69204               698.0               
+[INFO PAR-2040] 3                   39092               89559               680.0               
+[INFO PAR-2040] 2                   66457               114977              658.0               
+[INFO PAR-2040] 1                   112978              153230              639.0               
+[INFO PAR-2040] 0                   192064              235328              587.0               
+[INFO PAR-2041] ----------------------------------------------------------------------------
+[INFO PAR-2042] Total hyperedges cut: 587.0
+[INFO PAR-2043] Areas of partitions: [  47.540403%  52.459597% ]
+[INFO PAR-2044] [Multilevel Refine]  Runtime : 0.94 sec
+[INFO PAR-2045] ********************************************************************************
+[INFO PAR-2093] Total I/O Runtime: 0.42 sec
+[INFO PAR-2094] Total V-Cycle Runtime: 44.36 sec
+[INFO PAR-2095] Total Runtime: 44.78 sec
+[INFO PAR-2096] Exiting TritonPart
+Running Regression Sweep!
+[INFO] Running  bitonic_mesh  with UBfactor  5  and Nparts  2
+[INFO] Running Partitioner :  hmetis
+cutsize :  590
+balance :  [0.49900033322225923, 0.5009996667777408]
+[INFO] Running Partitioner :  khmetis
+cutsize :  616
+balance :  [0.5148596301232923, 0.4851403698767078]
+[INFO] Running Partitioner :  tritonpart
+cutsize :  604
+balance :  [0.45000104131956015, 0.5499989586804399]
+[INFO] Running Partitioner :  hmetis
+cutsize :  581
+balance :  [0.5239867960679774, 0.4760132039320227]
+[INFO] Running Partitioner :  khmetis
+cutsize :  607
+balance :  [0.504915028323892, 0.495084971676108]
+[INFO] Running Partitioner :  tritonpart
+cutsize :  604
+balance :  [0.45000104131956015, 0.5499989586804399]
+[INFO] Running Partitioner :  hmetis
+cutsize :  581
+balance :  [0.4760132039320227, 0.5239867960679774]
+[INFO] Running Partitioner :  khmetis
+cutsize :  607
+balance :  [0.4985213262245918, 0.5014786737754082]
+[INFO] Running Partitioner :  tritonpart
+cutsize :  637
+balance :  [0.47800733088970343, 0.5219926691102965]
+[INFO] Running Partitioner :  hmetis
+cutsize :  581
+balance :  [0.5239867960679774, 0.4760132039320227]
+[INFO] Running Partitioner :  khmetis
+cutsize :  605
+balance :  [0.5022336304565145, 0.4977663695434855]
+[INFO] Running Partitioner :  tritonpart
+cutsize :  584
+balance :  [0.5499989586804399, 0.45000104131956015]
+[INFO] Running Partitioner :  hmetis
+cutsize :  581
+balance :  [0.4760132039320227, 0.5239867960679774]
+[INFO] Running Partitioner :  khmetis
+cutsize :  613
+balance :  [0.4986046317894035, 0.5013953682105965]
+[INFO] Running Partitioner :  tritonpart
+cutsize :  587
+balance :  [0.4754040319893369, 0.5245959680106631]
+************************************************
+************* Result Summary *******************
+************************************************
+
+
+
+
+------------------------------------------------
+--------- hMETIS VS TritonPart -----------------
+Fail ratio of TritonPart :  1.0 % ( 5 / 5 )
