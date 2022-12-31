@@ -5,7 +5,7 @@ Currently our repo is under active development.
 
 
 ## Table of Content
-  - [OpenROAD](https://github.com/ABKGroup/TritonPart/tree/main/OpenROAD) includes the source for TritonPart. The codes are available in OpenROAD/src/par.
+  - [OpenROAD](https://github.com/ABKGroup/TritonPart/tree/main/OpenROAD) includes the source code for TritonPart. The codes are available in OpenROAD/src/par.
   - [titan23_benchmark](https://github.com/ABKGroup/TritonPart/tree/main/titan23_benchmark) provides the titan23 benchmark suites.
   - [regression](https://github.com/ABKGroup/TritonPart/tree/main/regression) provides the scripts for benchmarking TritonPart.
   
