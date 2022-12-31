@@ -1,0 +1,11 @@
+# python cache
+__pycache__/
+*.py[cod]
+
+*~
+core
+*.core
+TAGS
+defRWarning.log
+
+test/results

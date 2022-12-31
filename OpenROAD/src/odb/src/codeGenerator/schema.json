@@ -1,0 +1,484 @@
+{
+  "classes": [
+    {
+      "src":"dbTechLayer.json"
+    },
+    {
+      "src": "dbTechLayerSpacingEolRule.json"
+    },
+    {
+      "src":"dbTechLayerMinStepRule.json"
+    },
+    {
+      "src":"dbTechLayerCornerSpacingRule.json"
+    },
+    {
+      "src": "dbTechLayerSpacingTablePrlRule.json"
+    },
+    {
+      "src": "dbTechLayerEolKeepOutRule.json"
+    },
+    {
+      "src":"dbTechLayerCutClassRule.json"
+    },
+    {
+      "src":"dbTechLayerCutSpacingRule.json"
+    },
+    {
+      "src":"dbTechLayerCutSpacingTableOrthRule.json"
+    },
+    {
+      "src":"dbTechLayerCutSpacingTableDefRule.json"
+    },
+    {
+      "src":"dbTechLayerCutEnclosureRule.json"
+    },
+    {
+      "src":"dbTechLayerEolExtensionRule.json"
+    },
+    {
+      "src":"dbTechLayerArraySpacingRule.json"
+    },
+    {
+      "src":"dbTechLayerWidthTableRule.json"
+    },
+    {
+      "src":"dbTechLayerMinCutRule.json"
+    },
+    {
+      "src":"dbGuide.json"
+    },
+    {
+      "src":"dbMetalWidthViaMap.json"
+    },
+    {
+      "src":"dbTechLayerAreaRule.json"
+    },
+    {
+      "name":"dbModule",
+      "type":"dbObject",
+      "fields":[
+        {
+          "name":"_name",
+          "type":"char *",
+          "flags":["no-set"]
+        },
+        {
+          "name":"_next_entry",
+          "type":"dbId<_dbModule>",
+          "flags":["no-set","no-get"]
+        },
+        {
+          "name":"_insts",
+          "type":"dbId<_dbInst>",
+          "flags":["no-set","no-get"],
+          "parent":"dbBlock"
+        },
+        {
+          "name":"_modinsts",
+          "type":"dbId<_dbModInst>",
+          "flags":["no-set","no-get"],
+          "parent":"dbBlock"
+        },
+        {
+          "name":"_mod_inst",
+          "type":"dbId<_dbModInst>",
+          "flags":["no-set"],
+          "parent":"dbBlock"
+        }
+      ],
+      "constructors":[],
+      "cpp_includes":["dbBlock.h","dbHashTable.hpp"]
+    },
+    {
+      "name":"dbModInst",
+      "type":"dbObject",
+      "fields":[
+        {
+          "name":"_name",
+          "type":"char *",
+          "flags":["no-set","no-get"]
+        },
+        {
+          "name":"_next_entry",
+          "type":"dbId<_dbModInst>",
+          "flags":["no-set","no-get"]
+        },
+        {
+          "name":"_parent",
+          "type":"dbId<_dbModule>",
+          "flags":["no-set"],
+          "parent":"dbBlock"
+        },
+        {
+          "name":"_module_next",
+          "type":"dbId<_dbModInst>",
+          "flags":["no-get","no-set"],
+          "parent":"dbBlock"
+        },
+        {
+          "name":"_master",
+          "type":"dbId<_dbModule>",
+          "flags":["no-set"],
+          "parent":"dbBlock"
+        },
+        {
+          "name":"_group_next",
+          "type":"dbId<_dbModInst>",
+          "flags":["no-get","no-set"],
+          "parent":"dbBlock"
+        },
+        {
+          "name":"_group",
+          "type":"dbId<_dbGroup>",
+          "flags":["no-set"],
+          "parent":"dbBlock"
+        }
+      ],
+      "constructors":[],
+      "cpp_includes":["dbBlock.h","dbModule.h","dbHashTable.hpp"]
+    },
+    {
+      "src":"dbGroup.json"
+    },
+    {
+      "src":"dbGCellGrid.json"
+    },
+    {
+      "src":"dbAccessPoint.json"
+    },
+    {
+      "src":"dbGlobalConnect.json"
+    },
+    {
+      "name":"dbPowerDomain",
+      "type":"dbObject",
+      "fields":[
+        {
+          "name":"_name",
+          "type":"char *",
+          "flags":["no-set"]
+        },
+        {
+          "name":"_next_entry",
+          "type":"dbId<_dbPowerDomain>",
+          "flags":["no-set","no-get"]
+        },
+        {
+          "name":"_elements",
+          "type":"dbVector<std::string>",
+          "flags":["no-set","no-get"]  
+        },
+        {
+          "name":"_power_switch",
+          "type":"dbVector<dbId<_dbPowerSwitch>>",
+          "flags":["no-set","no-get"],
+          "parent":"dbBlock"
+        },
+        {
+          "name":"_isolation",
+          "type":"dbVector<dbId<_dbIsolation>>",
+          "flags":["no-set","no-get"],
+          "parent":"dbBlock"
+        }
+      ],
+      "constructors":[],
+      "cpp_includes":["dbBlock.h","dbHashTable.hpp", "dbVector.h", "dbIsolation.h", "dbPowerSwitch.h", "dbModInst.h"],
+      "h_includes": [
+        "dbVector.h"
+      ]
+    },
+    {
+      "name":"dbLogicPort",
+      "type":"dbObject",
+      "fields":[
+        {
+          "name":"_name",
+          "type":"char *",
+          "flags":["no-set"]
+        },
+        {
+          "name":"_next_entry",
+          "type":"dbId<_dbLogicPort>",
+          "flags":["no-set","no-get"]
+        },
+        {
+          "name":"direction",
+          "type":"std::string",
+          "flags":["no-set"]  
+        }
+      ],
+      "constructors":[],
+      "cpp_includes":["dbBlock.h","dbHashTable.hpp", "dbVector.h", "dbIsolation.h", "dbPowerSwitch.h", "dbModInst.h"],
+      "h_includes": [
+        "dbVector.h"
+      ]
+    },
+    {
+      "name":"dbPowerSwitch",
+      "type":"dbObject",
+      "fields":[
+        {
+          "name":"_name",
+          "type":"char *",
+          "flags":["no-set"]
+        },
+        {
+          "name":"_next_entry",
+          "type":"dbId<_dbPowerSwitch>",
+          "flags":["no-set","no-get"]
+        },
+        {
+          "name":"_in_supply_port",
+          "type":"std::string",
+          "flags":["no-set"]
+        },
+        {
+          "name":"_out_supply_port",
+          "type":"std::string",
+          "flags":["no-set"]
+        },
+        {
+          "name":"_control_port",
+          "type":"dbVector<std::string>",
+          "flags":["no-set", "no-get"]
+        },
+        {
+          "name":"_on_state",
+          "type":"dbVector<std::string>",
+          "flags":["no-set", "no-get"]
+        },
+        {
+          "name":"_control_net",
+          "type":"dbId<_dbNet>",
+          "flags":[],
+          "parent":"dbBlock"
+        },
+        {
+          "name":"_power_domain",
+          "type":"dbId<_dbPowerDomain>",
+          "flags":[],
+          "parent":"dbBlock"
+        }
+      ],
+      "constructors":[],
+      "cpp_includes":["dbBlock.h","dbHashTable.hpp", "dbNet.h", "dbPowerDomain.h"],
+      "h_includes": [
+        "dbVector.h",
+        "dbSet.h"
+      ]
+    },
+    {
+      "name":"dbIsolation",
+      "type":"dbObject",
+      "fields":[
+        {
+          "name":"_name",
+          "type":"char *",
+          "flags":["no-set"]
+        },
+        {
+          "name":"_next_entry",
+          "type":"dbId<_dbIsolation>",
+          "flags":["no-set","no-get"]
+        },
+        {
+          "name":"_applies_to",
+          "type":"std::string",
+          "flags":["no-set"]
+        },
+        {
+          "name":"_clamp_value",
+          "type":"std::string",
+          "flags":["no-set"]
+        },
+        {
+          "name":"_isolation_signal",
+          "type":"std::string",
+          "flags":["no-set"]
+        },
+        {
+          "name":"_isolation_sense",
+          "type":"std::string",
+          "flags":["no-set"]
+        },
+        {
+          "name":"_location",
+          "type":"std::string",
+          "flags":["no-set"]
+        },
+        {
+          "name": "_isolation_cells", 
+          "type": "dbVector<dbId<_dbMaster>>",
+          "flags": ["no-get", "no-set"]
+        },
+        {
+          "name":"_power_domain",
+          "type":"dbId<_dbPowerDomain>",
+          "flags":[],
+          "parent":"dbBlock"
+        }
+      ],
+      "constructors":[],
+      "cpp_includes":["dbBlock.h","dbHashTable.hpp", "dbPowerDomain.h", "dbNet.h", "dbMaster.h"],
+      "h_includes": [
+        "dbVector.h"
+      ]
+    }
+  ],
+  "iterators":[
+    {
+      "name": "dbModuleInstItr",
+      "parentObject": "dbInst",
+      "tableName": "inst_tbl",
+      "reversible": "true",
+      "orderReversed": "true",
+      "sequential": 0,
+      "includes": ["dbModule.h"]
+    },
+    {
+      "name": "dbModuleModInstItr",
+      "parentObject": "dbModInst",
+      "tableName": "modinst_tbl",
+      "reversible": "true",
+      "orderReversed": "true",
+      "sequential": 0,
+      "includes": ["dbModule.h"]
+    },
+    {
+      "name": "dbGroupModInstItr",
+      "parentObject": "dbModInst",
+      "tableName": "modinst_tbl",
+      "reversible": "true",
+      "orderReversed": "true",
+      "sequential": 0,
+      "includes": ["dbGroup.h"]
+    },
+    {
+      "name": "dbGroupItr",
+      "parentObject": "dbGroup",
+      "tableName": "group_tbl",
+      "reversible": "true",
+      "orderReversed": "true",
+      "sequential": 0
+    },
+    {
+      "name": "dbRegionGroupItr",
+      "parentObject": "dbGroup",
+      "tableName": "group_tbl",
+      "reversible": "true",
+      "orderReversed": "true",
+      "sequential": 0
+    },
+    {
+      "name": "dbGroupInstItr",
+      "parentObject": "dbInst",
+      "tableName": "inst_tbl",
+      "reversible": "true",
+      "orderReversed": "true",
+      "sequential": 0,
+      "includes": ["dbGroup.h"]
+    },
+    {
+      "name": "dbGuideItr",
+      "parentObject": "dbGuide",
+      "tableName": "guide_tbl",
+      "reversible": "true",
+      "orderReversed": "true",
+      "sequential": 0
+    }
+  ],
+  "relations":[
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerCutClassRule",
+      "type":"1_n",
+      "tbl_name":"cut_class_rules_tbl_",
+      "hash":true
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerSpacingEolRule",
+      "type":"1_n",
+      "tbl_name":"spacing_eol_rules_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerCutSpacingRule",
+      "type":"1_n",
+      "tbl_name":"cut_spacing_rules_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerMinStepRule",
+      "type":"1_n",
+      "tbl_name":"minstep_rules_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerCornerSpacingRule",
+      "type":"1_n",
+      "tbl_name":"corner_spacing_rules_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerSpacingTablePrlRule",
+      "type":"1_n",
+      "tbl_name":"spacing_table_prl_rules_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerCutSpacingTableOrthRule",
+      "type":"1_n",
+      "tbl_name":"cut_spacing_table_orth_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerCutSpacingTableDefRule",
+      "type":"1_n",
+      "tbl_name":"cut_spacing_table_def_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerCutEnclosureRule",
+      "type":"1_n",
+      "tbl_name":"cut_enc_rules_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerEolExtensionRule",
+      "type":"1_n",
+      "tbl_name":"eol_ext_rules_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerArraySpacingRule",
+      "type":"1_n",
+      "tbl_name":"array_spacing_rules_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerEolKeepOutRule",
+      "type":"1_n",
+      "tbl_name":"eol_keep_out_rules_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerWidthTableRule",
+      "type":"1_n",
+      "tbl_name":"width_table_rules_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerMinCutRule",
+      "type":"1_n",
+      "tbl_name":"min_cuts_rules_tbl_"
+    },
+    {
+      "first":"dbTechLayer",
+      "second":"dbTechLayerAreaRule",
+      "type":"1_n",
+      "tbl_name":"area_rules_tbl_"
+    }
+  ]
+}

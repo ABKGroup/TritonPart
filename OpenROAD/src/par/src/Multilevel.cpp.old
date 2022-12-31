@@ -1,0 +1,368 @@
+///////////////////////////////////////////////////////////////////////////
+//
+// BSD 3-Clause License
+//
+// Copyright (c) 2020, The Regents of the University of California
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice, this
+//   list of conditions and the following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above copyright notice,
+//   this list of conditions and the following disclaimer in the documentation
+//   and/or other materials provided with the distribution.
+//
+// * Neither the name of the copyright holder nor the names of its
+//   contributors may be used to endorse or promote products derived from
+//   this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+#include <string>
+#include "utl/Logger.h"
+#include "TPHypergraph.h"
+#include "Partitioner.h"
+#include "Multilevel.h"
+#include <julia.h>
+#include <unistd.h>
+#include <cstdlib>
+
+JULIA_DEFINE_FAST_TLS
+
+using utl::PAR;
+
+namespace par {
+
+void MultiLevelHierarchy::SpecifySpecParams(std::string hint_hgraph,
+                                            int num_parts,
+                                            int num_eigen_vectors,
+                                            int num_solver_iters,
+                                            int expander_cycles,
+                                            int embed_placement_dimensions,
+                                            int seed,
+                                            float ub_factor)
+{
+  hint_hgraph_ = hint_hgraph;
+  hint_solution_file_ = hint_hgraph + ".solution";
+  num_parts_ = num_parts;
+  num_eigen_vectors_ = num_eigen_vectors;
+  num_solver_iters_ = num_solver_iters;
+  expander_cycles_ = expander_cycles;
+  embed_placement_dimensions_ = embed_placement_dimensions;
+  seed_ = seed;
+  ub_factor_ = ub_factor;
+}
+
+
+void MultiLevelHierarchy::CallJulia()
+{
+  jl_init();
+  (void)jl_eval_string("using Spec");
+  jl_module_t* spec_module =(jl_module_t*)jl_eval_string("Spec");
+  //jl_function_t *func = jl_get_function(spec_module, "FindGlobalClustersConcatenated");
+  jl_function_t *func = jl_get_function(spec_module, "FindGlobalClusters");
+  jl_value_t *argument1 = jl_cstr_to_string(hint_hgraph_.c_str());
+  jl_value_t *argument2 = jl_cstr_to_string(hint_solution_file_.c_str());
+  jl_value_t *argument3 = jl_box_int64(num_parts_);
+  jl_value_t *argument4 = jl_box_int64(num_eigen_vectors_);
+  jl_value_t *argument5 = jl_box_int64(num_solver_iters_);
+  jl_value_t *argument6 = jl_box_int64(seed_);
+  jl_value_t *argument7 = jl_box_int64(expander_cycles_);
+  jl_value_t *argument8 = jl_box_float64(ub_factor_);
+  jl_value_t *arguments[8] = { argument1 , argument2,
+                               argument3 , argument4,
+                               argument5 , argument6,
+                               argument7 , argument8 };
+  
+  jl_call(func, arguments, 8);
+  jl_atexit_hook(0);
+}
+
+
+void MultiLevelHierarchy::CallSpecPart(HGraph hgraph, std::vector<int>& hint_solution)
+{
+  // write solution file
+  WriteSolution(hint_solution_file_.c_str(), hint_solution);
+  //int exit_code = CallJulia();
+  CallJulia();
+  // update community solution
+  std::vector<int> community;
+  std::ifstream file_input(cluster_file_);
+  int part_id = 0;
+  for (int i = 0; i < hgraph->num_vertices_; i++) {
+    file_input >> part_id;
+    community.push_back(part_id);
+  }
+  file_input.close(); 
+  hgraph->community_flag_ = true;
+  //hgraph->community_attr_ = community; 
+  hgraph->community_attr_ = hint_solution; 
+}
+
+
+std::vector<int> MultiLevelHierarchy::SpecRun(HGraph hgraph,
+                 std::vector<std::vector<float> >  max_block_balance)
+{ 
+  HGraph original_hgraph = hgraph;
+  //std::vector<int> solution = RunZhiang(hgraph, max_block_balance);
+  std::vector<int> solution = InitialRun(hgraph, max_block_balance);
+  if (spectral_flag_ == true) {
+    CallSpecPart(hgraph, solution);
+    coarsening_->max_coarsen_iters_ = coarsening_->max_coarsen_iters_ / 2;
+    coarsening_->coarsening_ratio_ = 2.7;
+    coarsening_->smallest_v_size_cgraph_ = 2000;
+    coarsening_->seed_ = coarsening_->seed_ + 10001;
+    solution = RunZhiang(hgraph, max_block_balance, solution,  true);
+    //solution = RunZhiang(hgraph, max_block_balance, false);
+  }
+  return solution;
+}
+
+
+std::vector<int>  MultiLevelHierarchy::InitialRun(HGraph hgraph_origin, 
+                  std::vector<std::vector<float> >  max_block_balance)
+{
+  
+  HGraph hgraph = std::make_shared<TPHypergraph>(*hgraph_origin);
+  std::vector<std::vector<HGraph> > hgraphs_vec(Nruns_);
+  std::vector<std::vector<int> > solutions(Nruns_);
+  std::vector<int> seeds;
+  for (int run_id = 0; run_id < Nruns_; run_id++)
+    seeds.push_back(seed_ + run_id);
+
+  std::vector<std::thread> threads; // for parallel initial partitioning
+  for (int run_id = 0; run_id < Nruns_; run_id++)
+    threads.push_back(std::thread(&MultiLevelHierarchy::InitialPartitioning,
+                                  this, hgraph, &max_block_balance,
+                                  &hgraphs_vec[run_id], &solutions[run_id], 
+                                  seeds[run_id]));
+  for (auto& t : threads)
+    t.join(); // wait for all threads to finish
+  threads.clear();
+  
+  std::cout << "Check all the initial solution" << std::endl;
+  float best_cutsize = std::numeric_limits<float>::max();
+  int best_id = -1;
+  for (int i = 0; i < Nruns_; i++) {
+    float cutsize = (partitioners_->GoldenEvaluator(hgraph, solutions[i], true)).first;
+    if (cutsize < best_cutsize) {
+      best_cutsize = cutsize;
+      best_id = i;
+    }
+  }
+  
+  //SingleCycle(hgraphs_vec[0], solutions[0], max_block_balance);
+  return solutions[best_id];
+}
+
+// Run Multiple Coarsening with different random seeds
+// to improve the stability and reduce the variance
+void MultiLevelHierarchy::InitialPartitioning(HGraph hgraph, 
+         const std::vector<std::vector<float> > *max_block_balance, 
+         std::vector<HGraph> *hgraphs,
+         std::vector<int> *initial_solution,
+         int seed)
+{
+  Coarsening coarsening(*coarsening_);
+  coarsening.seed_ = seed;
+  *hgraphs = coarsening.LazyFirstChoice(hgraph);
+  // Initial partitioning
+  HGraph hgraph_c = hgraphs->back();
+  hgraphs->pop_back(); // get the coarsest hypergraph
+  
+  if (hgraph_c->num_hyperedges_ > 4000)
+    partitioners_->DirectKWayFM(hgraph_c, *max_block_balance, *initial_solution);
+  else
+    partitioners_->OptimalInitialPartitionCplex(hgraph_c, *max_block_balance, *initial_solution);
+  SingleCycle(*hgraphs, *initial_solution, *max_block_balance); 
+}
+
+
+std::vector<int> MultiLevelHierarchy::RunZhiang(HGraph hgraph, 
+                                          std::vector<std::vector<float> > max_block_balance,
+                                          std::vector<int> initial_solution,
+                                          bool read_spec_embedding_flag)
+{
+  if (read_spec_embedding_flag == true) {
+    // read embedding information
+    hgraph->placement_flag_ = true;
+    //embedding_file_ = "zhiang.txt";
+    std::ifstream embed_file_input(embedding_file_);
+    if (!embed_file_input.is_open()) {
+      logger_->error(PAR, 2916, "Can not open the embedding file : {}", embedding_file_);
+    }
+    if (hgraph->placement_dimensions_ == embed_placement_dimensions_) { // update placement
+      for (int i = 0; i < hgraph->num_vertices_; i++) {
+        std::vector<float> placement_info;
+        float value;
+        for (int j = 0; j < num_eigen_vectors_ * num_parts_; j++) {
+          embed_file_input >> value;    
+          placement_info.push_back(value);
+        }
+        // update the placement_info
+        std::vector<float>::reverse_iterator old_iter = hgraph->placement_attr_[i].rbegin();
+        std::vector<float>::reverse_iterator new_iter = placement_info.rbegin();
+        while (new_iter != placement_info.rend())
+          *old_iter++ = *new_iter++;
+      }
+    } else if(hgraph->placement_dimensions_ > 0) { 
+      // add the placement information to default placement information
+      hgraph->placement_dimensions_ += num_eigen_vectors_ * num_parts_;
+      for (int i = 0; i < hgraph->num_vertices_; i++) {
+        std::vector<float> placement_info;
+        float value;
+        for (int j = 0; j < num_eigen_vectors_ * num_parts_; j++) {
+          embed_file_input >> value;    
+          placement_info.push_back(value);
+        }
+        hgraph->placement_attr_[i].insert(hgraph->placement_attr_[i].end(),
+                                          placement_info.begin(),
+                                          placement_info.end());      
+      }
+    } else {
+      hgraph->placement_dimensions_ += num_eigen_vectors_ * num_parts_;
+      for (int i = 0; i < hgraph->num_vertices_; i++) {
+        std::vector<float> placement_info;
+        float value;
+        for (int j = 0; j < num_eigen_vectors_ * num_parts_; j++) {
+          embed_file_input >> value;    
+          placement_info.push_back(value);
+        }
+        hgraph->placement_attr_.push_back(placement_info);
+      }
+    } 
+    embed_file_input.close();
+  }
+
+  // Do the coarsening first
+  std::vector<HGraph> hgraphs = coarsening_->LazyFirstChoice(hgraph);
+  //std::vector<int> initial_solution;
+  // Initial partitioning
+  HGraph hgraph_c = hgraphs.back();
+  hgraphs.pop_back(); // get the coarsest hypergraph
+  if (hgraph_c->num_hyperedges_ > 4000) {
+    //partitioners_->DirectKWayFM(hgraph_c, max_block_balance, initial_solution);
+    initial_solution = hgraph_c->community_attr_;
+    partitioners_->DirectKWayFM(hgraph_c, max_block_balance, initial_solution);
+  } else {
+    partitioners_->OptimalInitialPartitionCplex(hgraph_c, max_block_balance, initial_solution);
+  }
+  //partitioners_->OptimalInitialPartition(hgraph_c, max_block_balance, initial_solution);
+  //partitioners_->DirectKWayFM(hgraph_c, max_block_balance, initial_solution);
+  logger_->info(PAR, 2912, "Initial Partitioning\n"
+                           "Hypergraph information : "
+                           "\tnum_vertices = {}"
+                           "\tnum_hyperedges = {}\n",
+                           hgraph_c->num_vertices_,
+                           hgraph_c->num_hyperedges_);
+  // print basic statistics
+  partitioners_->GoldenEvaluator(hgraph_c, initial_solution, true);
+
+  /*
+  // Single-cycle refinement
+  // project the current solution to previous level of hypergraph's hypergraph
+  // and call FM engine to refine
+  auto SingleCycle = [&](std::vector<HGraph> &hgraph_vec, std::vector<int>& pre_solution)
+  {
+    std::vector<int> solution;
+    int refine_iter = 0;
+    while (hgraph_vec.empty() == false) {
+      HGraph hgraph_c = hgraph_vec.back();
+      hgraph_vec.pop_back();
+      solution.clear();
+      solution.resize(hgraph_c->num_vertices_);
+      std::fill(solution.begin(), solution.end(), 0);
+      for (int v = 0; v < hgraph_c->num_vertices_; v++) {
+        solution[v] = pre_solution[hgraph_c->vertex_c_attr_[v]]; 
+      }
+      // FM-based refinement
+      partitioners_->DirectKWayFM(hgraph_c, max_block_balance, solution);
+      pre_solution = solution; // update the initial solution
+      // print basic statistics
+      partitioners_->GoldenEvaluator(hgraph_c, solution, true);
+    }
+  };
+  */
+
+  // Multilevel Refinement
+  SingleCycle(hgraphs, initial_solution, max_block_balance);
+  
+  // V-cycle improvement
+  if (v_cycle_flag_ == true) {
+    int v_cycle_iter = 1;
+    float pre_cost = partitioners_->GoldenEvaluator(hgraph, initial_solution, true).first;
+    float delta_cost = std::numeric_limits<float>::max();
+    while (delta_cost > 0.0) {
+      logger_->info(PAR, 2913, "V-cycle Iteration {}\n",
+                                v_cycle_iter++);
+      std::vector<int> &community = hgraph->community_attr_; // for abbrev.
+      community = initial_solution; // use current solution as community to guide the coarsening process
+      hgraph->community_flag_ = true; // update flag
+      // coarse the hgraph with initial_solution as community constraints
+      std::vector<HGraph> hgraphs_c = coarsening_->LazyFirstChoice(hgraph);
+      // update the initial solution as the coarsest hgraph
+      initial_solution = hgraphs_c.back()->community_attr_;
+      // initial partitioning
+      partitioners_->DirectKWayFM(hgraphs_c.back(), max_block_balance,
+                                  initial_solution);
+      hgraphs_c.pop_back();
+      // run single-cycle refinement
+      SingleCycle(hgraphs_c, initial_solution, max_block_balance);
+      const float cur_cost = partitioners_->GoldenEvaluator(hgraph, initial_solution, true).first; 
+      delta_cost = pre_cost - cur_cost;
+      pre_cost = cur_cost;
+    }
+  }
+  return initial_solution;
+}
+
+
+// Single-cycle refinement
+// project the current solution to previous level of hypergraph's hypergraph
+// and call FM engine to refine
+void MultiLevelHierarchy::SingleCycle(std::vector<HGraph> &hgraph_vec, 
+                  std::vector<int>& pre_solution,
+                  std::vector<std::vector<float> > max_block_balance)
+{
+  std::vector<int> solution;
+  int refine_iter = 0;
+  while (hgraph_vec.empty() == false) {
+    HGraph hgraph_c = hgraph_vec.back();
+    hgraph_vec.pop_back();
+    solution.clear();
+    solution.resize(hgraph_c->num_vertices_);
+    std::fill(solution.begin(), solution.end(), 0);
+    for (int v = 0; v < hgraph_c->num_vertices_; v++) {
+      solution[v] = pre_solution[hgraph_c->vertex_c_attr_[v]]; 
+    }
+    // FM-based refinement
+    partitioners_->DirectKWayFM(hgraph_c, max_block_balance, solution);
+    pre_solution = solution; // update the initial solution
+    // print basic statistics
+    logger_->info(PAR, 2914, "Refinement Iteration {}\n"
+                             "Hypergraph information : "
+                             "\tnum_vertices = {}"
+                             "\tnum_hyperedges = {}\n",
+                             refine_iter++,
+                             hgraph_c->num_vertices_,
+                             hgraph_c->num_hyperedges_);
+    partitioners_->GoldenEvaluator(hgraph_c, solution, true);
+  }
+}
+
+}  // namespace par

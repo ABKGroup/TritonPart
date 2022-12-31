@@ -1,0 +1,173 @@
+OpenSTA Timing Analyzer Release Notes
+---------------------------------------------
+
+This file summarizes user visible changes for each release.
+
+The report_parasitics_annotation command reports SPEF annotation completeness.
+
+  report_parasitics_annotation [-report_unannotated]
+
+Release 2.3.2 2022/07/03
+-------------------------
+
+The liberty default_wire_load is now ignored. You must explicitly set the wire load
+model with the set_wire_load_model command to apply wire load model based parasitics.
+
+Release 2.3.1 2020/11/08
+-------------------------
+
+The read_sdf command no longer supports the -analysis_type, -type, -min_type,
+and -max_type arguments. Use the set_operating_conditions -analysis_type
+command to set the analysis type before read_sdf.
+
+Release 2.2.0 2020/07/18
+-------------------------
+
+The report_units reports the current units used by commands.
+
+  report_units
+
+The report_check_types -min_fanout -max_fanout -max_capacitance -min_capacitance
+
+  report_check_types [-min_fanout] [-max_fanout] [-max_capacitance] [-min_capacitance]
+
+
+The insert_buffer command is no longer supported.
+
+Release 2.0.0 2018/09/28
+-------------------------
+
+The command line options have changed to the following:
+
+  -help              show help and exit
+  -version           show version and exit
+  -no_init           do not read .sta init file
+  -threads count|max use count threads
+  -no_splash         do not show the license splash at startup
+  -exit              exit after reading cmd_file
+  cmd_file           source cmd_file
+
+
+....
+
+Builds using Autotools/configure are no longer supported.
+Use CMake as documented in README.md.
+
+....
+
+The check_timing command -no_output_delay checks output ports for
+set_output_delay.
+
+....
+
+The report_power command reports the power consumption of the design
+or a specific instance.
+
+  report_power [-instances inst] [-digits digits] [> filename] [>> filename]
+
+The internal, switching, leakage and total power are reported. Design
+power is reported separately for combinational, sequential, macro and
+pad groups.
+
+Use -instances to report power for a specific instance.
+
+Use the set_power_activity command to specify activity/duty
+globally using -global, the input port default using -input,
+or for input ports using -input_ports, or pins using -pins.
+
+ set_power_activity [-global]
+                    [-input]
+                    [-input_ports ports]
+		    [-pins pins]
+		    [-activiity activity]
+		    [-duty duty]
+
+....
+
+The write_path_spice command writes a spice netlist for a timing path.
+
+  write_path_spice -path_args path_args
+    -spice_directory spice_directory
+    -subckt_file subckt_file
+    -lib_subckt_file lib_subckts_file\
+    -model_file model_file
+    -power power
+    -ground ground
+    
+Use path_args to specify -from/-through/-to as arguments to the
+find_timing_paths command. For each path, a spice netlist and the
+subckts referenced by the path are written in spice_directory.  The
+spice netlist is written in path_<id>.sp and subckt file is
+path_<id>.subckt.
+
+Spice netlists for liberty library cells are read from
+lib_subckts_file.  The spice netlists used by the path are written to
+subckt_file, which spice_file .includes. The device models used by the
+spice subckt netlists in model_file are .included in spice_file. Power
+and ground names are specified with the -power and -ground arguments.
+The spice netlist includes a piecewise linear voltage source at the
+input and .measure statement for each gate delay and pin slew.
+
+....
+
+The report_checks and report_check_types commands now support an
+-unconstrained flag.
+
+  report_checks -unconstrained
+  report_check_types -unconstrained
+
+The sta_report_unconstrained_paths variable will be supported for
+for compatibility in the current release.
+
+....
+
+The transition_time path reporting field has been renamed to slew.
+
+  report_checks -fields {slew}
+  report_check_types -fields {slew}
+
+...
+
+The read_parasitics command has been renamed read_spef and no longer
+supports the SPF format.
+
+....
+
+The make_instance command now takes a single instance name argument
+and returns the instance.
+
+  make_instance instance_name
+
+The make_net command now takes a single net name argument and returns
+the net.
+
+  make_net net_name
+
+The delete_instance command deletes a single instance instead of a list
+of instances.
+
+  delete_instance instance
+
+The delete_net command deletes a single net instead of a list
+of nets.
+
+  delete_net net
+
+The disconnect_pins command is renamed disconnect_pin and disconnects a
+single pin.
+
+  disconnect_pin net pin
+
+The report_tns and report_wns commands print the value returned by
+total_negative_slack and worst_negative_slack respectively.
+
+  report_tns
+  report_wns
+  report_worst_slack
+
+The set_clock_sense command was deprecated by SDC 2.1.
+Use set_sense -type clock instead.
+
+# Local Variables:
+# mode:text
+# End:

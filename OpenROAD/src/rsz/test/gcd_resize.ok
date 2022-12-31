@@ -1,0 +1,50 @@
+[INFO ODB-0222] Reading LEF file: Nangate45/Nangate45.lef
+[INFO ODB-0223]     Created 22 technology layers
+[INFO ODB-0224]     Created 27 technology vias
+[INFO ODB-0225]     Created 135 library cells
+[INFO ODB-0226] Finished LEF file:  Nangate45/Nangate45.lef
+[INFO ODB-0128] Design: gcd
+[INFO ODB-0130]     Created 54 pins.
+[INFO ODB-0131]     Created 571 components and 2554 component-terminals.
+[INFO ODB-0132]     Created 5 special nets and 1142 connections.
+[INFO ODB-0133]     Created 528 nets and 1412 connections.
+worst slack 1.33
+[INFO RSZ-0027] Inserted 35 input buffers.
+[INFO RSZ-0028] Inserted 18 output buffers.
+[INFO RSZ-0058] Using max wire length 720um.
+[INFO RSZ-0039] Resized 51 instances.
+[INFO RSZ-0046] Found 35 endpoints with hold violations.
+[INFO RSZ-0032] Inserted 99 hold buffers.
+worst slack 0.20
+worst slack 1.23
+max slew
+
+Pin                                    Limit    Slew   Slack
+------------------------------------------------------------
+_443_/ZN                                0.20    0.06    0.14 (MET)
+
+max fanout
+
+Pin                                   Limit Fanout  Slack
+---------------------------------------------------------
+_460_/Z                                 100     10     90 (MET)
+
+max capacitance
+
+Pin                                    Limit     Cap   Slack
+------------------------------------------------------------
+_443_/ZN                               10.47    3.86    6.62 (MET)
+
+Driver    length delay
+_759_/Z manhtn 83.9 steiner 83.9 0.00
+_850_/Z manhtn 80.7 steiner 80.7 0.00
+_786_/Z manhtn 80.4 steiner 80.4 0.00
+_813_/Z manhtn 78.4 steiner 78.4 0.00
+_839_/Z manhtn 76.3 steiner 76.3 0.00
+_551_/Z manhtn 73.6 steiner 73.7 0.00
+_461_/Z manhtn 63.8 steiner 85.5 0.00
+_847_/Z manhtn 60.3 steiner 60.3 0.00
+_851_/Z manhtn 58.3 steiner 58.3 0.00
+_771_/Z manhtn 58.1 steiner 58.1 0.00
+_725_/Z manhtn 56.1 steiner 56.1 0.00
+Design area 837 u^2 13% utilization.

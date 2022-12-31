@@ -1,0 +1,24 @@
+[INFO ODB-0222] Reading LEF file: Nangate45/Nangate45.lef
+[INFO ODB-0223]     Created 22 technology layers
+[INFO ODB-0224]     Created 27 technology vias
+[INFO ODB-0225]     Created 135 library cells
+[INFO ODB-0226] Finished LEF file:  Nangate45/Nangate45.lef
+[INFO ODB-0222] Reading LEF file: Nangate45/fakeram45_64x7.lef
+[INFO ODB-0225]     Created 1 library cells
+[INFO ODB-0226] Finished LEF file:  Nangate45/fakeram45_64x7.lef
+[INFO ODB-0128] Design: gcd_mem1
+[INFO ODB-0130]     Created 61 pins.
+[INFO ODB-0131]     Created 32 components and 201 component-terminals.
+[INFO ODB-0132]     Created 2 special nets and 0 connections.
+[INFO ODB-0133]     Created 384 nets and 137 connections.
+Placement Analysis
+---------------------------------
+total displacement         73.5 u
+average displacement        2.3 u
+max displacement           12.4 u
+original HPWL             731.2 u
+legalized HPWL            737.7 u
+delta HPWL                    1 %
+
+[INFO DPL-0001] Placed 258 filler instances.
+No differences found.

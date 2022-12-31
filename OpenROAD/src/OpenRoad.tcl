@@ -1,0 +1,284 @@
+############################################################################
+##
+## Copyright (c) 2019, The Regents of the University of California
+## All rights reserved.
+##
+## BSD 3-Clause License
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are met:
+##
+## * Redistributions of source code must retain the above copyright notice, this
+##   list of conditions and the following disclaimer.
+##
+## * Redistributions in binary form must reproduce the above copyright notice,
+##   this list of conditions and the following disclaimer in the documentation
+##   and/or other materials provided with the distribution.
+##
+## * Neither the name of the copyright holder nor the names of its
+##   contributors may be used to endorse or promote products derived from
+##   this software without specific prior written permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+## AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+## IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+## ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+## LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+## CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+## SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+## INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+## CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+## ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+## POSSIBILITY OF SUCH DAMAGE.
+##
+############################################################################
+
+# -library is the default
+sta::define_cmd_args "read_lef" {[-tech] [-library] filename}
+
+proc read_lef { args } {
+  sta::parse_key_args "read_lef" args keys {} flags {-tech -library}
+  sta::check_argc_eq1 "read_lef" $args
+
+  set filename [file nativename [lindex $args 0]]
+  if { ![file exists $filename] } {
+    utl::error "ORD" 1 "$filename does not exist."
+  }
+  if { ![file readable $filename] } {
+    utl::error "ORD" 2 "$filename is not readable."
+  }
+
+  set make_tech [info exists flags(-tech)]
+  set make_lib [info exists flags(-library)]
+  if { !$make_tech && !$make_lib} {
+    set make_lib 1
+    set make_tech [expr ![ord::db_has_tech]]
+  }
+  set lib_name [file rootname [file tail $filename]]
+  ord::read_lef_cmd $filename $lib_name $make_tech $make_lib
+}
+
+sta::define_cmd_args "read_def" {[-floorplan_initialize|-incremental]\
+                                   [-continue_on_errors]\
+                                   filename}
+
+proc read_def { args } {
+  sta::parse_key_args "read_def" args keys {} flags {-floorplan_initialize -incremental\
+                                                       -order_wires -continue_on_errors}
+  sta::check_argc_eq1 "read_def" $args
+  set filename [file nativename [lindex $args 0]]
+  if { ![file exists $filename] } {
+    utl::error "ORD" 3 "$filename does not exist."
+  }
+  if { ![file readable $filename] || ![file isfile $filename] } {
+    utl::error "ORD" 4 "$filename is not readable."
+  }
+  if { ![ord::db_has_tech] } {
+    utl::error "ORD" 5 "No technology has been read."
+  }
+  if { [info exists flags(-order_wires)] } {
+    utl::warn "ORD" 33 "-order_wires is deprecated."
+  }
+  set continue_on_errors [info exists flags(-continue_on_errors)]
+  set floorplan_init [info exists flags(-floorplan_initialize)]
+  set incremental [info exists flags(-incremental)]
+  if { $floorplan_init && $incremental } {
+    utl::error ORD 16 "Options -incremental and -floorplan_initialization are both set. At most one should be used."
+  }
+  ord::read_def_cmd $filename $continue_on_errors $floorplan_init $incremental
+}
+
+sta::define_cmd_args "write_def" {[-version version] filename}
+
+proc write_def { args } {
+  sta::parse_key_args "write_def" args keys {-version} flags {}
+
+  set version "5.8"
+  if { [info exists keys(-version)] } {
+    set version $keys(-version)
+    if { !($version == "5.8" \
+        || $version == "5.7" \
+        || $version == "5.6" \
+        || $version == "5.5" \
+        || $version == "5.4" \
+        || $version == "5.3") } {
+      utl::error "ORD" 6 "DEF versions 5.8, 5.7, 5.6, 5.5, 5.4, 5.3 supported."
+    }
+  }
+
+  sta::check_argc_eq1 "write_def" $args
+  set filename [file nativename [lindex $args 0]]
+  ord::write_def_cmd $filename $version
+}
+
+sta::define_cmd_args "write_lef" {filename}
+
+proc write_lef { args } {
+  sta::parse_key_args "write_lef" args keys {} flags {}
+
+  sta::check_argc_eq1 "write_lef" $args
+  set filename [file nativename [lindex $args 0]]
+  ord::write_lef_cmd $filename
+}
+
+sta::define_cmd_args "write_abstract_lef" {filename}
+
+proc write_abstract_lef { args } {
+  sta::parse_key_args "write_abstract_lef" args keys {} flags {}
+
+  sta::check_argc_eq1 "write_abstract_lef" $args
+  set filename [file nativename [lindex $args 0]]
+  [ord::get_db_block] saveLef $filename
+}
+
+sta::define_cmd_args "write_cdl" {[-include_fillers]
+    -masters masters_filenames out_filename }
+
+proc write_cdl { args } {
+
+  sta::parse_key_args "write_cdl" args keys {-masters} flags {-include_fillers}
+  set fillers [info exists flags(-include_fillers)]
+  sta::check_argc_eq1 "write_cdl" $args
+  if {![info exists keys(-masters)]} {
+    utl::error ORD 1013 "-masters is required."
+  }
+  set out_filename [file nativename [lindex $args 0]]
+  set masters_filenames []
+  foreach masters_filename $keys(-masters) {
+    lappend masters_filenames [file nativename $masters_filename]
+  }
+  ord::write_cdl_cmd $out_filename $masters_filenames $fillers
+}
+
+
+sta::define_cmd_args "read_db" {filename}
+
+proc read_db { args } {
+  sta::check_argc_eq1 "read_db" $args
+  set filename [file nativename [lindex $args 0]]
+  if { ![file exists $filename] } {
+    utl::error "ORD" 7 "$filename does not exist."
+  }
+  if { ![file readable $filename] } {
+    utl::error "ORD" 8 "$filename is not readable."
+  }
+  ord::read_db_cmd $filename
+}
+
+sta::define_cmd_args "write_db" {filename}
+
+proc write_db { args } {
+  sta::check_argc_eq1 "write_db" $args
+  set filename [file nativename [lindex $args 0]]
+  ord::write_db_cmd $filename
+}
+
+sta::define_cmd_args "assign_ndr" { -ndr name (-net name | -all_clocks) }
+
+proc assign_ndr { args } {
+  sta::parse_key_args "assign_ndr" args keys {-ndr -net} flags {-all_clocks}
+  if { ![info exists keys(-ndr)] } {
+    utl::error ORD 1009 "-name is missing."
+  }
+  if { ! ([info exists keys(-net)] ^ [info exists flags(-all_clocks)]) } {
+    utl::error ORD 1010 "Either -net or -all_clocks need to be defined."
+  }
+  set block [[[ord::get_db] getChip] getBlock]
+  set ndrName $keys(-ndr)
+  set ndr [$block findNonDefaultRule $ndrName]
+  if { $ndr == "NULL" } {
+    utl::error ORD 1011 "No NDR named ${ndrName} found."
+  }
+  if { [info exists keys(-net)] } {
+    set netName $keys(-net)
+    set net [$block findNet $netName]
+    if { $net == "NULL" } {
+      utl::error ORD 1012 "No net named ${netName} found."
+    }
+    $net setNonDefaultRule $ndr
+  } else {
+    foreach net [sta::find_all_clk_nets] {
+      $net setNonDefaultRule $ndr
+    }
+  }
+}
+
+sta::define_cmd_args "set_debug_level" { tool group level }
+proc set_debug_level {args} {
+  sta::check_argc_eq3 "set_debug_level" $args
+  lassign $args tool group level
+  sta::check_integer "set_debug_level" $level
+  ord::set_debug_level $tool $group $level
+}
+
+sta::define_cmd_args "suppress_message" { tool id }
+proc suppress_message {args} {
+  sta::check_argc_eq2 "suppress_message" $args
+  lassign $args tool id
+  sta::check_integer "suppress_message_level" $id
+  utl::suppress_message $tool $id
+}
+
+sta::define_cmd_args "python" { args }
+proc python {args} {
+  ord::python_cmd $args
+}
+
+proc set_thread_count { count } {
+  ord::set_thread_count $count
+}
+
+proc thread_count { } {
+  return [ord::thread_count]
+}
+
+################################################################
+
+namespace eval ord {
+
+  proc ensure_units_initialized { } {
+    if { ![units_initialized] } {
+      utl::error "ORD" 13 "Command units uninitialized. Use the read_liberty or set_cmd_units command to set units."
+    }
+  }
+
+  proc clear {} {
+    sta::clear_network
+    sta::clear_sta
+    grt::clear
+    [get_db] clear
+  }
+
+  proc profile_cmd {filename args} {
+    utl::info 99 "Profiling $args > $filename."
+    profile -commands on
+    if {[catch "{*}$args"]} {
+      global errorInfo
+      puts $errorInfo
+    }
+    profile off profarray
+    profrep profarray cpu $filename
+  }
+
+  proc get_die_area { } {
+    set area {}
+    set rect [[ord::get_db_block] getDieArea]
+    lappend area [ord::dbu_to_microns [$rect xMin]]
+    lappend area [ord::dbu_to_microns [$rect yMin]]
+    lappend area [ord::dbu_to_microns [$rect xMax]]
+    lappend area [ord::dbu_to_microns [$rect yMax]]
+    return $area
+  }
+
+  proc get_core_area { } {
+    set area {}
+    set rect [[ord::get_db_block] getCoreArea]
+    lappend area [ord::dbu_to_microns [$rect xMin]]
+    lappend area [ord::dbu_to_microns [$rect yMin]]
+    lappend area [ord::dbu_to_microns [$rect xMax]]
+    lappend area [ord::dbu_to_microns [$rect yMax]]
+    return $area
+  }
+
+    # namespace ord
+}

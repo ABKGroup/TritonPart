@@ -1,0 +1,31 @@
+[INFO ODB-0222] Reading LEF file: Nangate45/Nangate45.lef
+[INFO ODB-0223]     Created 22 technology layers
+[INFO ODB-0224]     Created 27 technology vias
+[INFO ODB-0225]     Created 135 library cells
+[INFO ODB-0226] Finished LEF file:  Nangate45/Nangate45.lef
+[INFO ODB-0128] Design: hi_fanout
+[INFO ODB-0130]     Created 1 pins.
+[INFO ODB-0131]     Created 15 components and 105 component-terminals.
+[INFO ODB-0132]     Created 3 special nets and 45 connections.
+[WARNING RSZ-0021] no estimated parasitics. Using wire load models.
+Net RESET
+Driver pins
+ RESET input port
+
+Load pins
+ r1/RN input (DFFR_X1) (7, 1)
+ r10/RN input (DFFR_X1) (2, 6)
+ r11/RN input (DFFR_X1) (7, 6)
+ r12/RN input (DFFR_X1) (12, 6)
+ r13/RN input (DFFR_X1) (17, 6)
+ r14/RN input (DFFR_X1) (22, 6)
+ r15/RN input (DFFR_X1) (27, 6)
+ r2/RN input (DFFR_X1) (12, 1)
+ r3/RN input (DFFR_X1) (17, 1)
+ r4/RN input (DFFR_X1) (22, 1)
+ r5/RN input (DFFR_X1) (27, 1)
+ r6/RN input (DFFR_X1) (32, 1)
+ r7/RN input (DFFR_X1) (37, 1)
+ r8/RN input (DFFR_X1) (42, 1)
+ r9/RN input (DFFR_X1) (47, 1)
+

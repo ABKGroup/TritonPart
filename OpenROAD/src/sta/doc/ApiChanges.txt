@@ -1,0 +1,89 @@
+# OpenSTA, Static Timing Analyzer
+# Copyright (c) 2022, Parallax Software, Inc.
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+This file summarizes STA API changes for each release.
+
+Release 2.3.1 2022/06/12
+
+LibertyCellTimingArcSetIterator has been removed.
+Use range iteration as shown below:
+  for (TimingArcSet *arc_set : cell->timingArcSets())
+  for (TimingArcSet *arc_set : cell->timingArcSets(from, to))
+
+TimingArcSetArcIterator has been removed.
+Use range iteration as shown below:
+ for (TimingArc *arc : arc_set->arcs())
+
+LibertyCellSequentialIterator has been removed.
+  for (Sequential *seq : cell->sequentials())
+
+Release 2.1.1 2020/12/13
+Report::error, Report::warn functions now take a unique message ID as a first argument.
+InternalError has been renamed Report::cricical.
+
+Release 2.1.0 2020/04/05
+
+All public headers files have been moved to include/sta.
+
+The following iterators have been removed.
+Use range iteration on the returned collection shown next to them instead.
+  LibertyCellInternalPowerIterator cell->internalPowers()
+  LibertyCellLeakagePowerIterator cell->leakagePowers()
+
+Release 2.0.18 2020/02/15
+-------------------------
+
+The following iterator functions are deprecated:
+
+ TimingArcSet::timingArcIterator()
+ Sdc::clockIterator()
+
+Use the iterator class constructor instead. This avoids new/deletes of
+the iterators by stack allocating them. For example,
+Instead of
+
+  TimingArcSetArcIterator *arc_iter = arc_set->timingArcIterator();
+  while (arc_iter->hasNext()) {
+    TimingArc *arc = arc_iter->next();
+  }
+  delete arc_iter;
+
+use the following:
+
+  TimingArcSetArcIterator arc_iter(arc_set);
+  while (arc_iter.hasNext()) {
+    TimingArc *arc = arc_iter.next();
+  }
+
+StaException renamed to Exception
+
+Release 2.0.17 2019/11/11
+-------------------------
+
+Network::setVertexIndex renamed to setVertexId
+Network::vertexIndex renamed to vertexId
+
+TransRiseFall renamed to RiseFall
+TransRiseFallBoth renamed to RiseFallBoth
+
+Release 2.0.0 2018/06/11
+-------------------------
+
+Initial release.
+	
+# Local Variables:
+# mode:text
+# End:

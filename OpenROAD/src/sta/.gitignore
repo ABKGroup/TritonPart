@@ -1,0 +1,26 @@
+*.rej
+*.orig
+TAGS
+*~
+\#*#
+.#*
+.~lock.*\.*#
+.DS_Store
+Makefile
+gmon.out
+
+build
+pvt
+
+include/sta/StaConfig.hh
+
+app/sta
+app/libOpenSTA.*
+app/sta.exe
+app/sta.dSYM
+
+doc/._Sta.docx
+
+test/results
+# ngspice turd
+test/b3v3_1check.log
