@@ -1,6 +1,6 @@
 # Regression Tests
 
-This folder containts scripts pertaining to running regression tests with TritonPart. The regression script is available in ```regression.py```. 
+This folder containts the script pertaining to running regression tests with TritonPart. The regression script is available in ```regression.py```. 
 
 # How to run regression
 
