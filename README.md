@@ -5,9 +5,9 @@ Currently our repo is under active development.
 
 
 ## Table of Content
-  - [OpenROAD](https://github.com/ZhiangWang033/TritonPart_v1.0/tree/main/OpenROAD_TritonPart_src) includes the source for TritonPart. The codes are available in OpenROAD/src/par.
-  - [titan23_benchmark](https://github.com/ZhiangWang033/TritonPart_v1.0/tree/main/titan23_benchmark) provides the titan23 benchmark suites.
-  - [regression](https://github.com/ZhiangWang033/TritonPart_v1.0/tree/main/regression) provides the scripts for benchmarking TritonPart.
+  - [OpenROAD](https://github.com/ABKGroup/TritonPart/tree/main/OpenROAD) includes the source for TritonPart. The codes are available in OpenROAD/src/par.
+  - [titan23_benchmark](https://github.com/ABKGroup/TritonPart/tree/main/titan23_benchmark) provides the titan23 benchmark suites.
+  - [regression](https://github.com/ABKGroup/TritonPart/tree/main/regression) provides the scripts for benchmarking TritonPart.
   
  
 ## Features
@@ -35,7 +35,8 @@ make
 ```
 
 ## How to run regression test
-We also users to specify their parameters by modifying the [regression.py](https://github.com/ZhiangWang033/TritonPart_v1.0/blob/main/regression/regression.py) from [Line131](https://github.com/ZhiangWang033/TritonPart_v1.0/blob/b5c37a90115ec6a856e77b37bdd495a9c5dc93df/regression/regression.py#L131) to [Line148](https://github.com/ZhiangWang033/TritonPart_v1.0/blob/b5c37a90115ec6a856e77b37bdd495a9c5dc93df/regression/regression.py#L148).
+We also users to specify their parameters by modifying the [regression.py](https://github.com/ABKGroup/TritonPart/blob/main/regression/regression.py) from [Line131](https://github.com/ABKGroup/TritonPart/blob/68e516145a7090c3b9bae7ac9bf2464e58758b69/regression/regression.py#L131) to 
+[Line148](https://github.com/ABKGroup/TritonPart/blob/68e516145a7090c3b9bae7ac9bf2464e58758b69/regression/regression.py#L148).
 You can run the regression scripts as following:
 ``` shell
 python regression.py | tee summary.log
