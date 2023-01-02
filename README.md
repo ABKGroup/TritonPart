@@ -18,7 +18,7 @@ Currently our repo is under active development.
   - Multidimensional weights on vertices and hyperedges
   - Multilevel coarsening and refinement framework
   - Fixed vertices
-  - Timing-driven partitioning framework (under development)
+  - Timing-driven partitioning framework 
   - Community constraints: Groups of vertices need to be in same partition
   
  
