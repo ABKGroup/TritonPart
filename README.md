@@ -41,8 +41,8 @@ triton_part_hypergraph -hypergraph_file des90.hgr -num_parts 5 -balance_constrai
 
 
 ## How to run regression test
-We recommend users to specify their parameters by modifying the [regression.py](https://github.com/ABKGroup/TritonPart/blob/main/regression/regression.py) from [Line131](https://github.com/ABKGroup/TritonPart/blob/68e516145a7090c3b9bae7ac9bf2464e58758b69/regression/regression.py#L131) to 
-[Line148](https://github.com/ABKGroup/TritonPart/blob/68e516145a7090c3b9bae7ac9bf2464e58758b69/regression/regression.py#L148).
+We recommend users to specify their parameters by modifying the [regression.py](https://github.com/ABKGroup/TritonPart/blob/main/regression/regression.py) from [Line 131](https://github.com/ABKGroup/TritonPart/blob/68e516145a7090c3b9bae7ac9bf2464e58758b69/regression/regression.py#L131) to 
+[Line 148](https://github.com/ABKGroup/TritonPart/blob/68e516145a7090c3b9bae7ac9bf2464e58758b69/regression/regression.py#L148).
 You can run the regression scripts as following:
 ``` shell
 python regression.py | tee summary.log
