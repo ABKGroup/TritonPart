@@ -1434,6 +1434,18 @@ void PartitionMgr::partitionDesign(unsigned int max_num_macro,
                              keepin_uy);
 }
 
+void PartitionMgr::tritonPartDesign(unsigned int num_parts,
+                                     float balance_constraint,
+                                     unsigned int seed)
+ {
+   // Use TritonPart to partition a design
+   // Users can set other parameter before calling this command,
+   // for example, enable timing-aware feature
+   auto triton_part
+       = std::make_unique<TritonPart>(db_network_, db_, _sta, logger_);
+   triton_part->tritonPartDesign(num_parts, balance_constraint, seed);
+ }
+
 void PartitionMgr::tritonPartHypergraph(const char* hypergraph_file,
                                         const char* fixed_file,
                                         unsigned int num_parts,

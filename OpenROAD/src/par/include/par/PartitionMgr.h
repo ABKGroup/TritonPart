@@ -326,6 +326,11 @@ class PartitionMgr
                        float keepin_ux,
                        float keepin_uy);
 
+   // The interface for partitioning a design with TritonPart
+   void tritonPartDesign(unsigned int num_parts,
+                         float balance_constraint,
+                         unsigned int seed);
+
    // The TritonPart Interface
    // The TritonPart is an open-source version of hMETIS, 
    // The TritonPart is designed for VLSI CAD, thus it can

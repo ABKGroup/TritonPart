@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2020, The Regents of the University of California
+// Copyright (c) 2022, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -71,6 +71,7 @@ void MultiLevelHierarchy::RunFlow(HGraph hgraph, // hypergraph
   std::vector<HGraph> hgraphs = coarsening_->LazyFirstChoice(hgraph);
   // initial partitioning 
   HGraph hgraph_c = hgraphs.back(); // get the coarsest hypergraph
+  hgraph_c->WriteHypergraph(std::string("coarse"));
   hgraphs.pop_back();
   // generate multiple random initial solutions 
   // set the random seed

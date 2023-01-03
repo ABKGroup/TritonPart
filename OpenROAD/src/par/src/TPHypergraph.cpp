@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2020, The Regents of the University of California
+// Copyright (c) 2022, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #include "Utilities.h"
 #include "utl/Logger.h"
 #include "TPHypergraph.h"
+#include <iostream>
 
 using utl::PAR;
 
@@ -158,6 +159,10 @@ void TPHypergraph::WriteHypergraph(std::string hypergraph) const
   file_output.open(hypergraph_file);
   file_output << num_hyperedges_ << "  "
               << num_vertices_   << " 11" << std::endl;
+  std::cout << "num_vertices = " << num_vertices_ << std::endl;
+  std::cout << "num_hyperedges = " << num_hyperedges_ << std::endl;
+  std::cout << "vertex_weights.size() = " << vertex_weights_.size() << std::endl;
+  std::cout << "hyperedge_weights.size() = " << hyperedge_weights_.size() << std::endl;
   // write hyperedge weight and hyperedge first 
   for (int e = 0; e < num_hyperedges_; e++) {
     for (auto weight : hyperedge_weights_[e]) 

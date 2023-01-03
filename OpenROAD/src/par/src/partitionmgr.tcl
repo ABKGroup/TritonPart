@@ -694,7 +694,27 @@ proc triton_part_hypergraph { args } {
                                 $vertex_dimension $hyperedge_dimension  $seed
 }
 
-
+proc triton_part_design { args } {
+     sta::parse_key_args "triton_part_design" args keys { -num_parts -balance_constraint -seed } \
+                                                   flags {  }
+     set num_parts 2
+     set balance_constraint 1.0
+     set seed 0
+ 
+     if { [info exists keys(-num_parts)] } {
+         set num_parts $keys(-num_parts)
+     }
+ 
+     if { [info exists keys(-balance_constraint)] } {
+         set balance_constraint $keys(-balance_constraint)
+     }
+ 
+     if { [info exists keys(-seed)] } {
+         set seed $keys(-seed)
+     }
+ 
+     par::triton_part_design $num_parts $balance_constraint $seed
+ }
 
 
 

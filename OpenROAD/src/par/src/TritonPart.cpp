@@ -2,7 +2,7 @@
 //
 // BSD 3-Clause License
 //
-// Copyright (c) 2020, The Regents of the University of California
+// Copyright (c) 2022, The Regents of the University of California
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -191,13 +191,21 @@ void TritonPart::ReadHypergraph(std::string hypergraph_file,
 // Convert the netlist into hypergraphs
 void TritonPart::ReadNetlist()
 {
+  vertex_dimensions_ = 1;
   // assign vertex_id property of each instance and each IO port
   int vertex_id = 0;
   for (auto term : block_->getBTerms()) {
     odb::dbIntProperty::create(term, "vertex_id", vertex_id++);
+    std::vector<float> vwts(vertex_dimensions_, 0.0);
+    vertex_weights_.push_back(vwts);
   }
+  const float dbu = db_->getTech()->getDbUnitsPerMicron();
   for (auto inst : block_->getInsts()) {
     odb::dbIntProperty::create(inst, "vertex_id", vertex_id++);
+    const odb::dbMaster* master = inst->getMaster();
+    const float area = master->getWidth() * master->getHeight() / dbu / dbu;
+    std::vector<float> vwts(vertex_dimensions_, area);
+    vertex_weights_.push_back(vwts);
   }
   num_vertices_ = vertex_id;
 
@@ -254,10 +262,11 @@ void TritonPart::ReadNetlist()
   hyperedge_dimensions_ = 1;
   placement_dimensions_ = 0;
   timing_aware_flag_ = false;
-  for (int i = 0; i < num_vertices_; i++) {
-    std::vector<float> vwts(vertex_dimensions_, 1.0);
-    vertex_weights_.push_back(vwts);
+  for (int i = 0; i < num_hyperedges_; i++) {
+    //std::vector<float> vwts(vertex_dimensions_, 1.0);
+    //vertex_weights_.push_back(vwts);
     std::vector<float> hwts(hyperedge_dimensions_, 1.0);
+    hyperedge_weights_.push_back(hwts);
   }
 
   // add timing feature
@@ -458,29 +467,126 @@ void TritonPart::tritonPartDesign(unsigned int num_parts_arg,
   ub_factor_ = balance_constraint_arg;
   seed_ = seed_arg;
   srand(seed_);  // set the random seed
-  logger_->info(PAR,
-                2301,
-                "num_parts = {}\n"
-                "UBfactor = {}\n"
-                "seed = {}\n",
-                num_parts_,
-                ub_factor_,
-                seed_);
   // only for TritonPartDesign, we need the block_ information
   block_ = db_->getChip()->getBlock();
-
   // build hypergraph
   // for IO port and insts (std cells and macros),
   // there is an attribute for vertex_id
   ReadNetlist();
   BuildHypergraph();
-  logger_->info(PAR,
-                2302,
-                "num_vertices = {}\n"
-                "num_hyperedges = {}\n",
-                num_vertices_,
-                num_hyperedges_);
+  logger_->report("Partition Parameters**");
+  logger_->report("Number of partitions = {}", num_parts_);
+  logger_->report("UBfactor = {}", ub_factor_);
+  logger_->report("Vertex dimensions = {}", vertex_dimensions_);
+  logger_->report("Hyperedge dimensions = {}", hyperedge_dimensions_);
+  logger_->report("Hypergraph Information**");
+  logger_->report("#Vertices = {}", num_vertices_);
+  logger_->report("#Hyperedges = {}", num_hyperedges_);
+  hypergraph_->WriteHypergraph(std::string("original"));
+  
+  // create coarsening class
+  std::vector<float> e_wt_factors(hyperedge_dimensions_, 1.0);
+  std::vector<float> v_wt_factors(vertex_dimensions_, 1.0);
+  std::vector<float> p_wt_factors(placement_dimensions_ + 100, 1.0);
+  float timing_factor = 1.0;
+  int path_traverse_step = 2;
+  std::vector<float> tot_vertex_weights = hypergraph_->GetTotalVertexWeights();
+  int alpha = 4;
+  std::vector<float> max_vertex_weights
+      = DivideFactor(hypergraph_->GetTotalVertexWeights(), alpha * num_parts_);
+  int smallest_v_size_cgraph = 250;
+  int smallest_e_size_cgraph = 50;
+  float coarsening_ratio = 1.5;
+  int max_coarsen_iters = 20;
+  CoarseningPtr coarsening
+      = std::make_shared<Coarsening>(e_wt_factors,
+                                     v_wt_factors,
+                                     p_wt_factors,
+                                     timing_factor,
+                                     path_traverse_step,
+                                     max_vertex_weights,
+                                     global_net_threshold_,
+                                     smallest_v_size_cgraph,
+                                     smallest_e_size_cgraph,
+                                     coarsening_ratio,
+                                     max_coarsen_iters,
+                                     seed_,
+                                     logger_);
+  // create partitioner class
+  std::vector<std::vector<float>> vertex_balance
+      = hypergraph_->GetVertexBalance(num_parts_, ub_factor_);
+  std::vector<std::vector<float>> hyperedge_balance;
+  float path_wt_factor = 1.0;
+  float snaking_wt_factor = 1.0;
+  float early_stop_ratio = 0.5;
+  int max_num_fm_pass = 10;
+  PartitionersPtr partitioners
+      = std::make_shared<Partitioners>(num_parts_,
+                                       e_wt_factors,
+                                       path_wt_factor,
+                                       snaking_wt_factor,
+                                       early_stop_ratio,
+                                       max_num_fm_pass,
+                                       seed_,
+                                       logger_);
+  // create the refiner class
+  KPMrefinementPtr kpmrefiner
+      = std::make_shared<KPMRefinement>(num_parts_,
+                                        e_wt_factors,
+                                        path_wt_factor,
+                                        snaking_wt_factor,
+                                        early_stop_ratio,
+                                        max_num_fm_pass,
+                                        seed_,
+                                        logger_);
 
+  // create the ilp refiner class
+  int wavefront = 50;  // wavefront is the number of vertices the ILP will consider
+  IlpRefinerPtr ilprefiner = std::make_shared<IlpRefiner>(num_parts_,
+                                                          seed_,
+                                                          wavefront,
+                                                          e_wt_factors,
+                                                          path_wt_factor,
+                                                          snaking_wt_factor,
+                                                          max_num_fm_pass);
+
+  // create the multilevel class
+  bool v_cycle_flag = true;
+  RefineType refine_type = KPMREFINEMENT;
+  int num_initial_solutions = 20; // number of initial random solutions
+  int num_best_initial_solutions = 3; // number of best initial solutions
+  int num_ubfactor_delta = 5; // allowing marginal imbalance to improve QoR
+  int max_num_vcycle = 5; // maximum number of vcycles
+
+  MultiLevelHierarchyPtr multilevel_hierarchy
+      = std::make_shared<MultiLevelHierarchy>(coarsening,
+                                              partitioners,
+                                              kpmrefiner,
+                                              ilprefiner,
+                                              num_parts_,
+                                              v_cycle_flag,
+                                              num_initial_solutions,
+                                              num_best_initial_solutions,
+                                              num_ubfactor_delta, 
+                                              max_num_vcycle, 
+                                              seed_, 
+                                              ub_factor_,
+                                              refine_type, 
+                                              logger_);
+
+  //HGraph hypergraph_processed = preProcessHypergraph();
+  HGraph hypergraph_processed = hypergraph_;
+  logger_->report("\nPost processing hypergraph information**");
+  logger_->report("#Vertices = {}", hypergraph_processed->GetNumVertices());
+  logger_->report("#Hyperedges = {}", hypergraph_processed->GetNumHyperedges());
+
+  std::vector<int> solution = multilevel_hierarchy->CallFlow(hypergraph_processed, vertex_balance);
+  // check the existing solution
+  std::pair<float, std::vector<std::vector<float>>> cutsize_balance
+      = partitioners->GoldenEvaluator(hypergraph_, solution, true);
+  // write the solution
+  std::string solution_file = std::string("solution.part.") + std::to_string(num_parts_);
+  WriteSolution(solution_file.c_str(), solution);
   auto end_timestamp_global = std::chrono::high_resolution_clock::now();
   double total_global_time
       = std::chrono::duration_cast<std::chrono::nanoseconds>(
