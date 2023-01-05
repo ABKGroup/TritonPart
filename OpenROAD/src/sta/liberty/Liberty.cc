@@ -891,7 +891,10 @@ LibertyCell::LibertyCell(LibertyLibrary *library,
   is_memory_(false),
   is_pad_(false),
   is_level_shifter_(false),
-  has_internal_ports_(false),
+  level_shifter_type_(LevelShifterType::HL_LH),
+  is_isolation_cell_(false),
+  always_on_(false),
+  switch_cell_type_(SwitchCellType::fine_grain),
   interface_timing_(false),
   clock_gate_type_(ClockGateType::none),
   has_infered_reg_timing_arcs_(false),
@@ -901,7 +904,8 @@ LibertyCell::LibertyCell(LibertyLibrary *library,
   ocv_derate_(nullptr),
   is_disabled_constraint_(false),
   leakage_power_(0.0),
-  leakage_power_exists_(false)
+  leakage_power_exists_(false),
+  has_internal_ports_(false)
 {
   liberty_cell_ = this;
 }
@@ -1038,9 +1042,33 @@ LibertyCell::LibertyCell::setIsPad(bool is_pad)
 }
 
 void
-LibertyCell::LibertyCell::setIsLevelShifter(bool is_level_shifter)
+LibertyCell::setIsLevelShifter(bool is_level_shifter)
 {
   is_level_shifter_ = is_level_shifter;
+}
+
+void
+LibertyCell::setLevelShifterType(LevelShifterType level_shifter_type)
+{
+  level_shifter_type_ = level_shifter_type;
+}
+
+void
+LibertyCell::setIsIsolationCell(bool is_isolation_cell)
+{
+  is_isolation_cell_ = is_isolation_cell;
+}
+
+void
+LibertyCell::setAlwaysOn(bool always_on)
+{
+  always_on_ = always_on;
+}
+
+void
+LibertyCell::setSwitchCellType(SwitchCellType switch_cell_type)
+{
+  switch_cell_type_ = switch_cell_type;
 }
 
 void
@@ -1894,10 +1922,14 @@ LibertyPort::LibertyPort(LibertyCell *cell,
   is_clk_(false),
   is_reg_clk_(false),
   is_check_clk_(false),
-  is_clk_gate_clk_pin_(false),
-  is_clk_gate_enable_pin_(false),
-  is_clk_gate_out_pin_(false),
-  is_pll_feedback_pin_(false),
+  is_clk_gate_clk_(false),
+  is_clk_gate_enable_(false),
+  is_clk_gate_out_(false),
+  is_pll_feedback_(false),
+  isolation_cell_data_(false),
+  isolation_cell_enable_(false),
+  level_shifter_data_(false),
+  is_switch_(false),
   is_disabled_constraint_(false)
 {
   liberty_port_ = this;
@@ -2328,27 +2360,51 @@ LibertyPort::setIsCheckClk(bool is_clk)
 }
 
 void
-LibertyPort::setIsClockGateClockPin(bool is_clk_gate_clk)
+LibertyPort::setIsClockGateClock(bool is_clk_gate_clk)
 {
-  is_clk_gate_clk_pin_ = is_clk_gate_clk;
+  is_clk_gate_clk_ = is_clk_gate_clk;
 }
 
 void
-LibertyPort::setIsClockGateEnablePin(bool is_clk_gate_enable)
+LibertyPort::setIsClockGateEnable(bool is_clk_gate_enable)
 {
-  is_clk_gate_enable_pin_ = is_clk_gate_enable;
+  is_clk_gate_enable_ = is_clk_gate_enable;
 }
 
 void
-LibertyPort::setIsClockGateOutPin(bool is_clk_gate_out)
+LibertyPort::setIsClockGateOut(bool is_clk_gate_out)
 {
-  is_clk_gate_out_pin_ = is_clk_gate_out;
+  is_clk_gate_out_ = is_clk_gate_out;
 }
 
 void
-LibertyPort::setIsPllFeedbackPin(bool is_pll_feedback_pin)
+LibertyPort::setIsPllFeedback(bool is_pll_feedback)
 {
-  is_pll_feedback_pin_ = is_pll_feedback_pin;
+  is_pll_feedback_ = is_pll_feedback;
+}
+
+void
+LibertyPort::setIsolationCellData(bool isolation_cell_data)
+{
+  isolation_cell_data_ = isolation_cell_data;
+}
+
+void
+LibertyPort::setIsolationCellEnable(bool isolation_cell_enable)
+{
+  isolation_cell_enable_ = isolation_cell_enable;
+}
+
+void
+LibertyPort::setLevelShifterData(bool level_shifter_data)
+{
+  level_shifter_data_ = level_shifter_data;
+}
+
+void
+LibertyPort::setIsSwitch(bool is_switch)
+{
+  is_switch_ = is_switch;
 }
 
 void

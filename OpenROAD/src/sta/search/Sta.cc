@@ -68,7 +68,7 @@
 #include "VisitPathGroupVertices.hh"
 #include "Genclks.hh"
 #include "ClkNetwork.hh"
-#include "Power.hh"
+#include "power/Power.hh"
 #include "VisitPathEnds.hh"
 #include "PathExpanded.hh"
 #include "MakeTimingModel.hh"
@@ -1096,8 +1096,6 @@ Sta::makeGeneratedClock(const char *name,
 			bool add_to_pins,
 			Pin *src_pin,
 			Clock *master_clk,
-			Pin *pll_out,
-			Pin *pll_fdbk,
 			int divide_by,
 			int multiply_by,
 			float duty_cycle,
@@ -1109,7 +1107,6 @@ Sta::makeGeneratedClock(const char *name,
 {
   sdc_->makeGeneratedClock(name, pins, add_to_pins,
 			   src_pin, master_clk,
-			   pll_out, pll_fdbk,
 			   divide_by, multiply_by, duty_cycle,
 			   invert, combinational,
 			   edges, edge_shifts, comment);
@@ -2642,24 +2639,22 @@ Sta::visitEndpoints(VertexVisitor *visitor)
   search_->visitEndpoints(visitor);
 }
 
-class EndpointCounter : public VertexVisitor
-{
-public:
-  EndpointCounter() : count_(0) {}
-  virtual void visit(Vertex *) { count_++; }
-  int count() const { return count_; }
-  virtual EndpointCounter *copy()  const { return new EndpointCounter; }
-protected:
-  int count_;
-};
-
-int
-Sta::endpointCount()
+VertexSet *
+Sta::endpoints()
 {
   ensureGraph();
-  EndpointCounter counter;
-  search_->visitEndpoints(&counter);
-  return counter.count();
+  return search_->endpoints();
+}
+
+int
+Sta::endpointViolationCount(const MinMax *min_max)
+{
+  int violations = 0;
+  for (Vertex *end : *search_->endpoints()) {
+    if (vertexSlack(end, min_max) < 0.0)
+      violations++;
+  }
+  return violations;
 }
 
 PinSet *
@@ -3363,10 +3358,26 @@ Sta::vertexSlew(Vertex *vertex,
 {
   findDelays(vertex);
   Slew mm_slew = min_max->initValue();
-  for (DcalcAnalysisPt *dcalc_ap : corners_->dcalcAnalysisPts()) {
+  for (const DcalcAnalysisPt *dcalc_ap : corners_->dcalcAnalysisPts()) {
     Slew slew = graph_->slew(vertex, rf, dcalc_ap->index());
     if (delayGreater(slew, mm_slew, min_max, this))
       mm_slew = slew;
+  }
+  return mm_slew;
+}
+
+Slew
+Sta::vertexSlew(Vertex *vertex,
+                const MinMax *min_max)
+{
+  findDelays(vertex);
+  Slew mm_slew = min_max->initValue();
+  for (const DcalcAnalysisPt *dcalc_ap : corners_->dcalcAnalysisPts()) {
+    for (const RiseFall *rf : RiseFall::range()) {
+      Slew slew = graph_->slew(vertex, rf, dcalc_ap->index());
+      if (delayGreater(slew, mm_slew, min_max, this))
+        mm_slew = slew;
+    }
   }
   return mm_slew;
 }
@@ -3827,7 +3838,6 @@ Sta::readSpef(const char *filename,
 	      Instance *instance,
               const Corner *corner,
 	      const MinMaxAll *min_max,
-	      bool increment,
 	      bool pin_cap_included,
 	      bool keep_coupling_caps,
 	      float coupling_cap_factor,
@@ -3845,9 +3855,9 @@ Sta::readSpef(const char *filename,
   ParasiticAnalysisPt *ap = corner->findParasiticAnalysisPt(cnst_min_max);
   const OperatingConditions *op_cond =
     sdc_->operatingConditions(cnst_min_max);
-  bool success = readSpefFile(filename, instance, ap, increment,
-			      pin_cap_included,
-			      keep_coupling_caps, coupling_cap_factor,
+  bool success = readSpefFile(filename, instance, ap,
+			      pin_cap_included, keep_coupling_caps,
+                              coupling_cap_factor,
 			      reduce_to, delete_after_reduce,
 			      op_cond, corner, cnst_min_max, quiet,
 			      report_, network_, parasitics_);

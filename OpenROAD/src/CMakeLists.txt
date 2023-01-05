@@ -1,17 +1,45 @@
-# Copyright (c) 2019, Parallax Software, Inc.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+###############################################################################
+##
+## BSD 3-Clause License
+##
+## Copyright (c) 2019, Parallax Software, Inc.
+## All rights reserved.
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are met:
+##
+## * Redistributions of source code must retain the above copyright notice, this
+##   list of conditions and the following disclaimer.
+##
+## * Redistributions in binary form must reproduce the above copyright notice,
+##   this list of conditions and the following disclaimer in the documentation
+##   and#or other materials provided with the distribution.
+##
+## * Neither the name of the copyright holder nor the names of its
+##   contributors may be used to endorse or promote products derived from
+##   this software without specific prior written permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+## AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+## IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+## ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+## LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+## CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+## SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+## INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+## CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+## ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+## POSSIBILITY OF SUCH DAMAGE.
+##
+###############################################################################
+
+# The location used by etc/DependencyInstaller.sh
+# lib64 is used for CentOS and openSUSE
+# lib is used for Ubuntu and MacOS
+list(APPEND CMAKE_INSTALL_RPATH
+  "/opt/or-tools/lib64"
+  "/opt/or-tools/lib"
+)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/src/cmake")
 
@@ -28,7 +56,6 @@ endif()
 set(ODB_HOME ${PROJECT_SOURCE_DIR}/src/odb)
 set(DBSTA_HOME ${PROJECT_SOURCE_DIR}/src/dbSta)
 set(RESIZER_HOME ${PROJECT_SOURCE_DIR}/src/rsz)
-set(PAD_HOME ${OPENROAD_HOME}/src/pad)
 
 set(OPENROAD_SOURCE
   Design.cc
@@ -42,15 +69,6 @@ if(USE_SYSTEM_BOOST)
 else()
   set(Boost_USE_STATIC_LIBS ON)
 endif()
-
-
-find_library(Spectral_LIB NAME Spectral
-             PATHS
-             /home/zf4_projects/TritonPart/TritonPart_v1.0/compiled_spectral/lib
-             /home/zf4_projects/TritonPart/TritonPart_v1.0/compiled_spectral/lib/julia
-             )
-
-
 
 if(USE_SYSTEM_OPENSTA)
   if(NOT OPENSTA_LIBRARY)
@@ -140,6 +158,9 @@ if (BUILD_TCLX AND TCLX_H)
 endif()
 
 find_package(SWIG 3.0 REQUIRED)
+if (SWIG_VERSION VERSION_GREATER_EQUAL "4.1.0")
+  message(WARNING "Using SWIG >= ${SWIG_VERSION} -flatstaticmethod flag for python")
+endif()
 include(UseSWIG)
 
 find_package(Boost REQUIRED)
@@ -161,7 +182,8 @@ add_compile_options(
   -Wno-sign-compare
   -Wp,-D_GLIBCXX_ASSERTIONS
   $<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>
-  $<$<CXX_COMPILER_ID:AppleClang>:-Wno-gnu-zero-variadic-macro-arguments>
+  # Apple clang 14.0.0 deprecates sprintf, which generates 900 warnings.
+  $<$<CXX_COMPILER_ID:AppleClang>:-Wno-deprecated-declarations>
 )
 
 ################################################################
@@ -172,7 +194,6 @@ swig_lib(NAME      openroad_swig
          SCRIPTS   ${OPENSTA_HOME}/tcl/Util.tcl
                    OpenRoad.tcl
                    Metrics.tcl
-                   ${PAD_HOME}/src/pad.tcl
                    ${ODB_HOME}/src/db/odb.tcl
 )
 
@@ -211,6 +232,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 # Build flow tools
 add_subdirectory(ifp)
+add_subdirectory(pad)
 add_subdirectory(odb)
 if (NOT USE_SYSTEM_OPENSTA)
   add_subdirectory(sta)
@@ -271,6 +293,7 @@ target_include_directories(openroad
 
 target_link_libraries(openroad
   ifp
+  pad
   openroad_swig
   gpl
   dpl
@@ -292,7 +315,6 @@ target_link_libraries(openroad
   drt
   dst
   mpl
-  mpl2
   psm
   ant
   par
@@ -302,6 +324,14 @@ target_link_libraries(openroad
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
 )
+
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  # mpl2 aborts with link error on darwin so do not link it.
+  target_link_libraries(openroad mpl2)
+  target_compile_definitions(openroad PRIVATE ENABLE_MPL2)
+else()
+  message(STATUS "Removing MPL2 to avoid run time fatal error.")
+endif()
 
 # tclReadline
 if (TCL_READLINE_LIBRARY AND TCL_READLINE_H)
@@ -350,9 +380,24 @@ if (Python3_FOUND AND BUILD_PYTHON)
   )
   target_link_libraries(openroad
     openroad_swig_py
-    odbpy
+    odb_py
     ifp_py
     utl_py
+    ant_py
+    grt_py
+    gpl_py
+    dpl_py
+    mpl_py
+    ppl_py
+    tap_py
+    cts_py
+    drt_py
+    dpo_py
+    fin_py
+    par_py
+    rcx_py
+    rmp_py
+    stt_py
   )
 else()
   message(STATUS "Python3 disabled")

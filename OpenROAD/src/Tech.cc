@@ -33,11 +33,12 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include "ord/Tech.h"
+
 #include "db_sta/dbSta.hh"
 #include "odb/db.h"
 #include "odb/lefin.h"
 #include "ord/OpenRoad.hh"
-#include "ord/Tech.h"
 
 namespace ord {
 
@@ -52,7 +53,7 @@ odb::dbDatabase* Tech::getDB()
   return db_;
 }
 
-void Tech::readLEF(const std::string& file_name)
+void Tech::readLef(const std::string& file_name)
 {
   auto app = OpenRoad::openRoad();
   const bool make_tech = db_->getTech() == nullptr;
@@ -80,6 +81,12 @@ void Tech::readLiberty(const std::string& file_name)
                    sta->cmdCorner(),
                    sta::MinMaxAll::all(),
                    true /* infer_latches */);
+}
+
+sta::dbSta* Tech::getSta()
+{
+  auto sta = OpenRoad::openRoad()->getSta();
+  return sta;
 }
 
 }  // namespace ord

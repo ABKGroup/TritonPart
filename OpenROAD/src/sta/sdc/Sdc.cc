@@ -993,8 +993,6 @@ Sdc::makeGeneratedClock(const char *name,
 			bool add_to_pins,
 			Pin *src_pin,
 			Clock *master_clk,
-			Pin *pll_out,
-			Pin *pll_fdbk,
 			int divide_by,
 			int multiply_by,
 			float duty_cycle,
@@ -1015,7 +1013,6 @@ Sdc::makeGeneratedClock(const char *name,
     clock_name_map_[clk->name()] = clk;
   }
   clk->initGeneratedClk(pins, add_to_pins, src_pin, master_clk,
-			pll_out, pll_fdbk,
 			divide_by, multiply_by, duty_cycle,
 			invert, combinational,
 			edges, edge_shifts, propagate_all_clks_,
@@ -1933,12 +1930,6 @@ Sdc::makeClockGroup(ClockGroups *clk_groups,
 		    ClockSet *clks)
 {
   clk_groups->makeClockGroup(clks);
-}
-
-ClockGroupIterator *
-Sdc::clockGroupIterator()
-{
-  return new ClockGroupIterator(clk_groups_name_map_);
 }
 
 void
@@ -6009,18 +6000,6 @@ ClockIterator::ClockIterator(Sdc *sdc) :
 
 ClockIterator::ClockIterator(ClockSeq &clocks) :
   ClockSeq::Iterator(clocks)
-{
-}
-
-////////////////////////////////////////////////////////////////
-
-ClockGroupIterator::ClockGroupIterator(Sdc *sdc) :
-  ClockGroupsNameMap::Iterator(sdc->clk_groups_name_map_)
-{
-}
-
-ClockGroupIterator::ClockGroupIterator(ClockGroupsNameMap &clk_groups_name_map) :
-  ClockGroupsNameMap::Iterator(clk_groups_name_map)
 {
 }
 

@@ -1,17 +1,37 @@
+###############################################################################
+##
+## BSD 3-Clause License
+##
 # Copyright (c) 2020, The Regents of the University of California
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+## All rights reserved.
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are met:
+##
+## * Redistributions of source code must retain the above copyright notice, this
+##   list of conditions and the following disclaimer.
+##
+## * Redistributions in binary form must reproduce the above copyright notice,
+##   this list of conditions and the following disclaimer in the documentation
+##   and#or other materials provided with the distribution.
+##
+## * Neither the name of the copyright holder nor the names of its
+##   contributors may be used to endorse or promote products derived from
+##   this software without specific prior written permission.
+##
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+## AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+## IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+## ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+## LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+## CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+## SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+## INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+## CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+## ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+## POSSIBILITY OF SUCH DAMAGE.
+##
+###############################################################################
 
 sta::define_cmd_args "define_process_corner" {
     [-ext_model_index index] filename
@@ -36,7 +56,6 @@ sta::define_cmd_args "extract_parasitics" {
     [-corner_cnt count]
     [-max_res ohms]
     [-coupling_threshold fF]
-    [-signal_table value]
     [-debug_net_id id]
     [-lef_res]
     [-cc_model track]
@@ -50,7 +69,6 @@ proc extract_parasitics { args } {
         -corner_cnt
         -max_res
         -coupling_threshold
-        -signal_table
         -debug_net_id
         -context_depth
         -cc_model } \
@@ -79,12 +97,6 @@ proc extract_parasitics { args } {
     sta::check_positive_float "-coupling_threshold" $coupling_threshold
   }
 
-  set signal_table 3
-  if { [info exists keys(-signal_table)] } {
-    set signal_table $keys(-signal_table)
-    sta::check_positive_integer "-signal_table" $signal_table
-  }
-
   set lef_res [info exists flags(-lef_res)]
   set no_merge_via_res [info exists flags(-no_merge_via_res)]
 
@@ -105,7 +117,7 @@ proc extract_parasitics { args } {
   }
 
   rcx::extract $ext_model_file $corner_cnt $max_res \
-      $coupling_threshold $signal_table $cc_model \
+      $coupling_threshold $cc_model \
       $depth $debug_net_id $lef_res $no_merge_via_res
 }
 

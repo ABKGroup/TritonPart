@@ -937,13 +937,13 @@ class dbBlock : public dbObject
   /// and helper functions for global connections
   /// on this block.
   ///
-  void globalConnect();
-  void globalConnect(dbGlobalConnect* gc);
-  void addGlobalConnect(dbRegion* region,
-                        const char* instPattern,
-                        const char* pinPattern,
-                        dbNet* net,
-                        bool do_connect);
+  int globalConnect();
+  int globalConnect(dbGlobalConnect* gc);
+  int addGlobalConnect(dbRegion* region,
+                       const char* instPattern,
+                       const char* pinPattern,
+                       dbNet* net,
+                       bool do_connect);
   void reportGlobalConnect();
   void clearGlobalConnect();
 
@@ -1472,7 +1472,7 @@ class dbBlock : public dbObject
   ///
   /// get wire_updated nets
   ///
-  void getWireUpdatedNets(std::vector<dbNet*>& nets, Rect* bbox = NULL);
+  void getWireUpdatedNets(std::vector<dbNet*>& nets);
 
   ///
   /// return the regions of this design
@@ -6999,6 +6999,10 @@ class dbTechLayer : public dbObject
   // User Code Begin dbTechLayerEnums
   // User Code End dbTechLayerEnums
 
+  void setWrongWayWidth(uint wrong_way_width);
+
+  uint getWrongWayWidth() const;
+
   dbSet<dbTechLayerCutClassRule> getTechLayerCutClassRules() const;
 
   dbTechLayerCutClassRule* findTechLayerCutClassRule(const char* name) const;
@@ -9370,7 +9374,7 @@ class dbGlobalConnect : public dbObject
   // User Code Begin dbGlobalConnect
   std::vector<dbInst*> getInsts() const;
 
-  void connect(dbInst* inst);
+  int connect(dbInst* inst);
 
   static dbGlobalConnect* create(dbNet* net,
                                  dbRegion* region,

@@ -37,9 +37,10 @@ namespace rcx {
 
 using utl::RCX;
 
-uint extMain::allocateOverUnderMaps(uint layerCnt) {
+uint extMain::allocateOverUnderMaps(uint layerCnt)
+{
   uint cnt = layerCnt + 1;
-  _overUnderPlaneLayerMap = new uint* [layerCnt + 1];
+  _overUnderPlaneLayerMap = new uint*[layerCnt + 1];
   uint ii;
   for (ii = 1; ii < layerCnt + 1; ii++) {
     _overUnderPlaneLayerMap[ii] = new uint[layerCnt + 1];
@@ -69,20 +70,21 @@ uint extMain::allocateOverUnderMaps(uint layerCnt) {
   }
   return cnt;
 }
-uint extMain::initPlanesNew(uint planeCnt, odb::Rect* bb) {
+uint extMain::initPlanesNew(uint planeCnt, odb::Rect* bb)
+{
   _geomSeq->setSlices(planeCnt);
-
-  // odb::Rect rectTable[15];
-  // for (uint k= 0; k<15; k++)
-  //	rectTable[k].reset( INT_MAX, INT_MAX, INT_MIN, INT_MIN );
-  // getBboxPerLayer(rectTable);
 
   odb::Rect maxRect = _block->getDieArea();
 
   if (bb != NULL) {
     maxRect = *bb;
-    logger_->info(RCX, 183, "Init planes area: {} {}  {} {}", maxRect.xMin(),
-                  maxRect.yMin(), maxRect.xMax(), maxRect.yMax());
+    logger_->info(RCX,
+                  183,
+                  "Init planes area: {} {}  {} {}",
+                  maxRect.xMin(),
+                  maxRect.yMin(),
+                  maxRect.xMax(),
+                  maxRect.yMax());
   }
 
   odb::dbSet<odb::dbTechLayer> layers = _tech->getLayers();
@@ -98,22 +100,23 @@ uint extMain::initPlanesNew(uint planeCnt, odb::Rect* bb) {
     uint minWidth = layer->getWidth();
 
     odb::Rect r = maxRect;
-    //_geomSeq->configureSlice(level, pp, pp, r.xMin(), r.yMin(), r.xMax(),
-    // r.yMax());
-
-    // odb::Rect r= rectTable[level];
 
     if (layer->getDirection() == odb::dbTechLayerDir::HORIZONTAL)
-      _geomSeq->configureSlice(level, minWidth, pp, r.xMin(), r.yMin(),
-                               r.xMax(), r.yMax());
+      _geomSeq->configureSlice(
+          level, minWidth, pp, r.xMin(), r.yMin(), r.xMax(), r.yMax());
     else
-      _geomSeq->configureSlice(level, pp, minWidth, r.xMin(), r.yMin(),
-                               r.xMax(), r.yMax());
+      _geomSeq->configureSlice(
+          level, pp, minWidth, r.xMin(), r.yMin(), r.xMax(), r.yMax());
   }
   return planeCnt + 1;
 }
-uint extMain::initPlanes(uint dir, uint layerCnt, uint* pitchTable,
-                         uint* widthTable, int* ll, int* ur) {
+uint extMain::initPlanes(uint dir,
+                         uint layerCnt,
+                         uint* pitchTable,
+                         uint* widthTable,
+                         int* ll,
+                         int* ur)
+{
   if (_geomSeq != NULL)
     delete _geomSeq;
   _geomSeq = new odb::gs;
@@ -122,20 +125,21 @@ uint extMain::initPlanes(uint dir, uint layerCnt, uint* pitchTable,
 
   for (uint ii = 1; ii < layerCnt; ii++) {
     if (dir > 0)  // horizontal
-      _geomSeq->configureSlice(ii, widthTable[ii], pitchTable[ii], ll[0], ll[1],
-                               ur[0], ur[1]);
+      _geomSeq->configureSlice(
+          ii, widthTable[ii], pitchTable[ii], ll[0], ll[1], ur[0], ur[1]);
     else {
       if (!_rotatedGs)
-        _geomSeq->configureSlice(ii, pitchTable[ii], widthTable[ii], ll[0],
-                                 ll[1], ur[0], ur[1]);
+        _geomSeq->configureSlice(
+            ii, pitchTable[ii], widthTable[ii], ll[0], ll[1], ur[0], ur[1]);
       else
-        _geomSeq->configureSlice(ii, widthTable[ii], pitchTable[ii], ll[1],
-                                 ll[0], ur[1], ur[0]);
+        _geomSeq->configureSlice(
+            ii, widthTable[ii], pitchTable[ii], ll[1], ll[0], ur[1], ur[0]);
     }
   }
   return layerCnt;
 }
-uint extMain::initPlanes(uint layerCnt, odb::Rect* bb) {
+uint extMain::initPlanes(uint layerCnt, odb::Rect* bb)
+{
   if (_geomSeq)
     delete _geomSeq;
   _geomSeq = new odb::gs();
@@ -143,20 +147,12 @@ uint extMain::initPlanes(uint layerCnt, odb::Rect* bb) {
   if (layerCnt == 0)
     layerCnt = getExtLayerCnt(_tech);
 
-  //	uint planeCnt= layerCnt+1;
-
   _overUnderPlaneLayerMap = NULL;
 
-// if (! _diagFlow)
-// 	planeCnt= allocateOverUnderMaps(layerCnt);
-
-#ifdef GS_OLD
-  return initPlanesOld(planeCnt);
-#else
   return initPlanesNew(layerCnt, bb);
-#endif
 }
-uint extMain::makeIntersectPlanes(uint layerCnt) {
+uint extMain::makeIntersectPlanes(uint layerCnt)
+{
   if (_geomSeq == NULL)
     return 0;
   if (_overUnderPlaneLayerMap == NULL)
@@ -193,7 +189,8 @@ uint extMain::makeIntersectPlanes(uint layerCnt) {
   return cnt;
 }
 
-void extMain::deletePlanes(uint layerCnt) {
+void extMain::deletePlanes(uint layerCnt)
+{
   if (_overUnderPlaneLayerMap == NULL)
     return;
 
@@ -202,7 +199,8 @@ void extMain::deletePlanes(uint layerCnt) {
   }
   delete[] _overUnderPlaneLayerMap;
 }
-uint extMain::addShapeOnGs(odb::dbShape* s, bool swap_coords) {
+uint extMain::addShapeOnGs(odb::dbShape* s, bool swap_coords)
+{
   int level = s->getTechLayer()->getRoutingLevel();
 
   if (!swap_coords)  // horizontal
@@ -210,7 +208,8 @@ uint extMain::addShapeOnGs(odb::dbShape* s, bool swap_coords) {
   else
     return _geomSeq->box(s->yMin(), s->xMin(), s->yMax(), s->xMax(), level);
 }
-uint extMain::addSBoxOnGs(odb::dbSBox* s, bool swap_coords) {
+uint extMain::addSBoxOnGs(odb::dbSBox* s, bool swap_coords)
+{
   int level = s->getTechLayer()->getRoutingLevel();
 
   if (!swap_coords)  // horizontal
@@ -219,7 +218,8 @@ uint extMain::addSBoxOnGs(odb::dbSBox* s, bool swap_coords) {
     return _geomSeq->box(s->yMin(), s->xMin(), s->yMax(), s->xMax(), level);
 }
 
-uint extMain::addPowerGs(int dir, int* ll, int* ur) {
+uint extMain::addPowerGs(int dir, int* ll, int* ur)
+{
   bool rotatedGs = getRotatedFlag();
   bool swap_coords = !dir;
 
@@ -252,7 +252,10 @@ uint extMain::addPowerGs(int dir, int* ll, int* ur) {
           }
           int n = 0;
           if (!rotatedGs)
-            n = _geomSeq->box(s->xMin(), s->yMin(), s->xMax(), s->yMax(),
+            n = _geomSeq->box(s->xMin(),
+                              s->yMin(),
+                              s->xMax(),
+                              s->yMax(),
                               s->getTechLayer()->getRoutingLevel());
           else
             n = addSBoxOnGs(s, swap_coords);
@@ -271,7 +274,10 @@ uint extMain::addPowerGs(int dir, int* ll, int* ur) {
         if (bb[dir] < ll[dir])
           continue;
 
-        _geomSeq->box(r.xMin(), r.yMin(), r.xMax(), r.yMax(),
+        _geomSeq->box(r.xMin(),
+                      r.yMin(),
+                      r.xMax(),
+                      r.yMax(),
                       s->getTechLayer()->getRoutingLevel());
         cnt++;
       }
@@ -279,7 +285,8 @@ uint extMain::addPowerGs(int dir, int* ll, int* ur) {
   }
   return cnt;
 }
-void extMain::getBboxPerLayer(odb::Rect* rectTable) {
+void extMain::getBboxPerLayer(odb::Rect* rectTable)
+{
   odb::dbSet<odb::dbNet> bnets = _block->getNets();
   odb::dbSet<odb::dbNet>::iterator net_itr;
   odb::dbWirePathItr pitr;
@@ -292,8 +299,8 @@ void extMain::getBboxPerLayer(odb::Rect* rectTable) {
     net = *net_itr;
 
     odb::dbSigType type = net->getSigType();
-    if (type != odb::dbSigType::POWER &&
-        type != odb::dbSigType::GROUND) {  // signal
+    if (type != odb::dbSigType::POWER
+        && type != odb::dbSigType::GROUND) {  // signal
 
       wire = net->getWire();
       if (!wire)
@@ -335,7 +342,8 @@ void extMain::getBboxPerLayer(odb::Rect* rectTable) {
     }
   }
 }
-uint extMain::addSignalGs(int dir, int* ll, int* ur) {
+uint extMain::addSignalGs(int dir, int* ll, int* ur)
+{
   bool rotatedGs = getRotatedFlag();
   bool swap_coords = !dir;
 
@@ -361,7 +369,6 @@ uint extMain::addSignalGs(int dir, int* ll, int* ur) {
         dshape = pshape.shape;
         if (dshape.isVia())
           continue;
-        //				uint netId= net->getId();
 
         if (ll == NULL) {
           if (dir >= 0) {
@@ -371,7 +378,9 @@ uint extMain::addSignalGs(int dir, int* ll, int* ur) {
           }
           int n = 0;
           if (!rotatedGs)
-            n = _geomSeq->box(dshape.xMin(), dshape.yMin(), dshape.xMax(),
+            n = _geomSeq->box(dshape.xMin(),
+                              dshape.yMin(),
+                              dshape.xMax(),
                               dshape.yMax(),
                               dshape.getTechLayer()->getRoutingLevel());
           else
@@ -391,7 +400,10 @@ uint extMain::addSignalGs(int dir, int* ll, int* ur) {
         if (bb[dir] <= ll[dir])
           continue;
 
-        _geomSeq->box(r.xMin(), r.yMin(), r.xMax(), r.yMax(),
+        _geomSeq->box(r.xMin(),
+                      r.yMin(),
+                      r.xMax(),
+                      r.yMax(),
                       dshape.getTechLayer()->getRoutingLevel());
         cnt++;
       }
@@ -399,8 +411,10 @@ uint extMain::addSignalGs(int dir, int* ll, int* ur) {
   }
   return cnt;
 }
-uint extMain::addObsShapesOnPlanes(odb::dbInst* inst, bool rotatedFlag,
-                                   bool swap_coords) {
+uint extMain::addObsShapesOnPlanes(odb::dbInst* inst,
+                                   bool rotatedFlag,
+                                   bool swap_coords)
+{
   uint cnt = 0;
 
   odb::dbInstShapeItr obs_shapes;
@@ -420,8 +434,10 @@ uint extMain::addObsShapesOnPlanes(odb::dbInst* inst, bool rotatedFlag,
   }
   return cnt;
 }
-uint extMain::addItermShapesOnPlanes(odb::dbInst* inst, bool rotatedFlag,
-                                     bool swap_coords) {
+uint extMain::addItermShapesOnPlanes(odb::dbInst* inst,
+                                     bool rotatedFlag,
+                                     bool swap_coords)
+{
   uint cnt = 0;
   odb::dbSet<odb::dbITerm> iterms = inst->getITerms();
   odb::dbSet<odb::dbITerm>::iterator iterm_itr;
@@ -449,7 +465,8 @@ uint extMain::addItermShapesOnPlanes(odb::dbInst* inst, bool rotatedFlag,
   }
   return cnt;
 }
-uint extMain::addInstShapesOnPlanes(uint dir, int* ll, int* ur) {
+uint extMain::addInstShapesOnPlanes(uint dir, int* ll, int* ur)
+{
   bool rotated = getRotatedFlag();
 
   uint cnt = 0;

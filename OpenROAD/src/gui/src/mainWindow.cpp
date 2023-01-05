@@ -32,9 +32,9 @@
 
 #include "mainWindow.h"
 
-#include <QDebug>
 #include <QDesktopServices>
 #include <QDesktopWidget>
+#include <QFileDialog>
 #include <QFontDialog>
 #include <QInputDialog>
 #include <QMenu>
@@ -52,9 +52,11 @@
 #include <vector>
 
 #include "browserWidget.h"
+#include "clockWidget.h"
 #include "dbDescriptors.h"
 #include "displayControls.h"
 #include "drcWidget.h"
+#include "globalConnectDialog.h"
 #include "gui/heatMap.h"
 #include "highlightGroupDialog.h"
 #include "inspector.h"
@@ -86,9 +88,7 @@ MainWindow::MainWindow(QWidget* parent)
           selected_,
           highlighted_,
           rulers_,
-          [](const std::any& object) {
-            return Gui::get()->makeSelected(object);
-          },
+          Gui::get(),
           [this]() -> bool { return show_dbu_->isChecked(); },
           [this]() -> bool { return default_ruler_style_->isChecked(); },
           this)),
@@ -97,7 +97,9 @@ MainWindow::MainWindow(QWidget* parent)
       scroll_(new LayoutScroll(viewer_, this)),
       timing_widget_(new TimingWidget(this)),
       drc_viewer_(new DRCWidget(this)),
-      hierarchy_widget_(new BrowserWidget(viewer_->getModuleSettings(), this)),
+      clock_viewer_(new ClockWidget(this)),
+      hierarchy_widget_(
+          new BrowserWidget(viewer_->getModuleSettings(), controls_, this)),
       find_dialog_(new FindObjectDialog(this))
 {
   // Size and position the window
@@ -107,7 +109,7 @@ MainWindow::MainWindow(QWidget* parent)
 
   QFont font("Monospace");
   font.setStyleHint(QFont::Monospace);
-  script_->setFont(font);
+  script_->setWidgetFont(font);
 
   setCentralWidget(scroll_);
   addDockWidget(Qt::BottomDockWidgetArea, script_);
@@ -117,6 +119,7 @@ MainWindow::MainWindow(QWidget* parent)
   addDockWidget(Qt::RightDockWidgetArea, hierarchy_widget_);
   addDockWidget(Qt::RightDockWidgetArea, timing_widget_);
   addDockWidget(Qt::RightDockWidgetArea, drc_viewer_);
+  addDockWidget(Qt::RightDockWidgetArea, clock_viewer_);
 
   tabifyDockWidget(selection_browser_, script_);
   selection_browser_->hide();
@@ -124,11 +127,13 @@ MainWindow::MainWindow(QWidget* parent)
   tabifyDockWidget(inspector_, hierarchy_widget_);
   tabifyDockWidget(inspector_, timing_widget_);
   tabifyDockWidget(inspector_, drc_viewer_);
+  tabifyDockWidget(inspector_, clock_viewer_);
   drc_viewer_->hide();
+  clock_viewer_->hide();
 
   // Hook up all the signals/slots
-  connect(script_, SIGNAL(tclExiting()), this, SIGNAL(exit()));
-  connect(script_, SIGNAL(commandExecuted(int)), viewer_, SLOT(update()));
+  connect(script_, SIGNAL(exiting()), this, SIGNAL(exit()));
+  connect(script_, SIGNAL(commandExecuted(bool)), viewer_, SLOT(update()));
   connect(this,
           SIGNAL(designLoaded(odb::dbBlock*)),
           viewer_,
@@ -145,6 +150,10 @@ MainWindow::MainWindow(QWidget* parent)
 
   connect(this, SIGNAL(pause(int)), script_, SLOT(pause(int)));
   connect(controls_, SIGNAL(changed()), viewer_, SLOT(fullRepaint()));
+  connect(controls_,
+          SIGNAL(changed()),
+          hierarchy_widget_,
+          SLOT(displayControlsUpdated()));
   connect(
       viewer_, SIGNAL(location(int, int)), this, SLOT(setLocation(int, int)));
   connect(viewer_,
@@ -271,6 +280,10 @@ MainWindow::MainWindow(QWidget* parent)
           SIGNAL(highlightChanged()),
           selection_browser_,
           SLOT(updateHighlightModel()));
+  connect(clock_viewer_,
+          SIGNAL(selected(const Selected&)),
+          this,
+          SLOT(addSelected(const Selected&)));
 
   connect(selection_browser_,
           &SelectHighlightWindow::clearAllSelections,
@@ -313,12 +326,21 @@ MainWindow::MainWindow(QWidget* parent)
           SIGNAL(designLoaded(odb::dbBlock*)),
           drc_viewer_,
           SLOT(setBlock(odb::dbBlock*)));
+  connect(this,
+          SIGNAL(designLoaded(odb::dbBlock*)),
+          clock_viewer_,
+          SLOT(setBlock(odb::dbBlock*)));
   connect(drc_viewer_, &DRCWidget::selectDRC, [this](const Selected& selected) {
     setSelected(selected, false);
     odb::Rect bbox;
     selected.getBBox(bbox);
-    // 10 microns
-    const int zoomout_dist = 10 * getBlock()->getDbUnitsPerMicron();
+
+    auto* block = getBlock();
+    int zoomout_dist = std::numeric_limits<int>::max();
+    if (block != nullptr) {
+      // 10 microns
+      zoomout_dist = 10 * block->getDbUnitsPerMicron();
+    }
     // twice the largest dimension of bounding box
     const int zoomout_box = 2 * std::max(bbox.dx(), bbox.dy());
     // pick smallest
@@ -381,6 +403,7 @@ MainWindow::~MainWindow()
   // unregister descriptors with GUI dependencies
   gui->unregisterDescriptor<Ruler*>();
   gui->unregisterDescriptor<odb::dbNet*>();
+  gui->unregisterDescriptor<DbNetDescriptor::NetWithSink>();
 }
 
 void MainWindow::setDatabase(odb::dbDatabase* db)
@@ -409,12 +432,15 @@ void MainWindow::init(sta::dbSta* sta)
   timing_widget_->init(sta);
   controls_->setSTA(sta);
   hierarchy_widget_->setSTA(sta);
+  clock_viewer_->setSTA(sta);
   // register descriptors
   auto* gui = Gui::get();
   auto* inst_descriptor = new DbInstDescriptor(db_, sta);
   gui->registerDescriptor<odb::dbInst*>(inst_descriptor);
   gui->registerDescriptor<odb::dbMaster*>(new DbMasterDescriptor(db_, sta));
   gui->registerDescriptor<odb::dbNet*>(new DbNetDescriptor(
+      db_, sta, viewer_->getFocusNets(), viewer_->getRouteGuides()));
+  gui->registerDescriptor<DbNetDescriptor::NetWithSink>(new DbNetDescriptor(
       db_, sta, viewer_->getFocusNets(), viewer_->getRouteGuides()));
   gui->registerDescriptor<odb::dbITerm*>(new DbITermDescriptor(db_));
   gui->registerDescriptor<odb::dbBTerm*>(new DbBTermDescriptor(db_));
@@ -430,6 +456,16 @@ void MainWindow::init(sta::dbSta* sta)
   gui->registerDescriptor<odb::dbTechVia*>(new DbTechViaDescriptor(db_));
   gui->registerDescriptor<odb::dbTechViaGenerateRule*>(
       new DbGenerateViaDescriptor(db_));
+  gui->registerDescriptor<odb::dbTechNonDefaultRule*>(
+      new DbNonDefaultRuleDescriptor(db_));
+  gui->registerDescriptor<odb::dbTechLayerRule*>(
+      new DbTechLayerRuleDescriptor(db_));
+  gui->registerDescriptor<odb::dbTechSameNetRule*>(
+      new DbTechSameNetRuleDescriptor(db_));
+  gui->registerDescriptor<odb::dbSite*>(new DbSiteDescriptor(db_));
+  gui->registerDescriptor<DbSiteDescriptor::SpecificSite>(
+      new DbSiteDescriptor(db_));
+  gui->registerDescriptor<odb::dbRow*>(new DbRowDescriptor(db_));
   gui->registerDescriptor<Ruler*>(new RulerDescriptor(rulers_, db_));
 
   controls_->setDBInstDescriptor(inst_descriptor);
@@ -465,6 +501,8 @@ void MainWindow::createActions()
   hide_option_->setChecked(true);
   exit_ = new QAction("Exit", this);
 
+  open_ = new QAction("Open DB", this);
+
   fit_ = new QAction("Fit", this);
   fit_->setShortcut(QString("F"));
 
@@ -498,6 +536,12 @@ void MainWindow::createActions()
 
   font_ = new QAction("Application font", this);
 
+  global_connect_ = new QAction("Global connect", this);
+  global_connect_->setShortcut(QString("Ctrl+G"));
+
+  connect(open_, SIGNAL(triggered()), this, SLOT(openDesign()));
+  connect(
+      this, &MainWindow::designLoaded, [this]() { open_->setEnabled(false); });
   connect(hide_, SIGNAL(triggered()), this, SIGNAL(hide()));
   connect(exit_, SIGNAL(triggered()), this, SIGNAL(exit()));
   connect(fit_, SIGNAL(triggered()), viewer_, SLOT(fit()));
@@ -520,6 +564,9 @@ void MainWindow::createActions()
   connect(show_dbu_, SIGNAL(toggled(bool)), this, SLOT(setClearLocation()));
 
   connect(font_, SIGNAL(triggered()), this, SLOT(showApplicationFont()));
+
+  connect(
+      global_connect_, SIGNAL(triggered()), this, SLOT(showGlobalConnect()));
 }
 
 void MainWindow::setUseDBU(bool use_dbu)
@@ -544,6 +591,7 @@ void MainWindow::showApplicationFont()
 void MainWindow::createMenus()
 {
   file_menu_ = menuBar()->addMenu("&File");
+  file_menu_->addAction(open_);
   file_menu_->addAction(hide_);
   file_menu_->addAction(exit_);
 
@@ -560,6 +608,7 @@ void MainWindow::createMenus()
   for (auto* heat_map : Gui::get()->getHeatMaps()) {
     registerHeatMap(heat_map);
   }
+  tools_menu_->addAction(global_connect_);
 
   windows_menu_ = menuBar()->addMenu("&Windows");
   windows_menu_->addAction(controls_->toggleViewAction());
@@ -569,6 +618,7 @@ void MainWindow::createMenus()
   windows_menu_->addAction(view_tool_bar_->toggleViewAction());
   windows_menu_->addAction(timing_widget_->toggleViewAction());
   windows_menu_->addAction(drc_viewer_->toggleViewAction());
+  windows_menu_->addAction(clock_viewer_->toggleViewAction());
   windows_menu_->addAction(hierarchy_widget_->toggleViewAction());
 
   auto option_menu = menuBar()->addMenu("&Options");
@@ -1129,7 +1179,7 @@ void MainWindow::selectHighlightConnectedNets(bool select_flag,
                                               int highlight_group)
 {
   SelectionSet connected_nets;
-  for (auto sel_obj : selected_) {
+  for (auto& sel_obj : selected_) {
     if (sel_obj.isInst()) {
       auto inst_obj = std::any_cast<odb::dbInst*>(sel_obj.getObject());
       for (auto inst_term : inst_obj->getITerms()) {
@@ -1145,8 +1195,8 @@ void MainWindow::selectHighlightConnectedNets(bool select_flag,
         if (input
             && (inst_term_dir == odb::dbIoType::INPUT
                 || inst_term_dir == odb::dbIoType::INOUT))
-          connected_nets.insert(
-              Gui::get()->makeSelected(inst_term->getNet(), inst_term));
+          connected_nets.insert(Gui::get()->makeSelected(
+              DbNetDescriptor::NetWithSink{inst_term->getNet(), inst_term}));
       }
     }
   }
@@ -1206,6 +1256,7 @@ void MainWindow::setLogger(utl::Logger* logger)
   script_->setLogger(logger);
   viewer_->setLogger(logger);
   drc_viewer_->setLogger(logger);
+  clock_viewer_->setLogger(logger);
 }
 
 void MainWindow::fit()
@@ -1389,6 +1440,43 @@ void MainWindow::unregisterHeatMap(HeatMapDataSource* heatmap)
   auto* heat_maps = menuBar()->findChild<QMenu*>("HeatMaps");
   heat_maps->removeAction(heatmap_actions_[heatmap]);
   heatmap_actions_.erase(heatmap);
+}
+
+void MainWindow::showGlobalConnect()
+{
+  odb::dbBlock* block = getBlock();
+  if (block == nullptr) {
+    return;
+  }
+
+  GlobalConnectDialog dialog(block, this);
+  dialog.exec();
+}
+
+void MainWindow::openDesign()
+{
+  const QString filefilter = "OpenDB (*.odb *.ODB)";
+  const QString file = QFileDialog::getOpenFileName(
+      this, "Open Design", QString(), filefilter);
+
+  if (file.isEmpty()) {
+    return;
+  }
+
+  try {
+    if (file.endsWith(".odb", Qt::CaseInsensitive)) {
+      ord::OpenRoad::openRoad()->readDb(file.toStdString().c_str());
+      logger_->warn(utl::GUI,
+                    77,
+                    "Timing data is not stored in {} and must be loaded "
+                    "separately, if needed.",
+                    file.toStdString());
+    } else {
+      logger_->error(utl::GUI, 76, "Unknown filetype: {}", file.toStdString());
+    }
+  } catch (const std::exception&) {
+    // do nothing
+  }
 }
 
 }  // namespace gui

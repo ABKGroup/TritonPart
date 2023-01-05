@@ -213,43 +213,4 @@ void write_partition_verilog(int id, const char* portprefix, const char* module_
   getPartitionMgr()->writePartitionVerilog(path, portprefix, module_suffix);
 }
 
-void
-partition_design_cmd(unsigned int max_num_macro, unsigned int min_num_macro,
-                     unsigned int max_num_inst,  unsigned int min_num_inst,
-                     unsigned int net_threshold, unsigned int virtual_weight,
-                     unsigned int ignore_net_threshold,
-                     unsigned int num_hops, unsigned int timing_weight,
-                     bool std_cell_timing_flag,
-                     const char* report_directory, const char* file_name,
-                     float keepin_lx, float keepin_ly, float keepin_ux, float keepin_uy)
-{
-  getPartitionMgr()->partitionDesign(max_num_macro, min_num_macro,
-                                     max_num_inst, min_num_inst,
-                                     net_threshold, virtual_weight,
-                                     ignore_net_threshold, 
-                                     num_hops, timing_weight,
-                                     std_cell_timing_flag,
-                                     report_directory,
-                                     file_name,
-                                     keepin_lx, keepin_ly, keepin_ux, keepin_uy);
-}
-
-void triton_part_hypergraph(const char* hypergraph_file, const char* fixed_file,
-                            unsigned int num_parts, float balance_constraint,
-                            int vertex_dimension, int hyperedge_dimension,
-                            unsigned int seed)
-{
-  getPartitionMgr()->tritonPartHypergraph(hypergraph_file, fixed_file,
-                                          num_parts, balance_constraint, 
-                                          vertex_dimension, hyperedge_dimension,
-                                          seed);
-}
-
-void triton_part_design(unsigned int num_parts, float balance_constraint,
-                         unsigned int seed)
-{
-  getPartitionMgr()->tritonPartDesign(num_parts, balance_constraint, seed);
-}
-
-
 %}

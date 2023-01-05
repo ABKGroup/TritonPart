@@ -111,6 +111,7 @@ proc write_def { args } {
   ord::write_def_cmd $filename $version
 }
 
+sta::define_cmd_args "write_abstract_lef" {[-bloat_factor amount|-bloat_occupied_layers] filename}
 sta::define_cmd_args "write_lef" {filename}
 
 proc write_lef { args } {
@@ -121,14 +122,23 @@ proc write_lef { args } {
   ord::write_lef_cmd $filename
 }
 
-sta::define_cmd_args "write_abstract_lef" {filename}
-
 proc write_abstract_lef { args } {
-  sta::parse_key_args "write_abstract_lef" args keys {} flags {}
+  sta::parse_key_args "write_abstract_lef" args keys {-bloat_factor} flags {-bloat_occupied_layers}
 
+  set bloat_factor 10
+  if { [info exists keys(-bloat_factor)] } { 
+    set bloat_factor $keys(-bloat_factor)
+    sta::check_positive_float "bloat_factor" $bloat_factor
+  }
+
+  set bloat_occupied_layers [info exists flags(-bloat_occupied_layers)]
+  if { [info exists keys(-bloat_factor)] && $bloat_occupied_layers } {
+    utl::error ORD 1050 "Options -bloat and -bloat_occupied_layers are both set. At most one should be used."
+  }
+  
   sta::check_argc_eq1 "write_abstract_lef" $args
   set filename [file nativename [lindex $args 0]]
-  [ord::get_db_block] saveLef $filename
+  [ord::get_db_block] saveLef $filename $bloat_factor $bloat_occupied_layers
 }
 
 sta::define_cmd_args "write_cdl" {[-include_fillers]
@@ -219,17 +229,89 @@ proc suppress_message {args} {
   utl::suppress_message $tool $id
 }
 
-sta::define_cmd_args "python" { args }
-proc python {args} {
-  ord::python_cmd $args
-}
-
 proc set_thread_count { count } {
   ord::set_thread_count $count
 }
 
 proc thread_count { } {
   return [ord::thread_count]
+}
+
+sta::define_cmd_args "global_connect" {}
+proc global_connect {} {
+  [ord::get_db_block] globalConnect
+}
+
+sta::define_cmd_args "clear_global_connect" {}
+proc clear_global_connect {} {
+  [ord::get_db_block] clearGlobalConnect
+}
+
+sta::define_cmd_args "report_global_connect" {}
+proc report_global_connect {} {
+  [ord::get_db_block] reportGlobalConnect
+}
+
+sta::define_cmd_args "add_global_connection" {-net <net_name> \
+                                              -inst_pattern <inst_name_pattern> \
+                                              -pin_pattern <pin_name_pattern> \
+                                              [(-power|-ground)] \
+                                              [-region region_name]
+}
+proc add_global_connection {args} {
+  sta::parse_key_args "add_global_connection" args \
+    keys {-net -inst_pattern -pin_pattern -region} \
+    flags {-power -ground -defer_connection}
+
+  sta::check_argc_eq0 "add_global_connection" $args
+
+  if {[info exists flags(-power)] && [info exists flags(-ground)]} {
+    utl::error ORD 41 "The flags -power and -ground of the add_global_connection command are mutually exclusive."
+  }
+
+  if {![info exists keys(-net)]} {
+    utl::error ORD 42 "The -net option of the add_global_connection command is required."
+  }
+
+  if {![info exists keys(-inst_pattern)]} {
+    set keys(-inst_pattern) {.*}
+  }
+
+  if {![info exists keys(-pin_pattern)]} {
+    utl::error ORD 43 "The -pin_pattern option of the add_global_connection command is required."
+  }
+
+  set net [[ord::get_db_block] findNet $keys(-net)]
+  if {$net == "NULL"} {
+    set net [odb::dbNet_create [ord::get_db_block] $keys(-net)]
+    if {![info exists flags(-power)] && ![info exists flags(-ground)]} {
+      utl::warn ORD 44 "Net created for $keys(-net), if intended as power or ground net add the -power/-ground switch as appropriate."
+    }
+  }
+
+  if {[info exists flags(-power)]} {
+    $net setSpecial
+    $net setSigType POWER
+  } elseif {[info exists flags(-ground)]} {
+    $net setSpecial
+    $net setSigType GROUND
+  }
+
+  set do_connect 1
+  if {[info exists flags(-defer_connection)]} {
+    utl::warn ORD 46 "-defer_connection has been deprecated."
+    set do_connect 0
+  }
+
+  set region "NULL"
+  if {[info exists keys(-region)]} {
+    set region [[ord::get_db_block] findRegion $keys(-region)]
+    if {$region == "NULL"} {
+      utl::error ORD 45 "Region \"$keys(-region)\" not defined"
+    }
+  }
+
+  [ord::get_db_block] addGlobalConnect $region $keys(-inst_pattern) $keys(-pin_pattern) $net $do_connect
 }
 
 ################################################################

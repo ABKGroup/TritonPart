@@ -32,19 +32,13 @@
 
 #include <wire.h>
 
-#include "rcx/extRCap.h"
-#include "rcx/extprocess.h"
-
-#ifdef _WIN32
-#include "direct.h"
-#endif
-
 #include <map>
 #include <vector>
 
+#include "rcx/extRCap.h"
+#include "rcx/extprocess.h"
 #include "utl/Logger.h"
 
-//#define SKIP_SOLVER
 namespace rcx {
 
 using namespace odb;
@@ -52,8 +46,12 @@ using utl::RCX;
 
 bool OUREVERSEORDER = false;
 
-static int getMetIndexOverUnder(int met, int mUnder, int mOver,
-                                int layerCnt, int maxCnt=10000) {
+static int getMetIndexOverUnder(int met,
+                                int mUnder,
+                                int mOver,
+                                int layerCnt,
+                                int maxCnt = 10000)
+{
   int n = layerCnt - met - 1;
   n *= mUnder - 1;
   n += mOver - met - 1;
@@ -64,7 +62,8 @@ static int getMetIndexOverUnder(int met, int mUnder, int mOver,
 
   return n;
 }
-static int getMaxMetIndexOverUnder(int met, int layerCnt) {
+static int getMaxMetIndexOverUnder(int met, int layerCnt)
+{
   int n = 0;
   for (uint u = met - 1; u > 0; u--) {
     for (uint o = met + 1; o < layerCnt; o++) {
@@ -76,63 +75,85 @@ static int getMaxMetIndexOverUnder(int met, int layerCnt) {
   return n;
 }
 
-static double lineSegment(double X, double x1, double x2, double y1,
-                          double y2) {
+static double lineSegment(double X, double x1, double x2, double y1, double y2)
+{
   double slope = (y2 - y1) / (x2 - x1);
   double retVal = y2 - slope * (x2 - X);
 
   return retVal;
 }
-void extDistRC::interpolate(uint d, extDistRC* rc1, extDistRC* rc2) {
+void extDistRC::interpolate(uint d, extDistRC* rc1, extDistRC* rc2)
+{
   _sep = d;
-  _coupling =
-      lineSegment(d, rc1->_sep, rc2->_sep, rc1->_coupling, rc2->_coupling);
+  _coupling
+      = lineSegment(d, rc1->_sep, rc2->_sep, rc1->_coupling, rc2->_coupling);
   _fringe = lineSegment(d, rc1->_sep, rc2->_sep, rc1->_fringe, rc2->_fringe);
   _res = lineSegment(d, rc1->_sep, rc2->_sep, rc1->_res, rc2->_res);
 }
-double extDistRC::interpolate_res(uint d, extDistRC* rc2) {
+double extDistRC::interpolate_res(uint d, extDistRC* rc2)
+{
   return lineSegment(d, _coupling, rc2->_coupling, _res, rc2->_res);
 }
-void extDistRC::set(uint d, double cc, double fr, double a, double r) {
+void extDistRC::set(uint d, double cc, double fr, double a, double r)
+{
   _sep = d;
   _coupling = cc;
   _fringe = fr;
-  //	_area= a;
   _diag = a;
   _res = r;
 }
-void extDistRC::readRC(Ath__parser* parser, double dbFactor) {
+void extDistRC::readRC(Ath__parser* parser, double dbFactor)
+{
   _sep = Ath__double2int(dbFactor * 1000 * parser->getDouble(0));
   _coupling = parser->getDouble(1) / dbFactor;
   _fringe = parser->getDouble(2) / dbFactor;
-  //	_area= a;
   _res = parser->getDouble(3) / dbFactor;
 }
-void extDistRC::readRC_res2(Ath__parser* parser, double dbFactor) {
+void extDistRC::readRC_res2(Ath__parser* parser, double dbFactor)
+{
   _sep = Ath__double2int(dbFactor * 1000 * parser->getDouble(1));
   _coupling = Ath__double2int(dbFactor * 1000 * parser->getDouble(0));
   _fringe = parser->getDouble(2) / dbFactor;
-  //	_area= a;
   _res = parser->getDouble(3) / dbFactor;
 }
-double extDistRC::getCoupling() { return _coupling; }
-double extDistRC::getFringe() { return _fringe; }
-double extDistRC::getDiag() { return _diag; }
-double extDistRC::getRes() { return _res; }
-void extDistRC::writeRC() {
-  logger_->info(RCX, 208, "{} {} {} {}  {}", 0.001 * _sep, _coupling, _fringe,
-                _res, _coupling + _fringe);
+double extDistRC::getCoupling()
+{
+  return _coupling;
 }
-void extDistRC::writeRC(FILE* fp, bool bin) {
-  // fprintf(fp, "%g %g %g %g\n", _dist, _coupling, _fringe, _res);
+double extDistRC::getFringe()
+{
+  return _fringe;
+}
+double extDistRC::getDiag()
+{
+  return _diag;
+}
+double extDistRC::getRes()
+{
+  return _res;
+}
+void extDistRC::writeRC()
+{
+  logger_->info(RCX,
+                208,
+                "{} {} {} {}  {}",
+                0.001 * _sep,
+                _coupling,
+                _fringe,
+                _res,
+                _coupling + _fringe);
+}
+void extDistRC::writeRC(FILE* fp, bool bin)
+{
   fprintf(fp, "%g %g %g %g\n", 0.001 * _sep, _coupling, _fringe, _res);
 }
-void extRCTable::makeCapTableOver() {
+void extRCTable::makeCapTableOver()
+{
   _over = true;
 
   for (uint jj = 1; jj < _maxCnt1; jj++) {
-    _inTable[jj] = new Ath__array1D<extDistRC*>* [jj];
-    _table[jj] = new Ath__array1D<extDistRC*>* [jj];
+    _inTable[jj] = new Ath__array1D<extDistRC*>*[jj];
+    _table[jj] = new Ath__array1D<extDistRC*>*[jj];
 
     for (uint kk = 0; kk < jj; kk++) {
       _inTable[jj][kk] = new Ath__array1D<extDistRC*>(32);
@@ -140,11 +161,12 @@ void extRCTable::makeCapTableOver() {
     }
   }
 }
-void extRCTable::makeCapTableUnder() {
+void extRCTable::makeCapTableUnder()
+{
   _over = false;
   for (uint jj = 1; jj < _maxCnt1; jj++) {
-    _inTable[jj] = new Ath__array1D<extDistRC*>* [_maxCnt1];
-    _table[jj] = new Ath__array1D<extDistRC*>* [_maxCnt1];
+    _inTable[jj] = new Ath__array1D<extDistRC*>*[_maxCnt1];
+    _table[jj] = new Ath__array1D<extDistRC*>*[_maxCnt1];
 
     for (uint ii = 0; ii < jj; ii++) {
       _inTable[jj][ii] = NULL;
@@ -157,21 +179,26 @@ void extRCTable::makeCapTableUnder() {
   }
 }
 
-extDistRCTable::extDistRCTable(uint distCnt) {
+extDistRCTable::extDistRCTable(uint distCnt)
+{
   uint n = 16 * (distCnt / 16 + 1);
   _measureTable = new Ath__array1D<extDistRC*>(n);
 
   _computeTable = NULL;
 }
 
-extDistRCTable::~extDistRCTable() {
+extDistRCTable::~extDistRCTable()
+{
   if (_measureTable != NULL)
     delete _measureTable;
   if (_computeTable != NULL)
     delete _computeTable;
 }
-uint extDistRCTable::mapExtrapolate(uint loDist, extDistRC* rc2, uint distUnit,
-                                    AthPool<extDistRC>* rcPool) {
+uint extDistRCTable::mapExtrapolate(uint loDist,
+                                    extDistRC* rc2,
+                                    uint distUnit,
+                                    AthPool<extDistRC>* rcPool)
+{
   uint cnt = 0;
   uint d1 = loDist;
   uint d2 = rc2->_sep;
@@ -184,11 +211,6 @@ uint extDistRCTable::mapExtrapolate(uint loDist, extDistRC* rc2, uint distUnit,
     rc->_fringe = rc2->_fringe;
     rc->_res = rc2->_res;
 
-    // rc->_coupling= lineSegment(d, rc1->_dist, rc2->_dist, rc1->_coupling,
-    // rc1->_coupling); rc->_fringe= lineSegment(d,   rc1->_dist, rc2->_dist,
-    // rc1->_coupling, rc1->_coupling); rc->_res= lineSegment(d, rc1->_dist,
-    // rc2->_dist, rc1->_res, rc1->_res);
-
     uint n = d / distUnit;
 
     _computeTable->set(n, rc);
@@ -197,14 +219,17 @@ uint extDistRCTable::mapExtrapolate(uint loDist, extDistRC* rc2, uint distUnit,
   }
   return cnt;
 }
-uint extDistRCTable::mapInterpolate(extDistRC* rc1, extDistRC* rc2,
-                                    uint distUnit, int maxDist,
-                                    AthPool<extDistRC>* rcPool) {
+uint extDistRCTable::mapInterpolate(extDistRC* rc1,
+                                    extDistRC* rc2,
+                                    uint distUnit,
+                                    int maxDist,
+                                    AthPool<extDistRC>* rcPool)
+{
   uint cnt = 0;
   uint d1 = rc1->_sep;
   uint d2 = rc2->_sep;
 
-  if ((int)d2 > maxDist)
+  if ((int) d2 > maxDist)
     d2 = maxDist;
 
   for (uint d = d1; d <= d2; d += distUnit) {
@@ -221,8 +246,10 @@ uint extDistRCTable::mapInterpolate(extDistRC* rc1, extDistRC* rc2,
   }
   return cnt;
 }
-uint extDistRCTable::interpolate(uint distUnit, int maxDist,
-                                 AthPool<extDistRC>* rcPool) {
+uint extDistRCTable::interpolate(uint distUnit,
+                                 int maxDist,
+                                 AthPool<extDistRC>* rcPool)
+{
   uint cnt = _measureTable->getCnt();
   uint Cnt = cnt;
   if (cnt == 0)
@@ -263,8 +290,11 @@ uint extDistRCTable::interpolate(uint distUnit, int maxDist,
 
   return _computeTable->getCnt();
 }
-uint extDistRCTable::writeRules(FILE* fp, Ath__array1D<extDistRC*>* table,
-                                double w, bool bin) {
+uint extDistRCTable::writeRules(FILE* fp,
+                                Ath__array1D<extDistRC*>* table,
+                                double w,
+                                bool bin)
+{
   uint cnt = table->getCnt();
   if (cnt > 0) {
     extDistRC* rc1 = table->get(cnt - 1);
@@ -280,32 +310,48 @@ uint extDistRCTable::writeRules(FILE* fp, Ath__array1D<extDistRC*>* table,
   fprintf(fp, "END DIST\n");
   return cnt;
 }
-uint extDistRCTable::writeDiagRules(FILE* fp, Ath__array1D<extDistRC*>* table,
-                                    double w1, double w2, double s, bool bin) {
+uint extDistRCTable::writeDiagRules(FILE* fp,
+                                    Ath__array1D<extDistRC*>* table,
+                                    double w1,
+                                    double w2,
+                                    double s,
+                                    bool bin)
+{
   uint cnt = table->getCnt();
 
-  fprintf(fp, "DIST count %d width %g diag_width %g diag_dist %g\n", cnt, w1,
-          w2, s);
+  fprintf(fp,
+          "DIST count %d width %g diag_width %g diag_dist %g\n",
+          cnt,
+          w1,
+          w2,
+          s);
   for (uint ii = 0; ii < cnt; ii++)
     table->get(ii)->writeRC(fp, bin);
 
   fprintf(fp, "END DIST\n");
   return cnt;
 }
-uint extDistRCTable::writeRules(FILE* fp, double w, bool compute, bool bin) {
+uint extDistRCTable::writeRules(FILE* fp, double w, bool compute, bool bin)
+{
   if (compute)
     return writeRules(fp, _computeTable, w, bin);
   else
     return writeRules(fp, _measureTable, w, bin);
 }
-uint extDistRCTable::writeDiagRules(FILE* fp, double w1, double w2, double s,
-                                    bool compute, bool bin) {
+uint extDistRCTable::writeDiagRules(FILE* fp,
+                                    double w1,
+                                    double w2,
+                                    double s,
+                                    bool compute,
+                                    bool bin)
+{
   if (compute)
     return writeDiagRules(fp, _computeTable, w1, w2, s, bin);
   else
     return writeDiagRules(fp, _measureTable, w1, w2, s, bin);
 }
-uint extMetRCTable::readRCstats(Ath__parser* parser) {
+uint extMetRCTable::readRCstats(Ath__parser* parser)
+{
   uint cnt = 0;
 
   extMeasure m;
@@ -330,12 +376,15 @@ uint extMetRCTable::readRCstats(Ath__parser* parser) {
 
       extDistRC* rc = _rcPoolPtr->alloc();
 
-      rc->set(m._s_nm, parser->getDouble(10), parser->getDouble(11), 0.0,
+      rc->set(m._s_nm,
+              parser->getDouble(10),
+              parser->getDouble(11),
+              0.0,
               parser->getDouble(12));
 
       m._tmpRC = rc;
-    } else if (parser->isKeyword(2, "UNDER") ||
-               parser->isKeyword(2, "DIAGUNDER")) {
+    } else if (parser->isKeyword(2, "UNDER")
+               || parser->isKeyword(2, "DIAGUNDER")) {
       m._met = parser->getInt(1);
       m._overMet = parser->getInt(4);
       m._underMet = -1;
@@ -348,7 +397,10 @@ uint extMetRCTable::readRCstats(Ath__parser* parser) {
 
       extDistRC* rc = _rcPoolPtr->alloc();
 
-      rc->set(m._s_nm, parser->getDouble(9), parser->getDouble(10), 0.0,
+      rc->set(m._s_nm,
+              parser->getDouble(9),
+              parser->getDouble(10),
+              0.0,
               parser->getDouble(11));
 
       m._tmpRC = rc;
@@ -366,7 +418,10 @@ uint extMetRCTable::readRCstats(Ath__parser* parser) {
 
       extDistRC* rc = _rcPoolPtr->alloc();
 
-      rc->set(m._s_nm, parser->getDouble(9), parser->getDouble(10), 0.0,
+      rc->set(m._s_nm,
+              parser->getDouble(9),
+              parser->getDouble(10),
+              0.0,
               parser->getDouble(11));
 
       m._tmpRC = rc;
@@ -377,20 +432,22 @@ uint extMetRCTable::readRCstats(Ath__parser* parser) {
   return cnt;
 }
 uint extDistRCTable::readRules_res2(Ath__parser* parser,
-                                    AthPool<extDistRC>* rcPool, bool compute,
-                                    bool bin, bool ignore, double dbFactor) {
+                                    AthPool<extDistRC>* rcPool,
+                                    bool compute,
+                                    bool bin,
+                                    bool ignore,
+                                    double dbFactor)
+{
   parser->parseNextLine();
   uint cnt = parser->getInt(2);
   if (cnt < 32)
     cnt = 32;
-  // _measureTable= NULL;
 
   Ath__array1D<extDistRC*>* table = NULL;
   if (!ignore)
     table = new Ath__array1D<extDistRC*>(cnt);
 
   Ath__array1D<extDistRC*>* table0 = new Ath__array1D<extDistRC*>(8);
-  //_computeTableR = new Ath__array1D<extDistRC*>[8];
   int cnt1 = 0;
   int kk = 0;
   extDistRC* rc0 = NULL;
@@ -403,9 +460,6 @@ uint extDistRCTable::readRules_res2(Ath__parser* parser,
 
     extDistRC* rc = rcPool->alloc();
     rc->readRC_res2(parser, dbFactor);
-    // if (rc0!=NULL && rc0->_res==rc->_res && rc0->_coupling==rc->_coupling) {
-    //   continue;
-    // }
     table->add(rc);
     if (rc0 != NULL && rc0->_coupling != rc->_coupling) {
       _measureTable = table0;
@@ -437,14 +491,17 @@ uint extDistRCTable::readRules_res2(Ath__parser* parser,
 
   return cnt;
 }
-uint extDistRCTable::readRules(Ath__parser* parser, AthPool<extDistRC>* rcPool,
-                               bool compute, bool bin, bool ignore,
-                               double dbFactor) {
+uint extDistRCTable::readRules(Ath__parser* parser,
+                               AthPool<extDistRC>* rcPool,
+                               bool compute,
+                               bool bin,
+                               bool ignore,
+                               double dbFactor)
+{
   parser->parseNextLine();
   uint cnt = parser->getInt(2);
   if (cnt < 32)
     cnt = 32;
-  // _measureTable= NULL;
 
   Ath__array1D<extDistRC*>* table = NULL;
   if (!ignore)
@@ -467,17 +524,13 @@ uint extDistRCTable::readRules(Ath__parser* parser, AthPool<extDistRC>* rcPool,
   _measureTable = table;
 
   if (compute)
-#ifdef HI_ACC_1
-    // interpolate(12, -1, rcPool);
     interpolate(4, -1, rcPool);
-#else
-    interpolate(4, -1, rcPool);
-#endif
 
   return cnt;
 }
 void extDistRCTable::ScaleRes(double SUB_MULT_RES,
-                              Ath__array1D<extDistRC*>* table) {
+                              Ath__array1D<extDistRC*>* table)
+{
   uint cnt = table->getCnt();
   if (cnt == 0)
     return;
@@ -495,18 +548,20 @@ void extDistRCTable::ScaleRes(double SUB_MULT_RES,
     rc->_res *= SUB_MULT_RES;
   }
 }
-void extDistRCTable::makeComputeTable(uint maxDist, uint distUnit) {
+void extDistRCTable::makeComputeTable(uint maxDist, uint distUnit)
+{
   _unit = distUnit;  // in nm
   uint n = maxDist / distUnit;
   n = distUnit * (n / distUnit + 1);
 
   _computeTable = new Ath__array1D<extDistRC*>(n + 1);
-  // TODO
 }
-uint extDistRCTable::addMeasureRC(extDistRC* rc) {
+uint extDistRCTable::addMeasureRC(extDistRC* rc)
+{
   return _measureTable->add(rc);
 }
-extDistRC* extDistRCTable::getRC_99() {
+extDistRC* extDistRCTable::getRC_99()
+{
   if (_measureTable == NULL)
     return NULL;
 
@@ -518,14 +573,15 @@ extDistRC* extDistRCTable::getRC_99() {
   if (before_lastRC->_sep == 99000)
     return before_lastRC;
 
-  extDistRC* lastRC =
-      _measureTable->getLast();  // assuming last is 100 equivalent to inf
+  extDistRC* lastRC
+      = _measureTable->getLast();  // assuming last is 100 equivalent to inf
   if (lastRC->_sep == 99000)
     return lastRC;
 
   return NULL;
 }
-extDistRC* extDistRCTable::getComputeRC(uint dist) {
+extDistRC* extDistRCTable::getComputeRC(uint dist)
+{
   if (_measureTable == NULL)
     return NULL;
 
@@ -538,14 +594,9 @@ extDistRC* extDistRCTable::getComputeRC(uint dist) {
     return firstRC;
   }
 
-  /*
-  extDistRC* secondRC= _measureTable->get(1);
-        if (dist<=secondRC->_sep)
-                return secondRC;
-  */
   if (_measureTable->getLast()->_sep == 100000) {
-    extDistRC* before_lastRC =
-        _measureTable->getLast() - 1;  // assuming last is 100 equivalent to inf
+    extDistRC* before_lastRC = _measureTable->getLast()
+                               - 1;  // assuming last is 100 equivalent to inf
     uint lastDist = before_lastRC->_sep;
 
     if (lastDist == 99000)
@@ -565,20 +616,18 @@ extDistRC* extDistRCTable::getComputeRC(uint dist) {
         rc31->_sep = dist;
         rc31->interpolate(dist, rc3, rc2);
 
-        rc31->_coupling =
-            (before_lastRC->_coupling / dist) * before_lastRC->_sep;
+        rc31->_coupling
+            = (before_lastRC->_coupling / dist) * before_lastRC->_sep;
         rc31->_fringe = before_lastRC->_fringe;
-        // rc31->_fringe= (before_lastRC->_fringe / dist) * before_lastRC->_sep;
         return rc31;
-        // return before_lastRC;
       }
       if (dist > lastDist) {  // send Inf dist
         return _measureTable->getLast();
       }
     }
   } else {
-    extDistRC* before_lastRC =
-        _measureTable->getLast();  // assuming last is 100 equivalent to inf
+    extDistRC* before_lastRC
+        = _measureTable->getLast();  // assuming last is 100 equivalent to inf
     uint lastDist = before_lastRC->_sep;
     if (dist >= lastDist - _unit && lastDist > 0)  // send Inf dist
       return _measureTable->getLast();
@@ -587,20 +636,14 @@ extDistRC* extDistRCTable::getComputeRC(uint dist) {
   uint n = dist / _unit;
   return _computeTable->geti(n);
 }
-/*
-extDistRC* extDistRCTable::getComputeRC(double dist)
+uint extDistWidthRCTable::getWidthIndex(uint w)
 {
-        uint n= dist/_unit);
-        return _computeTable->get(n);
-}
-*/
-uint extDistWidthRCTable::getWidthIndex(uint w) {
   // To notify that the RC info for a particular pattern
   // is empty
   if (_lastWidth == -1)
     return -1;
 
-  if ((int)w >= _lastWidth)
+  if ((int) w >= _lastWidth)
     return _widthTable->getCnt() - 1;
 
   int v = w - _firstWidth;
@@ -609,11 +652,12 @@ uint extDistWidthRCTable::getWidthIndex(uint w) {
 
   return _widthMapTable->geti(v / _modulo);
 }
-uint extDistWidthRCTable::getDiagWidthIndex(uint m, uint w) {
-  if (_lastDiagWidth == NULL)  // TO_DEBUG 620
+uint extDistWidthRCTable::getDiagWidthIndex(uint m, uint w)
+{
+  if (_lastDiagWidth == NULL)
     return -1;
 
-  if ((int)w >= _lastDiagWidth->geti(m))
+  if ((int) w >= _lastDiagWidth->geti(m))
     return _diagWidthTable[m]->getCnt() - 1;
 
   int v = w - _firstDiagWidth->geti(m);
@@ -622,8 +666,9 @@ uint extDistWidthRCTable::getDiagWidthIndex(uint m, uint w) {
 
   return _diagWidthMapTable[m]->geti(v / _modulo);
 }
-uint extDistWidthRCTable::getDiagDistIndex(uint m, uint s) {
-  if ((int)s >= _lastDiagDist->geti(m))
+uint extDistWidthRCTable::getDiagDistIndex(uint m, uint s)
+{
+  if ((int) s >= _lastDiagDist->geti(m))
     return _diagDistTable[m]->getCnt() - 1;
 
   int v = s - _firstDiagDist->geti(m);
@@ -632,15 +677,13 @@ uint extDistWidthRCTable::getDiagDistIndex(uint m, uint s) {
 
   return _diagDistMapTable[m]->geti(v / _modulo);
 }
-/*
-void extDistWidthRCTable::setOUReverseOrder()
+extDistWidthRCTable::extDistWidthRCTable(bool over,
+                                         uint met,
+                                         uint layerCnt,
+                                         uint metCnt,
+                                         uint maxWidthCnt,
+                                         AthPool<extDistRC>* rcPool)
 {
-        _ouReadReverse = true;
-}
-*/
-extDistWidthRCTable::extDistWidthRCTable(bool over, uint met, uint layerCnt,
-                                         uint metCnt, uint maxWidthCnt,
-                                         AthPool<extDistRC>* rcPool) {
   _ouReadReverse = OUREVERSEORDER;
   _over = over;
   _layerCnt = layerCnt;
@@ -657,10 +700,10 @@ extDistWidthRCTable::extDistWidthRCTable(bool over, uint met, uint layerCnt,
 
   _metCnt = metCnt;
 
-  _rcDistTable = new extDistRCTable** [_metCnt];
+  _rcDistTable = new extDistRCTable**[_metCnt];
   uint jj;
   for (jj = 0; jj < _metCnt; jj++) {
-    _rcDistTable[jj] = new extDistRCTable* [maxWidthCnt];
+    _rcDistTable[jj] = new extDistRCTable*[maxWidthCnt];
     for (uint ii = 0; ii < maxWidthCnt; ii++)
       _rcDistTable[jj][ii] = new extDistRCTable(10);
   }
@@ -680,7 +723,8 @@ extDistWidthRCTable::extDistWidthRCTable(bool over, uint met, uint layerCnt,
   _rcDiagDistTable = NULL;
   _rc31 = rcPool->alloc();
 }
-void extDistWidthRCTable::createWidthMap() {
+void extDistWidthRCTable::createWidthMap()
+{
   uint widthCnt = _widthTable->getCnt();
   if (widthCnt == 0)
     return;
@@ -713,15 +757,19 @@ void extDistWidthRCTable::createWidthMap() {
     }
   }
 }
-void extDistWidthRCTable::makeWSmapping() {
+void extDistWidthRCTable::makeWSmapping()
+{
   createWidthMap();
 
   for (uint jj = 0; jj < _metCnt; jj++)
     for (uint ii = 0; ii < _widthTable->getCnt(); ii++)
       _rcDistTable[jj][ii]->interpolate(4, -1, _rcPoolPtr);
 }
-extDistWidthRCTable::extDistWidthRCTable(bool dummy, uint met, uint layerCnt,
-                                         uint widthCnt) {
+extDistWidthRCTable::extDistWidthRCTable(bool dummy,
+                                         uint met,
+                                         uint layerCnt,
+                                         uint widthCnt)
+{
   _ouReadReverse = OUREVERSEORDER;
   _met = met;
   _layerCnt = layerCnt;
@@ -734,13 +782,12 @@ extDistWidthRCTable::extDistWidthRCTable(bool dummy, uint met, uint layerCnt,
   _widthMapTable = NULL;
   _widthTableAllocFlag = true;
 
-  // _metCnt= 1;
   _metCnt = layerCnt;
 
-  _rcDistTable = new extDistRCTable** [_metCnt];
+  _rcDistTable = new extDistRCTable**[_metCnt];
   uint jj;
   for (jj = 0; jj < _metCnt; jj++) {
-    _rcDistTable[jj] = new extDistRCTable* [widthCnt];
+    _rcDistTable[jj] = new extDistRCTable*[widthCnt];
     for (uint ii = 0; ii < widthCnt; ii++)
       _rcDistTable[jj][ii] = new extDistRCTable(1);
   }
@@ -757,11 +804,14 @@ extDistWidthRCTable::extDistWidthRCTable(bool dummy, uint met, uint layerCnt,
   }
   _rc31 = NULL;
 }
-extDistWidthRCTable::extDistWidthRCTable(bool over, uint met, uint layerCnt,
+extDistWidthRCTable::extDistWidthRCTable(bool over,
+                                         uint met,
+                                         uint layerCnt,
                                          uint metCnt,
                                          Ath__array1D<double>* widthTable,
                                          AthPool<extDistRC>* rcPool,
-                                         double dbFactor) {
+                                         double dbFactor)
+{
   _ouReadReverse = OUREVERSEORDER;
   _over = over;
   _layerCnt = layerCnt;
@@ -809,9 +859,9 @@ extDistWidthRCTable::extDistWidthRCTable(bool over, uint met, uint layerCnt,
 
   _metCnt = metCnt;
 
-  _rcDistTable = new extDistRCTable** [_metCnt];
+  _rcDistTable = new extDistRCTable**[_metCnt];
   for (jj = 0; jj < _metCnt; jj++) {
-    _rcDistTable[jj] = new extDistRCTable* [widthCnt];
+    _rcDistTable[jj] = new extDistRCTable*[widthCnt];
     for (uint ii = 0; ii < widthCnt; ii++)
       _rcDistTable[jj][ii] = new extDistRCTable(10);
   }
@@ -830,12 +880,16 @@ extDistWidthRCTable::extDistWidthRCTable(bool over, uint met, uint layerCnt,
   _rcDiagDistTable = NULL;
   _rc31 = rcPool->alloc();
 }
-extDistWidthRCTable::extDistWidthRCTable(bool over, uint met, uint layerCnt,
+extDistWidthRCTable::extDistWidthRCTable(bool over,
+                                         uint met,
+                                         uint layerCnt,
                                          uint metCnt,
                                          Ath__array1D<double>* widthTable,
-                                         int diagWidthCnt, int diagDistCnt,
+                                         int diagWidthCnt,
+                                         int diagDistCnt,
                                          AthPool<extDistRC>* rcPool,
-                                         double dbFactor) {
+                                         double dbFactor)
+{
   _ouReadReverse = OUREVERSEORDER;
   _over = over;
   _layerCnt = layerCnt;
@@ -887,13 +941,13 @@ extDistWidthRCTable::extDistWidthRCTable(bool over, uint met, uint layerCnt,
   }
 
   _metCnt = metCnt;
-  _rcDiagDistTable = new extDistRCTable**** [_metCnt];
+  _rcDiagDistTable = new extDistRCTable****[_metCnt];
   for (jj = 0; jj < _metCnt; jj++) {
-    _rcDiagDistTable[jj] = new extDistRCTable*** [widthCnt];
+    _rcDiagDistTable[jj] = new extDistRCTable***[widthCnt];
     for (uint ii = 0; ii < widthCnt; ii++) {
-      _rcDiagDistTable[jj][ii] = new extDistRCTable** [diagWidthCnt];
+      _rcDiagDistTable[jj][ii] = new extDistRCTable**[diagWidthCnt];
       for (int kk = 0; kk < diagWidthCnt; kk++) {
-        _rcDiagDistTable[jj][ii][kk] = new extDistRCTable* [diagDistCnt];
+        _rcDiagDistTable[jj][ii][kk] = new extDistRCTable*[diagDistCnt];
         for (int ll = 0; ll < diagDistCnt; ll++)
           _rcDiagDistTable[jj][ii][kk][ll] = new extDistRCTable(10);
       }
@@ -905,8 +959,11 @@ extDistWidthRCTable::extDistWidthRCTable(bool over, uint met, uint layerCnt,
   _rc31 = rcPool->alloc();
 }
 void extDistWidthRCTable::setDiagUnderTables(
-    uint met, Ath__array1D<double>* diagWidthTable,
-    Ath__array1D<double>* diagDistTable, double dbFactor) {
+    uint met,
+    Ath__array1D<double>* diagWidthTable,
+    Ath__array1D<double>* diagDistTable,
+    double dbFactor)
+{
   uint diagWidthCnt = diagWidthTable->getCnt();
   _diagWidthTable[met]->resetCnt();
   uint ii;
@@ -969,7 +1026,8 @@ void extDistWidthRCTable::setDiagUnderTables(
     }
   }
 }
-extDistWidthRCTable::~extDistWidthRCTable() {
+extDistWidthRCTable::~extDistWidthRCTable()
+{
   uint ii, jj, kk, ll;
   if (_rcDistTable) {
     for (jj = 0; jj < _metCnt; jj++) {
@@ -998,7 +1056,6 @@ extDistWidthRCTable::~extDistWidthRCTable() {
     delete[] _rcDiagDistTable;
   }
 
-  //	if (_widthTableAllocFlag)
   if (_widthTable)
     delete _widthTable;
   if (_widthMapTable)
@@ -1022,7 +1079,8 @@ extDistWidthRCTable::~extDistWidthRCTable() {
       delete _diagDistMapTable[i];
   }
 }
-uint extDistWidthRCTable::writeWidthTable(FILE* fp, bool bin) {
+uint extDistWidthRCTable::writeWidthTable(FILE* fp, bool bin)
+{
   uint widthCnt = _widthTable->getCnt();
   fprintf(fp, "WIDTH Table %d entries: ", widthCnt);
   for (uint ii = 0; ii < widthCnt; ii++)
@@ -1030,7 +1088,8 @@ uint extDistWidthRCTable::writeWidthTable(FILE* fp, bool bin) {
   fprintf(fp, "\n");
   return widthCnt;
 }
-uint extDistWidthRCTable::writeDiagWidthTable(FILE* fp, uint met, bool bin) {
+uint extDistWidthRCTable::writeDiagWidthTable(FILE* fp, uint met, bool bin)
+{
   uint diagWidthCnt = _diagWidthTable[met]->getCnt();
   fprintf(fp, "DIAG_WIDTH Table %d entries: ", diagWidthCnt);
   for (uint ii = 0; ii < diagWidthCnt; ii++)
@@ -1038,13 +1097,15 @@ uint extDistWidthRCTable::writeDiagWidthTable(FILE* fp, uint met, bool bin) {
   fprintf(fp, "\n");
   return diagWidthCnt;
 }
-void extDistWidthRCTable::writeDiagTablesCnt(FILE* fp, uint met, bool bin) {
+void extDistWidthRCTable::writeDiagTablesCnt(FILE* fp, uint met, bool bin)
+{
   uint diagWidthCnt = _diagWidthTable[met]->getCnt();
   uint diagDistCnt = _diagDistTable[met]->getCnt();
   fprintf(fp, "DIAG_WIDTH Table Count: %d\n", diagWidthCnt);
   fprintf(fp, "DIAG_DIST Table Count: %d\n", diagDistCnt);
 }
-uint extDistWidthRCTable::writeDiagDistTable(FILE* fp, uint met, bool bin) {
+uint extDistWidthRCTable::writeDiagDistTable(FILE* fp, uint met, bool bin)
+{
   uint diagDistCnt = _diagDistTable[met]->getCnt();
   fprintf(fp, "DIAG_DIST Table %d entries: ", diagDistCnt);
   for (uint ii = 0; ii < diagDistCnt; ii++)
@@ -1052,7 +1113,8 @@ uint extDistWidthRCTable::writeDiagDistTable(FILE* fp, uint met, bool bin) {
   fprintf(fp, "\n");
   return diagDistCnt;
 }
-uint extDistWidthRCTable::writeRulesOver(FILE* fp, bool bin) {
+uint extDistWidthRCTable::writeRulesOver(FILE* fp, bool bin)
+{
   uint cnt = 0;
   fprintf(fp, "\nMetal %d OVER\n", _met);
 
@@ -1063,13 +1125,14 @@ uint extDistWidthRCTable::writeRulesOver(FILE* fp, bool bin) {
     fprintf(fp, "\nMetal %d OVER %d\n", _met, ii);
 
     for (uint jj = 0; jj < widthCnt; jj++) {
-      cnt += _rcDistTable[ii][jj]
-                 ->writeRules(fp, 0.001 * _widthTable->get(jj), false, bin);
+      cnt += _rcDistTable[ii][jj]->writeRules(
+          fp, 0.001 * _widthTable->get(jj), false, bin);
     }
   }
   return cnt;
 }
-uint extDistWidthRCTable::writeRulesOver_res(FILE* fp, bool bin) {
+uint extDistWidthRCTable::writeRulesOver_res(FILE* fp, bool bin)
+{
   uint cnt = 0;
   fprintf(fp, "\nMetal %d RESOVER\n", _met);
 
@@ -1080,19 +1143,21 @@ uint extDistWidthRCTable::writeRulesOver_res(FILE* fp, bool bin) {
     fprintf(fp, "\nMetal %d RESOVER %d\n", _met, ii);
 
     for (uint jj = 0; jj < widthCnt; jj++) {
-      cnt += _rcDistTable[ii][jj]
-                 ->writeRules(fp, 0.001 * _widthTable->get(jj), false, bin);
+      cnt += _rcDistTable[ii][jj]->writeRules(
+          fp, 0.001 * _widthTable->get(jj), false, bin);
     }
   }
   return cnt;
 }
-uint extDistWidthRCTable::readMetalHeader(Ath__parser* parser, uint& met,
-                                          const char* keyword, bool bin,
-                                          bool ignore) {
+uint extDistWidthRCTable::readMetalHeader(Ath__parser* parser,
+                                          uint& met,
+                                          const char* keyword,
+                                          bool bin,
+                                          bool ignore)
+{
   if (!(parser->parseNextLine() > 0))
     return 0;
 
-  //	uint cnt= 0;
   if (parser->isKeyword(0, "Metal") && (strcmp(parser->get(2), keyword) == 0)) {
     met = parser->getInt(1);
     return 1;
@@ -1100,9 +1165,13 @@ uint extDistWidthRCTable::readMetalHeader(Ath__parser* parser, uint& met,
 
   return 0;
 }
-uint extDistWidthRCTable::readRulesOver(Ath__parser* parser, uint widthCnt,
-                                        bool bin, bool ignore, const char* OVER,
-                                        double dbFactor) {
+uint extDistWidthRCTable::readRulesOver(Ath__parser* parser,
+                                        uint widthCnt,
+                                        bool bin,
+                                        bool ignore,
+                                        const char* OVER,
+                                        double dbFactor)
+{
   bool res = strcmp(OVER, "RESOVER") == 0;
   uint cnt = 0;
   for (uint ii = 0; ii < _met; ii++) {
@@ -1115,26 +1184,29 @@ uint extDistWidthRCTable::readRulesOver(Ath__parser* parser, uint widthCnt,
     for (uint jj = 0; jj < widthCnt; jj++) {
       if (res) {
         if (!ignore)
-          cnt += _rcDistTable[ii][jj]->readRules_res2(parser, _rcPoolPtr, true,
-                                                      bin, ignore, dbFactor);
+          cnt += _rcDistTable[ii][jj]->readRules_res2(
+              parser, _rcPoolPtr, true, bin, ignore, dbFactor);
         else
-          cnt += _rcDistTable[0][0]->readRules_res2(parser, _rcPoolPtr, true,
-                                                    bin, ignore, dbFactor);
+          cnt += _rcDistTable[0][0]->readRules_res2(
+              parser, _rcPoolPtr, true, bin, ignore, dbFactor);
       } else {
         if (!ignore)
-          cnt += _rcDistTable[ii][jj]->readRules(parser, _rcPoolPtr, true, bin,
-                                                 ignore, dbFactor);
+          cnt += _rcDistTable[ii][jj]->readRules(
+              parser, _rcPoolPtr, true, bin, ignore, dbFactor);
         else
-          cnt += _rcDistTable[0][0]->readRules(parser, _rcPoolPtr, true, bin,
-                                               ignore, dbFactor);
+          cnt += _rcDistTable[0][0]->readRules(
+              parser, _rcPoolPtr, true, bin, ignore, dbFactor);
       }
     }
   }
   return cnt;
 }
-uint extDistWidthRCTable::readRulesUnder(Ath__parser* parser, uint widthCnt,
-                                         bool bin, bool ignore,
-                                         double dbFactor) {
+uint extDistWidthRCTable::readRulesUnder(Ath__parser* parser,
+                                         uint widthCnt,
+                                         bool bin,
+                                         bool ignore,
+                                         double dbFactor)
+{
   uint cnt = 0;
   for (uint ii = _met + 1; ii < _layerCnt; ii++) {
     uint met = 0;
@@ -1148,16 +1220,20 @@ uint extDistWidthRCTable::readRulesUnder(Ath__parser* parser, uint widthCnt,
     parser->getInt(3);
 
     for (uint jj = 0; jj < widthCnt; jj++) {
-      cnt += _rcDistTable[metIndex][jj]
-                 ->readRules(parser, _rcPoolPtr, true, bin, ignore, dbFactor);
+      cnt += _rcDistTable[metIndex][jj]->readRules(
+          parser, _rcPoolPtr, true, bin, ignore, dbFactor);
     }
   }
   return cnt;
 }
-uint extDistWidthRCTable::readRulesDiagUnder(Ath__parser* parser, uint widthCnt,
+uint extDistWidthRCTable::readRulesDiagUnder(Ath__parser* parser,
+                                             uint widthCnt,
                                              uint diagWidthCnt,
-                                             uint diagDistCnt, bool bin,
-                                             bool ignore, double dbFactor) {
+                                             uint diagDistCnt,
+                                             bool bin,
+                                             bool ignore,
+                                             double dbFactor)
+{
   uint cnt = 0;
   for (uint ii = _met + 1; ii < _met + 5 && ii < _layerCnt; ii++) {
     uint met = 0;
@@ -1171,8 +1247,6 @@ uint extDistWidthRCTable::readRulesDiagUnder(Ath__parser* parser, uint widthCnt,
     ddTable = parser->readDoubleArray("DIAG_DIST", 4);
     uint diagWidthCnt = dwTable->getCnt();
     uint diagDistCnt = ddTable->getCnt();
-    //		setDiagUnderTables(ii, dwTable, ddTable);
-
     uint metIndex = getMetIndexUnder(ii);
 
     if (!ignore)
@@ -1187,8 +1261,8 @@ uint extDistWidthRCTable::readRulesDiagUnder(Ath__parser* parser, uint widthCnt,
             cnt += _rcDiagDistTable[metIndex][jj][kk][ll]->readRules(
                 parser, _rcPoolPtr, true, bin, ignore, dbFactor);
           else
-            cnt += _rcDistTable[0][0]->readRules(parser, _rcPoolPtr, true, bin,
-                                                 ignore, dbFactor);
+            cnt += _rcDistTable[0][0]->readRules(
+                parser, _rcPoolPtr, true, bin, ignore, dbFactor);
         }
       }
     }
@@ -1197,9 +1271,12 @@ uint extDistWidthRCTable::readRulesDiagUnder(Ath__parser* parser, uint widthCnt,
   }
   return cnt;
 }
-uint extDistWidthRCTable::readRulesDiagUnder(Ath__parser* parser, uint widthCnt,
-                                             bool bin, bool ignore,
-                                             double dbFactor) {
+uint extDistWidthRCTable::readRulesDiagUnder(Ath__parser* parser,
+                                             uint widthCnt,
+                                             bool bin,
+                                             bool ignore,
+                                             double dbFactor)
+{
   uint cnt = 0;
   for (uint ii = _met + 1; ii < _layerCnt; ii++) {
     uint met = 0;
@@ -1210,15 +1287,18 @@ uint extDistWidthRCTable::readRulesDiagUnder(Ath__parser* parser, uint widthCnt,
     parser->getInt(3);
 
     for (uint jj = 0; jj < widthCnt; jj++) {
-      cnt += _rcDistTable[metIndex][jj]
-                 ->readRules(parser, _rcPoolPtr, true, bin, ignore, dbFactor);
+      cnt += _rcDistTable[metIndex][jj]->readRules(
+          parser, _rcPoolPtr, true, bin, ignore, dbFactor);
     }
   }
   return cnt;
 }
-uint extDistWidthRCTable::readRulesOverUnder(Ath__parser* parser, uint widthCnt,
-                                             bool bin, bool ignore,
-                                             double dbFactor) {
+uint extDistWidthRCTable::readRulesOverUnder(Ath__parser* parser,
+                                             uint widthCnt,
+                                             bool bin,
+                                             bool ignore,
+                                             double dbFactor)
+{
   uint cnt = 0;
   for (uint u = 1; u < _met; u++) {
     for (uint o = _met + 1; o < _layerCnt; o++) {
@@ -1240,26 +1320,28 @@ uint extDistWidthRCTable::readRulesOverUnder(Ath__parser* parser, uint widthCnt,
 
       int metIndex = 0;
       if (!ignore)
-        metIndex =
-            getMetIndexOverUnder(_met, mUnder, mOver, _layerCnt, _metCnt);
+        metIndex
+            = getMetIndexOverUnder(_met, mUnder, mOver, _layerCnt, _metCnt);
       int mcnt = 0;
       for (uint jj = 0; jj < widthCnt; jj++) {
         if (!ignore)
           mcnt += _rcDistTable[metIndex][jj]->readRules(
               parser, _rcPoolPtr, true, bin, ignore, dbFactor);
         else
-          mcnt += _rcDistTable[0][0]->readRules(parser, _rcPoolPtr, true, bin,
-                                                ignore, dbFactor);
+          mcnt += _rcDistTable[0][0]->readRules(
+              parser, _rcPoolPtr, true, bin, ignore, dbFactor);
       }
       cnt += mcnt;
     }
   }
   return cnt;
 }
-uint extDistWidthRCTable::getMetIndexUnder(uint mOver) {
+uint extDistWidthRCTable::getMetIndexUnder(uint mOver)
+{
   return mOver - _met - 1;
 }
-uint extDistWidthRCTable::writeRulesUnder(FILE* fp, bool bin) {
+uint extDistWidthRCTable::writeRulesUnder(FILE* fp, bool bin)
+{
   uint cnt = 0;
   fprintf(fp, "\nMetal %d UNDER\n", _met);
 
@@ -1272,13 +1354,14 @@ uint extDistWidthRCTable::writeRulesUnder(FILE* fp, bool bin) {
     uint metIndex = getMetIndexUnder(ii);
 
     for (uint jj = 0; jj < widthCnt; jj++) {
-      cnt += _rcDistTable[metIndex][jj]
-                 ->writeRules(fp, 0.001 * _widthTable->get(jj), false, bin);
+      cnt += _rcDistTable[metIndex][jj]->writeRules(
+          fp, 0.001 * _widthTable->get(jj), false, bin);
     }
   }
   return cnt;
 }
-uint extDistWidthRCTable::writeRulesDiagUnder2(FILE* fp, bool bin) {
+uint extDistWidthRCTable::writeRulesDiagUnder2(FILE* fp, bool bin)
+{
   uint cnt = 0;
   fprintf(fp, "\nMetal %d DIAGUNDER\n", _met);
 
@@ -1299,16 +1382,20 @@ uint extDistWidthRCTable::writeRulesDiagUnder2(FILE* fp, bool bin) {
       for (uint kk = 0; kk < diagWidthCnt; kk++) {
         for (uint ll = 0; ll < diagDistCnt; ll++) {
           cnt += _rcDiagDistTable[metIndex][jj][kk][ll]->writeDiagRules(
-              fp, 0.001 * _widthTable->get(jj),
+              fp,
+              0.001 * _widthTable->get(jj),
               0.001 * _diagWidthTable[ii]->get(kk),
-              0.001 * _diagDistTable[ii]->get(ll), false, bin);
+              0.001 * _diagDistTable[ii]->get(ll),
+              false,
+              bin);
         }
       }
     }
   }
   return cnt;
 }
-uint extDistWidthRCTable::writeRulesDiagUnder(FILE* fp, bool bin) {
+uint extDistWidthRCTable::writeRulesDiagUnder(FILE* fp, bool bin)
+{
   uint cnt = 0;
   fprintf(fp, "\nMetal %d DIAGUNDER\n", _met);
 
@@ -1321,13 +1408,14 @@ uint extDistWidthRCTable::writeRulesDiagUnder(FILE* fp, bool bin) {
     uint metIndex = getMetIndexUnder(ii);
 
     for (uint jj = 0; jj < widthCnt; jj++) {
-      cnt += _rcDistTable[metIndex][jj]
-                 ->writeRules(fp, 0.001 * _widthTable->get(jj), false, bin);
+      cnt += _rcDistTable[metIndex][jj]->writeRules(
+          fp, 0.001 * _widthTable->get(jj), false, bin);
     }
   }
   return cnt;
 }
-uint extDistWidthRCTable::writeRulesOverUnder(FILE* fp, bool bin) {
+uint extDistWidthRCTable::writeRulesOverUnder(FILE* fp, bool bin)
+{
   uint cnt = 0;
   fprintf(fp, "\nMetal %d OVERUNDER\n", _met);
 
@@ -1338,28 +1426,30 @@ uint extDistWidthRCTable::writeRulesOverUnder(FILE* fp, bool bin) {
     for (uint mOver = _met + 1; mOver < _layerCnt; mOver++) {
       fprintf(fp, "\nMetal %d OVER %d UNDER %d\n", _met, mUnder, mOver);
 
-      int metIndex =
-          getMetIndexOverUnder(_met, mUnder, mOver, _layerCnt, _metCnt);
+      int metIndex
+          = getMetIndexOverUnder(_met, mUnder, mOver, _layerCnt, _metCnt);
       assert(metIndex >= 0);
 
       for (uint jj = 0; jj < widthCnt; jj++) {
-        cnt += _rcDistTable[metIndex][jj]
-                   ->writeRules(fp, 0.001 * _widthTable->get(jj), false, bin);
+        cnt += _rcDistTable[metIndex][jj]->writeRules(
+            fp, 0.001 * _widthTable->get(jj), false, bin);
       }
     }
   }
   return cnt;
 }
-extMetRCTable::extMetRCTable(uint layerCnt, AthPool<extDistRC>* rcPool,
-                             Logger* logger) {
+extMetRCTable::extMetRCTable(uint layerCnt,
+                             AthPool<extDistRC>* rcPool,
+                             Logger* logger)
+{
   logger_ = logger;
   _layerCnt = layerCnt;
 
-  _resOver = new extDistWidthRCTable* [layerCnt];
-  _capOver = new extDistWidthRCTable* [layerCnt];
-  _capDiagUnder = new extDistWidthRCTable* [layerCnt];
-  _capUnder = new extDistWidthRCTable* [layerCnt];
-  _capOverUnder = new extDistWidthRCTable* [layerCnt];
+  _resOver = new extDistWidthRCTable*[layerCnt];
+  _capOver = new extDistWidthRCTable*[layerCnt];
+  _capDiagUnder = new extDistWidthRCTable*[layerCnt];
+  _capUnder = new extDistWidthRCTable*[layerCnt];
+  _capOverUnder = new extDistWidthRCTable*[layerCnt];
   for (uint ii = 0; ii < layerCnt; ii++) {
     _resOver[ii] = NULL;
     _capOver[ii] = NULL;
@@ -1370,7 +1460,8 @@ extMetRCTable::extMetRCTable(uint layerCnt, AthPool<extDistRC>* rcPool,
   _rcPoolPtr = rcPool;
   _rate = -1000.0;
 }
-extMetRCTable::~extMetRCTable() {
+extMetRCTable::~extMetRCTable()
+{
   for (uint ii = 0; ii < _layerCnt; ii++) {
     if (_capUnder[ii] != NULL)
       delete _capUnder[ii];
@@ -1389,93 +1480,111 @@ extMetRCTable::~extMetRCTable() {
   delete[] _capUnder;
   delete[] _capOverUnder;
 }
-void extMetRCTable::allocOverTable(uint met, Ath__array1D<double>* wTable,
-                                   double dbFactor) {
-  _capOver[met] = new extDistWidthRCTable(true, met, _layerCnt, met, wTable,
-                                          _rcPoolPtr, dbFactor);
-  _resOver[met] = new extDistWidthRCTable(true, met, _layerCnt, met, wTable,
-                                          _rcPoolPtr, dbFactor);
+void extMetRCTable::allocOverTable(uint met,
+                                   Ath__array1D<double>* wTable,
+                                   double dbFactor)
+{
+  _capOver[met] = new extDistWidthRCTable(
+      true, met, _layerCnt, met, wTable, _rcPoolPtr, dbFactor);
+  _resOver[met] = new extDistWidthRCTable(
+      true, met, _layerCnt, met, wTable, _rcPoolPtr, dbFactor);
 }
-void extMetRCTable::allocDiagUnderTable(uint met, Ath__array1D<double>* wTable,
-                                        int diagWidthCnt, int diagDistCnt,
-                                        double dbFactor) {
-  _capDiagUnder[met] = new extDistWidthRCTable(
-      false, met, _layerCnt, _layerCnt - met - 1, wTable, diagWidthCnt,
-      diagDistCnt, _rcPoolPtr, dbFactor);
+void extMetRCTable::allocDiagUnderTable(uint met,
+                                        Ath__array1D<double>* wTable,
+                                        int diagWidthCnt,
+                                        int diagDistCnt,
+                                        double dbFactor)
+{
+  _capDiagUnder[met] = new extDistWidthRCTable(false,
+                                               met,
+                                               _layerCnt,
+                                               _layerCnt - met - 1,
+                                               wTable,
+                                               diagWidthCnt,
+                                               diagDistCnt,
+                                               _rcPoolPtr,
+                                               dbFactor);
 }
-void extMetRCTable::setDiagUnderTables(uint met, uint overMet,
+void extMetRCTable::setDiagUnderTables(uint met,
+                                       uint overMet,
                                        Ath__array1D<double>* diagWTable,
                                        Ath__array1D<double>* diagSTable,
-                                       double dbFactor) {
-  _capDiagUnder[met]
-      ->setDiagUnderTables(overMet, diagWTable, diagSTable, dbFactor);
+                                       double dbFactor)
+{
+  _capDiagUnder[met]->setDiagUnderTables(
+      overMet, diagWTable, diagSTable, dbFactor);
 }
-void extMetRCTable::allocDiagUnderTable(uint met, Ath__array1D<double>* wTable,
-                                        double dbFactor) {
+void extMetRCTable::allocDiagUnderTable(uint met,
+                                        Ath__array1D<double>* wTable,
+                                        double dbFactor)
+{
   _capDiagUnder[met] = new extDistWidthRCTable(
       false, met, _layerCnt, _layerCnt - met - 1, wTable, _rcPoolPtr, dbFactor);
 }
-void extMetRCTable::allocUnderTable(uint met, Ath__array1D<double>* wTable,
-                                    double dbFactor) {
+void extMetRCTable::allocUnderTable(uint met,
+                                    Ath__array1D<double>* wTable,
+                                    double dbFactor)
+{
   _capUnder[met] = new extDistWidthRCTable(
       false, met, _layerCnt, _layerCnt - met - 1, wTable, _rcPoolPtr, dbFactor);
 }
-void extMetRCTable::allocOverUnderTable(uint met, Ath__array1D<double>* wTable,
-                                        double dbFactor) {
+void extMetRCTable::allocOverUnderTable(uint met,
+                                        Ath__array1D<double>* wTable,
+                                        double dbFactor)
+{
   if (met < 2)
     return;
 
   int n = getMaxMetIndexOverUnder(met, _layerCnt);
-  _capOverUnder[met] = new extDistWidthRCTable(false, met, _layerCnt, n + 1,
-                                               wTable, _rcPoolPtr, dbFactor);
+  _capOverUnder[met] = new extDistWidthRCTable(
+      false, met, _layerCnt, n + 1, wTable, _rcPoolPtr, dbFactor);
 }
-extRCTable::extRCTable(bool over, uint layerCnt) {
+extRCTable::extRCTable(bool over, uint layerCnt)
+{
   _maxCnt1 = layerCnt + 1;
-  _inTable = new Ath__array1D<extDistRC*>** [_maxCnt1];
-  _table = new Ath__array1D<extDistRC*>** [_maxCnt1];
+  _inTable = new Ath__array1D<extDistRC*>**[_maxCnt1];
+  _table = new Ath__array1D<extDistRC*>**[_maxCnt1];
 
   if (over)
     makeCapTableOver();
   else
     makeCapTableUnder();
 }
-extDistRC* extRCTable::getCapOver(uint met, uint metUnder) {
+extDistRC* extRCTable::getCapOver(uint met, uint metUnder)
+{
   return _inTable[met][metUnder]->get(0);
 }
-double extRCModel::getTotCapOverSub(uint met) {
+double extRCModel::getTotCapOverSub(uint met)
+{
   extDistRC* rc = _capOver->getCapOver(met, 0);
   return rc->getFringe();
 }
-/*
-double extRCModel::getFringeOver(uint met, uint mUnder, uint w, uint s)
+
+extDistRC* extDistRCTable::getRC_index(int n)
 {
-
-        if ((_tmpDataRate<=0)||(_modelTable!=NULL))
-                return 0.0;
-*/
-
-extDistRC* extDistRCTable::getRC_index(int n) {
   int cnt = _measureTable->getCnt();
   if (n >= cnt)
     return NULL;
   return _measureTable->get(n);
 }
 
-extDistRC* extDistRCTable::getLastRC() {
+extDistRC* extDistRCTable::getLastRC()
+{
   int cnt = _measureTable->getCnt();
   return _measureTable->get(cnt - 1);
 }
 
-extDistRC* extDistRCTable::getRC(uint s, bool compute) {
+extDistRC* extDistRCTable::getRC(uint s, bool compute)
+{
   if (compute)
     return getComputeRC(s);
   else
     return NULL;
-  // return interpolate _measureTable->findNextBiggestIndex((double) s);
 }
 void extDistRCTable::getFringeTable(Ath__array1D<int>* sTable,
                                     Ath__array1D<double>* rcTable,
-                                    bool compute) {
+                                    bool compute)
+{
   Ath__array1D<extDistRC*>* table = _computeTable;
   if (!compute)
     table = _measureTable;
@@ -1486,10 +1595,12 @@ void extDistRCTable::getFringeTable(Ath__array1D<int>* sTable,
     rcTable->add(rc->_fringe);
   }
 }
-void extDistWidthRCTable::getFringeTable(uint mou, uint w,
+void extDistWidthRCTable::getFringeTable(uint mou,
+                                         uint w,
                                          Ath__array1D<int>* sTable,
                                          Ath__array1D<double>* rcTable,
-                                         bool map) {
+                                         bool map)
+{
   uint wIndex = 0;
   if (map) {
     wIndex = getWidthIndex(w);
@@ -1498,25 +1609,14 @@ void extDistWidthRCTable::getFringeTable(uint mou, uint w,
 
   _rcDistTable[mou][wIndex]->getFringeTable(sTable, rcTable, true);
 }
-/*
-extDistRC* extDistWidthRCTable::getRC(uint mou, uint w, uint s)
+extDistRC* extDistWidthRCTable::getFringeRC(uint mou, uint w, int index_dist)
 {
-        int wIndex= _widthTable->findNextBiggestIndex(w);
-        if ((wIndex<0) || (wIndex>=_widthTable->getCnt()))
-                return NULL;
-
-        if (mou>=_metCnt || wIndex>=_widthTable->getCnt() ||
-_rcDistTable[mou][wIndex] == NULL) return NULL; return
-_rcDistTable[mou][wIndex]->getRC( s, true);
-}
-*/
-extDistRC* extDistWidthRCTable::getFringeRC(uint mou, uint w, int index_dist) {
   int wIndex = getWidthIndex(w);
-  if ((wIndex < 0) || (wIndex >= (int)_widthTable->getCnt()))
+  if ((wIndex < 0) || (wIndex >= (int) _widthTable->getCnt()))
     return NULL;
 
-  if (mou >= _metCnt || wIndex >= (int)_widthTable->getCnt() ||
-      _rcDistTable[mou][wIndex] == NULL)
+  if (mou >= _metCnt || wIndex >= (int) _widthTable->getCnt()
+      || _rcDistTable[mou][wIndex] == NULL)
     return NULL;
 
   extDistRC* rc;
@@ -1524,33 +1624,35 @@ extDistRC* extDistWidthRCTable::getFringeRC(uint mou, uint w, int index_dist) {
     rc = _rcDistTable[mou][wIndex]->getLastRC();
   else
     rc = _rcDistTable[mou][wIndex]->getRC_index(index_dist);
-  /*
-  if (rc!=NULL) {
-          rc->writeRC();
-  }
-  */
   return rc;
 }
-extDistRC* extDistWidthRCTable::getLastWidthFringeRC(uint mou) {
+extDistRC* extDistWidthRCTable::getLastWidthFringeRC(uint mou)
+{
   if (mou >= _metCnt)
     return NULL;
 
   int wIndex = _widthTable->getCnt() - 1;
 
-  if (wIndex >= (int)_widthTable->getCnt() || _rcDistTable[mou][wIndex] == NULL)
+  if (wIndex >= (int) _widthTable->getCnt()
+      || _rcDistTable[mou][wIndex] == NULL)
     return NULL;
 
   return _rcDistTable[mou][wIndex]->getLastRC();
 }
-extDistRC* extDistWidthRCTable::getRC(uint mou, uint w, uint s) {
+extDistRC* extDistWidthRCTable::getRC(uint mou, uint w, uint s)
+{
   int wIndex = getWidthIndex(w);
   if (wIndex < 0)
     return NULL;
 
   return _rcDistTable[mou][wIndex]->getRC(s, true);
 }
-extDistRC* extDistWidthRCTable::getRC(uint mou, uint w, uint dw, uint ds,
-                                      uint s) {
+extDistRC* extDistWidthRCTable::getRC(uint mou,
+                                      uint w,
+                                      uint dw,
+                                      uint ds,
+                                      uint s)
+{
   int wIndex = getWidthIndex(w);
   if (wIndex < 0)
     return NULL;
@@ -1562,7 +1664,8 @@ extDistRC* extDistWidthRCTable::getRC(uint mou, uint w, uint dw, uint ds,
     return NULL;
   return _rcDiagDistTable[mou][wIndex][dwIndex][dsIndex]->getRC(s, true);
 }
-extDistRC* extDistWidthRCTable::getRC_99(uint mou, uint w, uint dw, uint ds) {
+extDistRC* extDistWidthRCTable::getRC_99(uint mou, uint w, uint dw, uint ds)
+{
   int wIndex = getWidthIndex(w);
   if (wIndex < 0)
     return NULL;
@@ -1580,7 +1683,7 @@ extDistRC* extDistWidthRCTable::getRC_99(uint mou, uint w, uint dw, uint ds) {
   if (dsIndex == 0)
     return rc2;
 
-  if ((int)ds == _diagDistTable[mou]->get(dsIndex))
+  if ((int) ds == _diagDistTable[mou]->get(dsIndex))
     return rc2;
 
   _rc31->_sep = ds;
@@ -1597,79 +1700,88 @@ extDistRC* extDistWidthRCTable::getRC_99(uint mou, uint w, uint dw, uint ds) {
   if (ds <= (s1 - s2) / 4)  // too close!
     return rc2;
 
-  extDistRC* rc1 =
-      _rcDiagDistTable[mou][wIndex][dwIndex][dsIndex - 1]->getRC_99();
+  extDistRC* rc1
+      = _rcDiagDistTable[mou][wIndex][dwIndex][dsIndex - 1]->getRC_99();
 
   _rc31->_fringe = lineSegment(ds, s1, s2, rc1->_fringe, rc2->_fringe);
 
   return _rc31;
 }
-double extRCModel::getFringeOver(uint met, uint mUnder, uint w, uint s) {
+double extRCModel::getFringeOver(uint met, uint mUnder, uint w, uint s)
+{
   extDistRC* rc = _modelTable[_tmpDataRate]->_capOver[met]->getRC(mUnder, w, s);
 
   return rc->getFringe();
 }
-double extRCModel::getCouplingOver(uint met, uint mUnder, uint w, uint s) {
+double extRCModel::getCouplingOver(uint met, uint mUnder, uint w, uint s)
+{
   extDistRC* rc = _modelTable[_tmpDataRate]->_capOver[met]->getRC(mUnder, w, s);
 
   return rc->getCoupling();
 }
-extDistRC* extRCModel::getOverRC(extMeasure* m) {
-  if (_modelTable[_tmpDataRate] == NULL ||
-      _modelTable[_tmpDataRate]->_capOver[m->_met] == NULL)
+extDistRC* extRCModel::getOverRC(extMeasure* m)
+{
+  if (_modelTable[_tmpDataRate] == NULL
+      || _modelTable[_tmpDataRate]->_capOver[m->_met] == NULL)
     return NULL;
   extDistRC* rc = _modelTable[_tmpDataRate]->_capOver[m->_met]->getRC(
       m->_underMet, m->_width, m->_dist);
 
   return rc;
 }
-extDistRC* extRCModel::getUnderRC(extMeasure* m) {
+extDistRC* extRCModel::getUnderRC(extMeasure* m)
+{
   uint n = getUnderIndex(m);
-  if (_modelTable[_tmpDataRate] == NULL ||
-      _modelTable[_tmpDataRate]->_capUnder[m->_met] == NULL)
+  if (_modelTable[_tmpDataRate] == NULL
+      || _modelTable[_tmpDataRate]->_capUnder[m->_met] == NULL)
     return NULL;
   extDistRC* rc = _modelTable[_tmpDataRate]->_capUnder[m->_met]->getRC(
       n, m->_width, m->_dist);
 
   return rc;
 }
-extDistRC* extRCModel::getOverUnderRC(extMeasure* m) {
-  uint maxOverUnderIndex =
-      _modelTable[_tmpDataRate]->_capOverUnder[m->_met]->_metCnt;
+extDistRC* extRCModel::getOverUnderRC(extMeasure* m)
+{
+  uint maxOverUnderIndex
+      = _modelTable[_tmpDataRate]->_capOverUnder[m->_met]->_metCnt;
   uint n = getOverUnderIndex(m, maxOverUnderIndex);
   extDistRC* rc = _modelTable[_tmpDataRate]->_capOverUnder[m->_met]->getRC(
       n, m->_width, m->_dist);
 
   return rc;
 }
-extDistRC* extRCModel::getOverFringeRC(uint met, uint underMet, uint width) {
+extDistRC* extRCModel::getOverFringeRC(uint met, uint underMet, uint width)
+{
   if (met >= _layerCnt)
     return NULL;
 
-  extDistRC* rc =
-      _modelTable[_tmpDataRate]->_capOver[met]->getFringeRC(underMet, width);
+  extDistRC* rc
+      = _modelTable[_tmpDataRate]->_capOver[met]->getFringeRC(underMet, width);
 
   return rc;
 }
-extDistRC* extMetRCTable::getOverFringeRC(extMeasure* m, int index_dist) {
-  if (m->_met >= (int)_layerCnt)
+extDistRC* extMetRCTable::getOverFringeRC(extMeasure* m, int index_dist)
+{
+  if (m->_met >= (int) _layerCnt)
     return NULL;
 
-  extDistRC* rc =
-      _capOver[m->_met]->getFringeRC(m->_underMet, m->_width, index_dist);
+  extDistRC* rc
+      = _capOver[m->_met]->getFringeRC(m->_underMet, m->_width, index_dist);
 
   return rc;
 }
-extDistRC* extMetRCTable::getOverFringeRC_last(int met, int width) {
-  if (met >= (int)_layerCnt)
+extDistRC* extMetRCTable::getOverFringeRC_last(int met, int width)
+{
+  if (met >= (int) _layerCnt)
     return NULL;
 
   extDistRC* rc = _capOver[met]->getFringeRC(0, width, -1);
 
   return rc;
 }
-extDistRC* extRCModel::getOverFringeRC(extMeasure* m) {
-  if (m->_met >= (int)_layerCnt)
+extDistRC* extRCModel::getOverFringeRC(extMeasure* m)
+{
+  if (m->_met >= (int) _layerCnt)
     return NULL;
 
   extDistRC* rc = _modelTable[_tmpDataRate]->_capOver[m->_met]->getFringeRC(
@@ -1677,30 +1789,32 @@ extDistRC* extRCModel::getOverFringeRC(extMeasure* m) {
 
   return rc;
 }
-extDistRC* extRCModel::getUnderFringeRC(extMeasure* m) {
+extDistRC* extRCModel::getUnderFringeRC(extMeasure* m)
+{
   uint n = getUnderIndex(m);
-  if (_modelTable[_tmpDataRate] == NULL ||
-      _modelTable[_tmpDataRate]->_capUnder[m->_met] == NULL)
+  if (_modelTable[_tmpDataRate] == NULL
+      || _modelTable[_tmpDataRate]->_capUnder[m->_met] == NULL)
     return NULL;
-  extDistRC* rc =
-      _modelTable[_tmpDataRate]->_capUnder[m->_met]->getFringeRC(n, m->_width);
+  extDistRC* rc = _modelTable[_tmpDataRate]->_capUnder[m->_met]->getFringeRC(
+      n, m->_width);
 
   return rc;
 }
-extDistRC* extRCModel::getOverUnderFringeRC(extMeasure* m) {
+extDistRC* extRCModel::getOverUnderFringeRC(extMeasure* m)
+{
   uint maxCnt = _modelTable[_tmpDataRate]->_capOverUnder[m->_met]->_metCnt;
   uint n = getOverUnderIndex(m, maxCnt);
-  if (_modelTable[_tmpDataRate] == NULL ||
-      _modelTable[_tmpDataRate]->_capOverUnder[m->_met] == NULL)
+  if (_modelTable[_tmpDataRate] == NULL
+      || _modelTable[_tmpDataRate]->_capOverUnder[m->_met] == NULL)
     return NULL;
-  extDistRC* rc =
-      _modelTable[_tmpDataRate]->_capOverUnder[m->_met]->getFringeRC(n,
-                                                                     m->_width);
+  extDistRC* rc
+      = _modelTable[_tmpDataRate]->_capOverUnder[m->_met]->getFringeRC(
+          n, m->_width);
 
   return rc;
 }
-extDistRC* extMeasure::getOverUnderFringeRC(extMetRCTable* rcModel) {
-  //	uint n= getOverUnderIndex();
+extDistRC* extMeasure::getOverUnderFringeRC(extMetRCTable* rcModel)
+{
   uint maxCnt = _currentModel->getMaxCnt(_met);
   int n = getMetIndexOverUnder(_met, _underMet, _overMet, _layerCnt, maxCnt);
 
@@ -1711,8 +1825,8 @@ extDistRC* extMeasure::getOverUnderFringeRC(extMetRCTable* rcModel) {
 
   return rc;
 }
-extDistRC* extMeasure::getOverUnderRC(extMetRCTable* rcModel) {
-  //	uint n= getOverUnderIndex();
+extDistRC* extMeasure::getOverUnderRC(extMetRCTable* rcModel)
+{
   uint maxCnt = _currentModel->getMaxCnt(_met);
   int n = getMetIndexOverUnder(_met, _underMet, _overMet, _layerCnt, maxCnt);
 
@@ -1724,8 +1838,9 @@ extDistRC* extMeasure::getOverUnderRC(extMetRCTable* rcModel) {
 
   return rc;
 }
-extDistRC* extMeasure::getOverRC(extMetRCTable* rcModel) {
-  if (_met >= (int)_layerCnt)
+extDistRC* extMeasure::getOverRC(extMetRCTable* rcModel)
+{
+  if (_met >= (int) _layerCnt)
     return NULL;
 
   extDistRC* rc = NULL;
@@ -1736,10 +1851,17 @@ extDistRC* extMeasure::getOverRC(extMetRCTable* rcModel) {
 
   return rc;
 }
-uint extMeasure::getUnderIndex(uint overMet) { return overMet - _met - 1; }
-uint extMeasure::getUnderIndex() { return _overMet - _met - 1; }
+uint extMeasure::getUnderIndex(uint overMet)
+{
+  return overMet - _met - 1;
+}
+uint extMeasure::getUnderIndex()
+{
+  return _overMet - _met - 1;
+}
 extDistRC* extMeasure::getUnderLastWidthDistRC(extMetRCTable* rcModel,
-                                               uint overMet) {
+                                               uint overMet)
+{
   if (rcModel->_capUnder[_met] == NULL)
     return NULL;
 
@@ -1748,7 +1870,8 @@ extDistRC* extMeasure::getUnderLastWidthDistRC(extMetRCTable* rcModel,
   return rcModel->_capUnder[_met]->getLastWidthFringeRC(n);
 }
 
-extDistRC* extMeasure::getUnderRC(extMetRCTable* rcModel) {
+extDistRC* extMeasure::getUnderRC(extMetRCTable* rcModel)
+{
   if (rcModel->_capUnder[_met] == NULL)
     return NULL;
 
@@ -1762,8 +1885,11 @@ extDistRC* extMeasure::getUnderRC(extMetRCTable* rcModel) {
 
   return rc;
 }
-extDistRC* extMeasure::getVerticalUnderRC(extMetRCTable* rcModel, uint diagDist,
-                                          uint tgtWidth, uint overMet) {
+extDistRC* extMeasure::getVerticalUnderRC(extMetRCTable* rcModel,
+                                          uint diagDist,
+                                          uint tgtWidth,
+                                          uint overMet)
+{
   if (rcModel->_capDiagUnder[_met] == NULL) {
     return getUnderRC(rcModel);  // DELETE
     return NULL;
@@ -1771,14 +1897,15 @@ extDistRC* extMeasure::getVerticalUnderRC(extMetRCTable* rcModel, uint diagDist,
 
   uint n = getUnderIndex(overMet);
 
-  //	uint couplingDist= 99000;
-  extDistRC* rc =
-      rcModel->_capDiagUnder[_met]->getRC_99(n, _width, tgtWidth, diagDist);
+  extDistRC* rc
+      = rcModel->_capDiagUnder[_met]->getRC_99(n, _width, tgtWidth, diagDist);
 
   return rc;
 }
-double extMeasure::getDiagUnderCC(extMetRCTable* rcModel, uint dist,
-                                  uint overMet) {
+double extMeasure::getDiagUnderCC(extMetRCTable* rcModel,
+                                  uint dist,
+                                  uint overMet)
+{
   if (rcModel->_capDiagUnder[_met] == NULL)
     return 0.0;
 
@@ -1791,40 +1918,47 @@ double extMeasure::getDiagUnderCC(extMetRCTable* rcModel, uint dist,
       int dbUnit = _extMain->_block->getDbUnitsPerMicron();
       rc->printDebugRC_diag(_met, overMet, 0, _width, dist, dbUnit, logger_);
     }
-    return rc->_fringe;  // TODO 620
+    return rc->_fringe;
   } else
     return 0.0;
 }
-double extMeasure::getDiagUnderCC(extMetRCTable* rcModel, uint diagWidth,
-                                  uint diagDist, uint overMet) {
+double extMeasure::getDiagUnderCC(extMetRCTable* rcModel,
+                                  uint diagWidth,
+                                  uint diagDist,
+                                  uint overMet)
+{
   if (rcModel->_capDiagUnder[_met] == NULL)
     return 0.0;
 
   uint n = getUnderIndex(overMet);
 
-  extDistRC* rc = rcModel->_capDiagUnder[_met]
-                      ->getRC(n, _width, diagWidth, diagDist, _dist);
+  extDistRC* rc = rcModel->_capDiagUnder[_met]->getRC(
+      n, _width, diagWidth, diagDist, _dist);
 
   if (rc != NULL)
     return rc->_fringe;
   else
     return 0.0;
 }
-extDistRC* extMeasure::getDiagUnderCC2(extMetRCTable* rcModel, uint diagWidth,
-                                       uint diagDist, uint overMet) {
+extDistRC* extMeasure::getDiagUnderCC2(extMetRCTable* rcModel,
+                                       uint diagWidth,
+                                       uint diagDist,
+                                       uint overMet)
+{
   if (rcModel->_capDiagUnder[_met] == NULL)
     return NULL;
 
   uint n = getUnderIndex(overMet);
 
-  extDistRC* rc = rcModel->_capDiagUnder[_met]
-                      ->getRC(n, _width, diagWidth, diagDist, _dist);
+  extDistRC* rc = rcModel->_capDiagUnder[_met]->getRC(
+      n, _width, diagWidth, diagDist, _dist);
 
   if (rc == NULL)
     return NULL;
   return rc;
 }
-double extRCModel::getRes(uint met) {
+double extRCModel::getRes(uint met)
+{
   if (met > 13)
     return 0;
 
@@ -1834,10 +1968,12 @@ double extRCModel::getRes(uint met) {
 
   return rc->getRes();
 }
-uint extRCTable::addCapOver(uint met, uint metUnder, extDistRC* rc) {
+uint extRCTable::addCapOver(uint met, uint metUnder, extDistRC* rc)
+{
   return _inTable[met][metUnder]->add(rc);
 }
-extRCModel::extRCModel(uint layerCnt, const char* name, Logger* logger) {
+extRCModel::extRCModel(uint layerCnt, const char* name, Logger* logger)
+{
   logger_ = logger;
   _layerCnt = layerCnt;
   strcpy(_name, name);
@@ -1872,7 +2008,8 @@ extRCModel::extRCModel(uint layerCnt, const char* name, Logger* logger) {
   _keepFile = false;
   _metLevel = 0;
 }
-extRCModel::extRCModel(const char* name, Logger* logger) {
+extRCModel::extRCModel(const char* name, Logger* logger)
+{
   logger_ = logger;
   _layerCnt = 0;
   strcpy(_name, name);
@@ -1910,7 +2047,8 @@ extRCModel::extRCModel(const char* name, Logger* logger) {
   _metLevel = 0;
 }
 
-extRCModel::~extRCModel() {
+extRCModel::~extRCModel()
+{
   delete _resOver;
   delete _capOver;
   delete _capUnder;
@@ -1932,36 +2070,32 @@ extRCModel::~extRCModel() {
     delete _dataRateTable;
   }
 }
-void extRCModel::setExtMain(extMain* x) { _extMain = x; }
-extProcess* extRCModel::getProcess() { return _process; }
-void extRCModel::setProcess(extProcess* p) { _process = p; }
-void extRCModel::createModelTable(uint n, uint layerCnt) {
+void extRCModel::setExtMain(extMain* x)
+{
+  _extMain = x;
+}
+extProcess* extRCModel::getProcess()
+{
+  return _process;
+}
+void extRCModel::setProcess(extProcess* p)
+{
+  _process = p;
+}
+void extRCModel::createModelTable(uint n, uint layerCnt)
+{
   _layerCnt = layerCnt;
   _modelCnt = n;
 
   _dataRateTable = new Ath__array1D<double>(_modelCnt);
-  _modelTable = new extMetRCTable* [_modelCnt];
+  _modelTable = new extMetRCTable*[_modelCnt];
   for (uint jj = 0; jj < _modelCnt; jj++)
     _modelTable[jj] = new extMetRCTable(_layerCnt, _rcPoolPtr, logger_);
 }
-void extRCModel::setDataRateTable(uint met) {
+void extRCModel::setDataRateTable(uint met)
+{
   if (_process == NULL)
     return;
-  /*
-          FILE *fp= openFile("./", "ou", NULL, "w");
-          for (uint m= 1; m<_layerCnt; m++) {
-                  for (uint mUnder= 1; mUnder<m; mUnder++) {
-                          for (uint mOver= m+1; mOver<_layerCnt; mOver++) {
-                                  fprintf(fp, "met= %d   over %d   under %d
-     index= %d\n", m, mUnder, mOver, getMetIndexOverUnder(m, mUnder, mOver,
-     _layerCnt));
-
-                          }
-                  }
-                  fprintf(fp, "\n");
-          }
-          fclose(fp);
-  */
   _maxMinFlag = _process->getMaxMinFlag();
   bool thickVarFlag = _process->getThickVarFlag();
   extVariation* xvar = _process->getVariation(met);
@@ -1986,12 +2120,12 @@ void extRCModel::setDataRateTable(uint met) {
       _dataRateTable->add(dTable->get(ii));
   } else {
     createModelTable(1, _layerCnt);
-    //		_dataRateTable->set(0, 0.0);
     _dataRateTable->add(0.0);
   }
   _tmpDataRate = 0;
 }
-uint extRCModel::addLefTotRC(uint met, uint underMet, double fr, double r) {
+uint extRCModel::addLefTotRC(uint met, uint underMet, double fr, double r)
+{
   extDistRC* rc = _rcPoolPtr->alloc();
   rc->set(0, 0.0, fr, 0.0, r);
 
@@ -1999,26 +2133,22 @@ uint extRCModel::addLefTotRC(uint met, uint underMet, double fr, double r) {
   return n;
 }
 
-uint extRCModel::addCapOver(uint met, uint underMet, uint d, double cc,
-                            double fr, double a, double r) {
+uint extRCModel::addCapOver(uint met,
+                            uint underMet,
+                            uint d,
+                            double cc,
+                            double fr,
+                            double a,
+                            double r)
+{
   extDistRC* rc = _rcPoolPtr->alloc();
   rc->set(d, cc, fr, a, r);
 
   uint n = _capOver->addCapOver(met, underMet, rc);
   return n;
 }
-/*
-uint extRCModel::addCapUnder(uint met, uint overMet, uint d, double cc, double
-fr, double a, double r)
+extMeasure::extMeasure()
 {
-        extDistRC *rc= _rcPoolPtr->alloc();
-        rc->set(d, cc, fr, a, r);
-
-        uint n= _capOver->addCapUnder(met, overMet, rc);
-        return n;
-}
-*/
-extMeasure::extMeasure() {
   _met = -1;
   _underMet = -1;
   _overMet = -1;
@@ -2068,8 +2198,8 @@ extMeasure::extMeasure() {
   _ur[1] = 0;
 
   _maxCapNodeCnt = 100;
-  for (int n = 0; n < (int)_maxCapNodeCnt; n++) {
-    for (int k = 0; k < (int)_maxCapNodeCnt; k++) {
+  for (int n = 0; n < (int) _maxCapNodeCnt; n++) {
+    for (int k = 0; k < (int) _maxCapNodeCnt; k++) {
       _capMatrix[n][k] = 0.0;
     }
   }
@@ -2098,15 +2228,16 @@ extMeasure::extMeasure() {
 
   _dgContextFile = NULL;
   _diagFlow = false;
-  _btermThreshold = false;
   _rotatedGs = false;
   _sameNetFlag = false;
 }
-void extMeasure::allocOUpool() {
+void extMeasure::allocOUpool()
+{
   _lenOUPool = new AthPool<extLenOU>(false, 128);
   _lenOUtable = new Ath__array1D<extLenOU*>(128);
 }
-extMeasure::~extMeasure() {
+extMeasure::~extMeasure()
+{
   for (uint ii = 0; ii < 20; ii++)
     delete _rc[ii];
 
@@ -2127,7 +2258,8 @@ extMeasure::~extMeasure() {
   }
 }
 
-void extMeasure::setMets(int m, int u, int o) {
+void extMeasure::setMets(int m, int u, int o)
+{
   _met = m;
   _underMet = u;
   _overMet = o;
@@ -2138,8 +2270,14 @@ void extMeasure::setMets(int m, int u, int o) {
   else if ((u >= 0) && (o < 0))
     _over = true;
 }
-void extMeasure::setTargetParams(double w, double s, double r, double t,
-                                 double h, double w2, double s2) {
+void extMeasure::setTargetParams(double w,
+                                 double s,
+                                 double r,
+                                 double t,
+                                 double h,
+                                 double w2,
+                                 double s2)
+{
   _w_m = w;
   _s_m = s;
   _w_nm = Ath__double2int(1000 * w);
@@ -2154,7 +2292,6 @@ void extMeasure::setTargetParams(double w, double s, double r, double t,
     _w2_m = _w_m;
     _w2_nm = _w_nm;
   }
-  //	if (s2>0.0 || (s2==0.0 && _diag && _benchFlag)) {
   if (s2 > 0.0 || (s2 == 0.0 && _diag)) {
     _s2_m = s2;
     _s2_nm = Ath__double2int(1000 * s2);
@@ -2163,29 +2300,25 @@ void extMeasure::setTargetParams(double w, double s, double r, double t,
     _s2_nm = _s_nm;
   }
 }
-void extMeasure::setEffParams(double wTop, double wBot, double teff) {
+void extMeasure::setEffParams(double wTop, double wBot, double teff)
+{
   _topWidth = wTop;
   _botWidth = wBot;
   _teff = teff;
-  //_heff= _h+_t-teff;
   _heff = _h;
-  /*
-          if (_diag)
-                  _seff= _s_m;
-          else
-  */
   if (!_metExtFlag && _s_m != 99)
     _seff = _w_m + _s_m - wTop;
   else
     _seff = _s_m;
 }
-extDistRC* extMeasure::addRC(extDistRC* rcUnit, uint len, uint jj) {
+extDistRC* extMeasure::addRC(extDistRC* rcUnit, uint len, uint jj)
+{
   if (rcUnit == NULL)
     return NULL;
   int dbUnit = _extMain->_block->getDbUnitsPerMicron();
   if (IsDebugNet())
-    rcUnit->printDebugRC(_met, _overMet, _underMet, _width, _dist, dbUnit,
-                         logger_);
+    rcUnit->printDebugRC(
+        _met, _overMet, _underMet, _width, _dist, dbUnit, logger_);
 
   if (_sameNetFlag) {  // TO OPTIMIZE
     _rc[jj]->_fringe += 0.5 * rcUnit->_fringe * len;
@@ -2202,7 +2335,8 @@ extDistRC* extMeasure::addRC(extDistRC* rcUnit, uint len, uint jj) {
   }
   return rcUnit;
 }
-extDistRC* extMeasure::computeOverUnderRC(uint len) {
+extDistRC* extMeasure::computeOverUnderRC(uint len)
+{
   extDistRC* rcUnit = NULL;
 
   for (uint ii = 0; ii < _metRCTable.getCnt(); ii++) {
@@ -2214,7 +2348,8 @@ extDistRC* extMeasure::computeOverUnderRC(uint len) {
   }
   return rcUnit;
 }
-extDistRC* extMeasure::computeOverRC(uint len) {
+extDistRC* extMeasure::computeOverRC(uint len)
+{
   extDistRC* rcUnit = NULL;
 
   for (uint ii = 0; ii < _metRCTable.getCnt(); ii++) {
@@ -2226,7 +2361,8 @@ extDistRC* extMeasure::computeOverRC(uint len) {
   }
   return rcUnit;
 }
-extDistRC* extMeasure::computeR(uint len, double* valTable) {
+extDistRC* extMeasure::computeR(uint len, double* valTable)
+{
   extDistRC* rcUnit = NULL;
 
   for (uint ii = 0; ii < _metRCTable.getCnt(); ii++) {
@@ -2238,7 +2374,8 @@ extDistRC* extMeasure::computeR(uint len, double* valTable) {
   }
   return rcUnit;
 }
-extDistRC* extMeasure::computeUnderRC(uint len) {
+extDistRC* extMeasure::computeUnderRC(uint len)
+{
   extDistRC* rcUnit = NULL;
 
   for (uint ii = 0; ii < _metRCTable.getCnt(); ii++) {
@@ -2250,21 +2387,8 @@ extDistRC* extMeasure::computeUnderRC(uint len) {
   }
   return rcUnit;
 }
-/*
-void extMeasure::addCap()
+void extMeasure::printMets(FILE* fp)
 {
-        return;
-        if (! _rcValid)
-                return;
-
-        if (_underMet>0)
-                _capTable->addCapOver(_met, _underMet, _rc);
-
-        else if (_overMet>0)
-                _capTable->addCapOver(_met, _overMet, _rc);
-}
-*/
-void extMeasure::printMets(FILE* fp) {
   if (_overUnder)
     fprintf(fp, "M%d over M%d under M%d ", _met, _underMet, _overMet);
   else if (_over) {
@@ -2279,13 +2403,27 @@ void extMeasure::printMets(FILE* fp) {
       fprintf(fp, "M%d under M%d ", _met, _overMet);
   }
 }
-void extMeasure::printStats(FILE* fp) {
-  fprintf(fp, "<==> w= %g[%g %g]  s= %g[%g]  th= %g[%g]  h= %g[%g]  r= %g",
-          _w_m, _topWidth, _botWidth, _s_m, _seff, _t, _teff, _h, _heff, _r);
+void extMeasure::printStats(FILE* fp)
+{
+  fprintf(fp,
+          "<==> w= %g[%g %g]  s= %g[%g]  th= %g[%g]  h= %g[%g]  r= %g",
+          _w_m,
+          _topWidth,
+          _botWidth,
+          _s_m,
+          _seff,
+          _t,
+          _teff,
+          _h,
+          _heff,
+          _r);
 }
 
-FILE* extRCModel::openFile(const char* topDir, const char* name,
-                           const char* suffix, const char* permissions) {
+FILE* extRCModel::openFile(const char* topDir,
+                           const char* name,
+                           const char* suffix,
+                           const char* permissions)
+{
   char filename[2048];
 
   filename[0] = '\0';
@@ -2297,15 +2435,23 @@ FILE* extRCModel::openFile(const char* topDir, const char* name,
 
   FILE* fp = fopen(filename, permissions);
   if (fp == NULL) {
-    logger_->info(RCX, 485, "Cannot open file {} with permissions {}", filename,
+    logger_->info(RCX,
+                  485,
+                  "Cannot open file {} with permissions {}",
+                  filename,
                   permissions);
     return NULL;
   }
   return fp;
 }
 
-uint extRCModel::getCapValues(uint lastNode, double& cc1, double& cc2,
-                              double& fr, double& tot, extMeasure* m) {
+uint extRCModel::getCapValues(uint lastNode,
+                              double& cc1,
+                              double& cc2,
+                              double& fr,
+                              double& tot,
+                              extMeasure* m)
+{
   double totCap = 0.0;
   if (m->_diag && _diagModel == 2) {
     fr = m->_capMatrix[1][0];   // diag
@@ -2337,8 +2483,8 @@ uint extRCModel::getCapValues(uint lastNode, double& cc1, double& cc2,
     m->printMets(_capLogFP);
     tot = cc1 + cc2 + fr;
 
-    fprintf(_capLogFP, " cc1= %g  cc2= %g  fr= %g  tot= %g  ", cc1, cc2, fr,
-            tot);
+    fprintf(
+        _capLogFP, " cc1= %g  cc2= %g  fr= %g  tot= %g  ", cc1, cc2, fr, tot);
 
     m->printStats(_capLogFP);
     fprintf(_capLogFP, "\n\nEND\n\n");
@@ -2351,17 +2497,16 @@ uint extRCModel::getCapValues(uint lastNode, double& cc1, double& cc2,
   }
 
   if (lastNode != m->_wireCnt) {
-    //		return 0;
-    logger_->warn(RCX, 418, "Reads only {} nodes from {}", lastNode,
-                  _wireDirName);
+    logger_->warn(
+        RCX, 418, "Reads only {} nodes from {}", lastNode, _wireDirName);
   }
 
   fprintf(_capLogFP, "\n");
   m->printMets(_capLogFP);
   fr = totCap - cc1 - cc2;
 
-  fprintf(_capLogFP, " cc1= %g  cc2= %g  fr= %g  tot= %g  ", cc1, cc2, fr,
-          totCap);
+  fprintf(
+      _capLogFP, " cc1= %g  cc2= %g  fr= %g  tot= %g  ", cc1, cc2, fr, totCap);
 
   m->printStats(_capLogFP);
   fprintf(_capLogFP, "\n\nEND\n\n");
@@ -2369,8 +2514,13 @@ uint extRCModel::getCapValues(uint lastNode, double& cc1, double& cc2,
   return lastNode;
 }
 
-uint extRCModel::getCapValues3D(uint lastNode, double& cc1, double& cc2,
-                                double& fr, double& tot, extMeasure* m) {
+uint extRCModel::getCapValues3D(uint lastNode,
+                                double& cc1,
+                                double& cc2,
+                                double& fr,
+                                double& tot,
+                                extMeasure* m)
+{
   double totCap = 0.0;
   uint wireNum = m->_wireCnt / 2 + 1;  // assume odd numebr
   if (m->_diag) {
@@ -2398,9 +2548,8 @@ uint extRCModel::getCapValues3D(uint lastNode, double& cc1, double& cc2,
   fr = totCap;
 
   if (lastNode != m->_wireCnt) {
-    //                return 0;
-    logger_->info(RCX, 209, "Reads only {} nodes from {}", lastNode,
-                  _wireDirName);
+    logger_->info(
+        RCX, 209, "Reads only {} nodes from {}", lastNode, _wireDirName);
   }
 
   fprintf(_capLogFP, "\n");
@@ -2415,18 +2564,22 @@ uint extRCModel::getCapValues3D(uint lastNode, double& cc1, double& cc2,
   return lastNode;
 }
 
-uint extRCModel::getCapMatrixValues(uint lastNode, extMeasure* m) {
+uint extRCModel::getCapMatrixValues(uint lastNode, extMeasure* m)
+{
   uint ccCnt = 0;
   for (uint n = 1; n <= lastNode; n++) {
     double frCap = m->_capMatrix[n][0] * m->_len;
     m->_capMatrix[n][0] = 0.0;
 
-    logger_->info(RCX, 417, "FrCap for netId {} (nodeId= {})  {}",
-                  m->_idTable[n], n, frCap);
+    logger_->info(RCX,
+                  417,
+                  "FrCap for netId {} (nodeId= {})  {}",
+                  m->_idTable[n],
+                  n,
+                  frCap);
 
-    //		uint w= 0;
-    double res = _extMain->getLefResistance(m->_met, m->_w_nm, m->_len,
-                                            m->_rIndex);  // TO_TEST
+    double res
+        = _extMain->getLefResistance(m->_met, m->_w_nm, m->_len, m->_rIndex);
 
     dbRSeg* rseg1 = m->getFirstDbRseg(m->_idTable[n]);
     rseg1->setResistance(res);
@@ -2436,8 +2589,14 @@ uint extRCModel::getCapMatrixValues(uint lastNode, extMeasure* m) {
       double cc1 = m->_capMatrix[n][k] * m->_len;
       m->_capMatrix[n][k] = 0.0;
 
-      logger_->info(RCX, 416, "\tccCap for netIds {}({}), {}({}) {}",
-                    m->_idTable[n], n, m->_idTable[k], k, cc1);
+      logger_->info(RCX,
+                    416,
+                    "\tccCap for netIds {}({}), {}({}) {}",
+                    m->_idTable[n],
+                    n,
+                    m->_idTable[k],
+                    k,
+                    cc1);
       ccCnt++;
 
       dbRSeg* rseg2 = m->getFirstDbRseg(m->_idTable[k]);
@@ -2448,10 +2607,14 @@ uint extRCModel::getCapMatrixValues(uint lastNode, extMeasure* m) {
     frCap += ccFr;
     rseg1->setCapacitance(frCap);
 
-    logger_->info(RCX, 414, "\tfrCap from CC for netId {}({}) {}",
-                  m->_idTable[n], n, ccFr);
-    logger_->info(RCX, 411, "\ttotFrCap for netId {}({}) {}", m->_idTable[n], n,
-                  frCap);
+    logger_->info(RCX,
+                  414,
+                  "\tfrCap from CC for netId {}({}) {}",
+                  m->_idTable[n],
+                  n,
+                  ccFr);
+    logger_->info(
+        RCX, 411, "\ttotFrCap for netId {}({}) {}", m->_idTable[n], n, frCap);
   }
   m->printStats(_capLogFP);
   fprintf(_capLogFP, "\n\nEND\n\n");
@@ -2463,7 +2626,8 @@ uint extRCModel::getCapMatrixValues(uint lastNode, extMeasure* m) {
   }
   return ccCnt;
 }
-uint extRCModel::getCapMatrixValues3D(uint lastNode, extMeasure* m) {
+uint extRCModel::getCapMatrixValues3D(uint lastNode, extMeasure* m)
+{
   uint wireNum = m->_wireCnt / 2 + 1;  // assume odd numebr
   uint n;
   if (lastNode == 1) {
@@ -2471,13 +2635,20 @@ uint extRCModel::getCapMatrixValues3D(uint lastNode, extMeasure* m) {
     double frCap = m->_capMatrix[1][0];
     m->_capMatrix[1][0] = 0.0;
 
-    logger_->info(RCX, 210, "FrCap for netId {} (nodeId= {})  {}",
-                  m->_idTable[n], n, frCap);
+    logger_->info(RCX,
+                  210,
+                  "FrCap for netId {} (nodeId= {})  {}",
+                  m->_idTable[n],
+                  n,
+                  frCap);
 
-    //                uint w= 0;
     dbRSeg* rseg1 = m->getFirstDbRseg(m->_idTable[n]);
     rseg1->setCapacitance(frCap);
-    logger_->info(RCX, 412, "\ttotFrCap for netId {}({}) {}", m->_idTable[n], n,
+    logger_->info(RCX,
+                  412,
+                  "\ttotFrCap for netId {}({}) {}",
+                  m->_idTable[n],
+                  n,
                   m->_capMatrix[1][n]);
     m->printStats(_capLogFP);
     fprintf(_capLogFP, "\n\nEND\n\n");
@@ -2490,26 +2661,37 @@ uint extRCModel::getCapMatrixValues3D(uint lastNode, extMeasure* m) {
     double frCap = m->_capMatrix[1][0];
     m->_capMatrix[1][0] = 0.0;
 
-    logger_->info(RCX, 413, "FrCap for netId {} (nodeId= {})  {}",
-                  m->_idTable[n], n, frCap);
-
-    //                uint w= 0;
-    //                double res= _extMain->getLefResistance(m->_met,
-    //                1000*m->_w, m->_len);
+    logger_->info(RCX,
+                  413,
+                  "FrCap for netId {} (nodeId= {})  {}",
+                  m->_idTable[n],
+                  n,
+                  frCap);
 
     dbRSeg* rseg1 = m->getFirstDbRseg(m->_idTable[n]);
-    //                rseg1->setResistance(res);
 
     double cc1 = m->_capMatrix[1][n - 1];
     m->_capMatrix[1][n - 1] = 0.0;
-    logger_->info(RCX, 415, "\tccCap for netIds {}({}), {}({}) {}",
-                  m->_idTable[n], n, m->_idTable[n - 1], n - 1, cc1);
+    logger_->info(RCX,
+                  415,
+                  "\tccCap for netIds {}({}), {}({}) {}",
+                  m->_idTable[n],
+                  n,
+                  m->_idTable[n - 1],
+                  n - 1,
+                  cc1);
     dbRSeg* rseg2 = m->getFirstDbRseg(m->_idTable[n - 1]);
     m->_extMain->updateCCCap(rseg1, rseg2, cc1);
     double cc2 = m->_capMatrix[1][n + 1];
     m->_capMatrix[1][n + 1] = 0.0;
-    logger_->info(RCX, 211, "\tccCap for netIds {}({}), {}({}) {}",
-                  m->_idTable[n], n, m->_idTable[n + 1], n + 1, cc2);
+    logger_->info(RCX,
+                  211,
+                  "\tccCap for netIds {}({}), {}({}) {}",
+                  m->_idTable[n],
+                  n,
+                  m->_idTable[n + 1],
+                  n + 1,
+                  cc2);
     uint netId3 = m->_idTable[n + 1];
     dbRSeg* rseg3 = m->getFirstDbRseg(netId3);
     m->_extMain->updateCCCap(rseg1, rseg3, cc2);
@@ -2518,9 +2700,17 @@ uint extRCModel::getCapMatrixValues3D(uint lastNode, extMeasure* m) {
     frCap += ccFr;
     rseg1->setCapacitance(frCap);
 
-    logger_->info(RCX, 212, "\tfrCap from CC for netId {}({}) {}",
-                  m->_idTable[n], n, ccFr);
-    logger_->info(RCX, 213, "\ttotFrCap for netId {}({}) {}", m->_idTable[n], n,
+    logger_->info(RCX,
+                  212,
+                  "\tfrCap from CC for netId {}({}) {}",
+                  m->_idTable[n],
+                  n,
+                  ccFr);
+    logger_->info(RCX,
+                  213,
+                  "\ttotFrCap for netId {}({}) {}",
+                  m->_idTable[n],
+                  n,
                   m->_capMatrix[1][n]);
   }
   m->printStats(_capLogFP);
@@ -2535,7 +2725,8 @@ uint extRCModel::getCapMatrixValues3D(uint lastNode, extMeasure* m) {
   return 0;
 }
 
-uint extRCModel::readCapacitanceBench(bool readCapLog, extMeasure* m) {
+uint extRCModel::readCapacitanceBench(bool readCapLog, extMeasure* m)
+{
   double units = 1.0e+12;
 
   FILE* solverFP = NULL;
@@ -2564,7 +2755,6 @@ uint extRCModel::readCapacitanceBench(bool readCapLog, extMeasure* m) {
   m->_capMatrix[1][0] = 0.0;
   m->_capMatrix[1][1] = 0.0;
   m->_capMatrix[1][2] = 0.0;
-  //	while (_parser->parseNextLine()>0) {
   while (1) {
     if (!_parser->isKeyword(0, "BEGIN") || matrixFlag)
       if (!(_parser->parseNextLine() > 0))
@@ -2576,7 +2766,6 @@ uint extRCModel::readCapacitanceBench(bool readCapLog, extMeasure* m) {
       if (!_parser->isKeyword(0, "Charge"))
         continue;
 
-      //_parser->printWords(stdout);
       _parser->printWords(_capLogFP);
 
       double cap = _parser->getDouble(4);
@@ -2607,8 +2796,6 @@ uint extRCModel::readCapacitanceBench(bool readCapLog, extMeasure* m) {
     if (_parser->isKeyword(0, "***") && _parser->isKeyword(1, "POTENTIAL")) {
       matrixFlag = true;
 
-      //			if (_parser->isKeyword(4, "Total")) {
-
       fprintf(_capLogFP, "BEGIN %s\n", _wireDirName);
       fprintf(_capLogFP, "%s\n", _commentLine);
       if (_keepFile && m != NULL) {
@@ -2617,17 +2804,16 @@ uint extRCModel::readCapacitanceBench(bool readCapLog, extMeasure* m) {
         else
           writeRuleWires(_capLogFP, m, m->_wireCnt);
       }
-      //			}
       continue;
-    } else if (_parser->isKeyword(0, "BEGIN") &&
-               (strcmp(_parser->get(1), _wireDirName) == 0)) {
+    } else if (_parser->isKeyword(0, "BEGIN")
+               && (strcmp(_parser->get(1), _wireDirName) == 0)) {
       matrixFlag = true;
 
       fprintf(_capLogFP, "BEGIN %s\n", _wireDirName);
 
       continue;
-    } else if (_parser->isKeyword(0, "BEGIN") &&
-               (strcmp(_parser->get(1), _wireDirName) != 0)) {
+    } else if (_parser->isKeyword(0, "BEGIN")
+               && (strcmp(_parser->get(1), _wireDirName) != 0)) {
       matrixFlag = false;
       break;
     }
@@ -2637,7 +2823,8 @@ uint extRCModel::readCapacitanceBench(bool readCapLog, extMeasure* m) {
 
   return cnt;
 }
-uint extRCModel::readCapacitanceBenchDiag(bool readCapLog, extMeasure* m) {
+uint extRCModel::readCapacitanceBenchDiag(bool readCapLog, extMeasure* m)
+{
   int met = 0;
   if (m->_overMet > 0)
     met = m->_overMet;
@@ -2663,7 +2850,6 @@ uint extRCModel::readCapacitanceBenchDiag(bool readCapLog, extMeasure* m) {
   m->_capMatrix[1][0] = 0.0;
   m->_capMatrix[1][1] = 0.0;
   m->_capMatrix[1][2] = 0.0;
-  //        while (_parser->parseNextLine()>0) {
   while (1) {
     if (!_parser->isKeyword(0, "BEGIN") || matrixFlag)
       if (!(_parser->parseNextLine() > 0))
@@ -2675,7 +2861,6 @@ uint extRCModel::readCapacitanceBenchDiag(bool readCapLog, extMeasure* m) {
       if (!_parser->isKeyword(0, "Charge"))
         continue;
 
-      //_parser->printWords(stdout);
       _parser->printWords(_capLogFP);
       double cap = _parser->getDouble(4);
       if (cap < 0.0)
@@ -2731,14 +2916,14 @@ uint extRCModel::readCapacitanceBenchDiag(bool readCapLog, extMeasure* m) {
           writeRuleWires(_capLogFP, m, m->_wireCnt);
       }
       continue;
-    } else if (_parser->isKeyword(0, "BEGIN") &&
-               (strcmp(_parser->get(1), _wireDirName) == 0)) {
+    } else if (_parser->isKeyword(0, "BEGIN")
+               && (strcmp(_parser->get(1), _wireDirName) == 0)) {
       matrixFlag = true;
 
       fprintf(_capLogFP, "BEGIN %s\n", _wireDirName);
       continue;
-    } else if (_parser->isKeyword(0, "BEGIN") &&
-               (strcmp(_parser->get(1), _wireDirName) != 0)) {
+    } else if (_parser->isKeyword(0, "BEGIN")
+               && (strcmp(_parser->get(1), _wireDirName) != 0)) {
       matrixFlag = false;
       break;
     }
@@ -2749,9 +2934,8 @@ uint extRCModel::readCapacitanceBenchDiag(bool readCapLog, extMeasure* m) {
 
   return cnt;
 }
-// void extRCModel::mkFileNames(uint met, const char* ou, uint ouMet, double w,
-// double s, double r)
-void extRCModel::mkFileNames(extMeasure* m, char* wiresNameSuffix) {
+void extRCModel::mkFileNames(extMeasure* m, char* wiresNameSuffix)
+{
   char overUnder[128];
 
   if ((m->_overMet > 0) && (m->_underMet > 0))
@@ -2775,28 +2959,47 @@ void extRCModel::mkFileNames(extMeasure* m, char* wiresNameSuffix) {
   double w2 = m->_w2_m;
   double s2 = m->_s2_m;
 
-  /*
-          if ((r!=0)&&(s>0))
-                  sprintf(_wireDirName, "%s/%s/%s/W%g/S%g__D%g", _topDir,
-     _patternName, overUnder, w, s, r); else if (s>0) sprintf(_wireDirName,
-     "%s/%s/%s/W%g/S%g", _topDir, _patternName, overUnder, w, s); else
-                  sprintf(_wireDirName, "%s/%s/%s/W%g", _topDir, _patternName,
-     overUnder, w);
-  */
   if (!m->_benchFlag) {
     if (m->_diag) {
       if (_diagModel == 2)
-        sprintf(_wireDirName, "%s/%s/%s/D%g/W%g/DW%g/DS%g/S%g", _topDir,
-                _patternName, overUnder, r, w, w2, s2, s);
+        sprintf(_wireDirName,
+                "%s/%s/%s/D%g/W%g/DW%g/DS%g/S%g",
+                _topDir,
+                _patternName,
+                overUnder,
+                r,
+                w,
+                w2,
+                s2,
+                s);
       if (_diagModel == 1)
-        sprintf(_wireDirName, "%s/%s/%s/D%g/W%g/S%g", _topDir, _patternName,
-                overUnder, r, w, s);
+        sprintf(_wireDirName,
+                "%s/%s/%s/D%g/W%g/S%g",
+                _topDir,
+                _patternName,
+                overUnder,
+                r,
+                w,
+                s);
     } else
-      sprintf(_wireDirName, "%s/%s/%s/D%g/W%g/S%g", _topDir, _patternName,
-              overUnder, r, w, s);
+      sprintf(_wireDirName,
+              "%s/%s/%s/D%g/W%g/S%g",
+              _topDir,
+              _patternName,
+              overUnder,
+              r,
+              w,
+              s);
   } else {
-    sprintf(_wireDirName, "%s/%s/%s/W%g_W%g/S%g_S%g", _topDir, _patternName,
-            overUnder, w, w2, s, s2);
+    sprintf(_wireDirName,
+            "%s/%s/%s/W%g_W%g/S%g_S%g",
+            _topDir,
+            _patternName,
+            overUnder,
+            w,
+            w2,
+            s,
+            s2);
   }
 
   if (wiresNameSuffix != NULL)
@@ -2807,19 +3010,22 @@ void extRCModel::mkFileNames(extMeasure* m, char* wiresNameSuffix) {
   fprintf(_logFP, "pattern Dir %s\n\n", _wireDirName);
   fflush(_logFP);
 }
-double get_nm(extMeasure* m, double n) {
+double get_nm(extMeasure* m, double n)
+{
   if (n == 0)
     return 0;
   double a = 1000 * 1000.0 * n / m->_dbunit;
   return a;
 }
-int get_nm(int n, int units) {
+int get_nm(int n, int units)
+{
   if (n == 0)
     return 0;
   int a = (1000 * n) / units;
   return a;
 }
-void extRCModel::mkNet_prefix(extMeasure* m, const char* wiresNameSuffix) {
+void extRCModel::mkNet_prefix(extMeasure* m, const char* wiresNameSuffix)
+{
   char overUnder[128];
 
   if ((m->_overMet > 0) && (m->_underMet > 0))
@@ -2839,11 +3045,21 @@ void extRCModel::mkNet_prefix(extMeasure* m, const char* wiresNameSuffix) {
   } else
     sprintf(overUnder, "Unknown");
 
-  sprintf(_wireDirName, "%s_%s_W%gW%g_S%gS%g", _patternName, overUnder,
-          get_nm(m, m->_w_m), get_nm(m, m->_w2_m), get_nm(m, m->_s_m),
+  sprintf(_wireDirName,
+          "%s_%s_W%gW%g_S%gS%g",
+          _patternName,
+          overUnder,
+          get_nm(m, m->_w_m),
+          get_nm(m, m->_w2_m),
+          get_nm(m, m->_s_m),
           get_nm(m, m->_s2_m));
-  sprintf(_wireDirName, "%s_%s_W%gW%g_S%05dS%05d", _patternName, overUnder,
-          get_nm(m, m->_w_m), get_nm(m, m->_w2_m), get_nm(m->_s_nm, m->_dbunit),
+  sprintf(_wireDirName,
+          "%s_%s_W%gW%g_S%05dS%05d",
+          _patternName,
+          overUnder,
+          get_nm(m, m->_w_m),
+          get_nm(m, m->_w2_m),
+          get_nm(m->_s_nm, m->_dbunit),
           get_nm(m->_s2_nm, m->_dbunit));
 
   if (wiresNameSuffix != NULL)
@@ -2855,7 +3071,8 @@ void extRCModel::mkNet_prefix(extMeasure* m, const char* wiresNameSuffix) {
   fflush(_logFP);
 }
 
-FILE* extRCModel::mkPatternFile() {
+FILE* extRCModel::mkPatternFile()
+{
   _parser->mkDirTree(_wireDirName, "/");
 
   FILE* fp = openFile(_wireDirName, _wireFileName, NULL, "w");
@@ -2866,14 +3083,16 @@ FILE* extRCModel::mkPatternFile() {
 
   return fp;
 }
-FILE* extRCModel::openSolverFile() {
+FILE* extRCModel::openSolverFile()
+{
   FILE* fp = openFile(_wireDirName, _wireFileName, ".out", "r");
   if (fp != NULL)
     _parser->setInputFP(fp);
 
   return fp;
 }
-bool extRCModel::openCapLogFile() {
+bool extRCModel::openCapLogFile()
+{
   _readCapLog = false;
   if (_readSolver && !_runSolver)
     _readCapLog = true;
@@ -2902,8 +3121,14 @@ bool extRCModel::openCapLogFile() {
   } else if (_metLevel > 0) {
     _capLogFP = openFile(buff, capLog, NULL, "a");
   } else {
-    sprintf(cmd, "mv %s/%s/%s %s/%s/%s.in", _topDir, _patternName, capLog,
-            _topDir, _patternName, capLog);
+    sprintf(cmd,
+            "mv %s/%s/%s %s/%s/%s.in",
+            _topDir,
+            _patternName,
+            capLog,
+            _topDir,
+            _patternName,
+            capLog);
     if (system(cmd) == -1) {
       logger_->error(RCX, 489, "mv failed: {}", cmd);
     }
@@ -2920,15 +3145,18 @@ bool extRCModel::openCapLogFile() {
   _readCapLog = true;
   return true;
 }
-void extRCModel::closeCapLogFile() { fclose(_capLogFP); }
-void extRCModel::writeRuleWires(FILE* fp, extMeasure* measure, uint wireCnt) {
+void extRCModel::closeCapLogFile()
+{
+  fclose(_capLogFP);
+}
+void extRCModel::writeRuleWires(FILE* fp, extMeasure* measure, uint wireCnt)
+{
   extMasterConductor* m = _process->getMasterConductor(measure->_met);
   double minWidth = _process->getConductor(measure->_met)->_min_width;
   double minSpace = _process->getConductor(measure->_met)->_min_spacing;
   double top_ext = _process->getConductor(measure->_met)->_top_ext;
   double pitch;
   if (measure->_diag && _diagModel == 1) {
-    //		pitch= measure->_topWidth + 2*minSpace;
     if (measure->_metExtFlag)
       pitch = measure->_topWidth - 2 * top_ext + minSpace;
     else
@@ -2948,8 +3176,8 @@ void extRCModel::writeRuleWires(FILE* fp, extMeasure* measure, uint wireCnt) {
 
   if (!measure->_plate) {
     // assume origin = (0,0)
-    x = -min_pitch * (n - 1) - pitch - 0.5 * measure->_topWidth - top_ext +
-        orig;
+    x = -min_pitch * (n - 1) - pitch - 0.5 * measure->_topWidth - top_ext
+        + orig;
     for (ii = 0; ii < n - 1; ii++) {
       m->writeRaphaelConformalPoly(fp, minWidth, x, _process);
       m->writeRaphaelPoly(fp, ii + 1, minWidth, x, 0.0, _process);
@@ -3018,7 +3246,8 @@ void extRCModel::writeRuleWires(FILE* fp, extMeasure* measure, uint wireCnt) {
     }
   }
 }
-void extRCModel::writeWires2(FILE* fp, extMeasure* measure, uint wireCnt) {
+void extRCModel::writeWires2(FILE* fp, extMeasure* measure, uint wireCnt)
+{
   extMasterConductor* m = _process->getMasterConductor(measure->_met);
   double pitch = measure->_topWidth + measure->_seff;
   double min_pitch = 0.001 * (measure->_minWidth + measure->_minSpace);
@@ -3039,16 +3268,15 @@ void extRCModel::writeWires2(FILE* fp, extMeasure* measure, uint wireCnt) {
   x = 0.5 * measure->_w_m + measure->_s2_m;
   m->writeRaphaelPoly(fp, n + 2, measure->_w2_m, x, 0.0);
 
-  //	x= orig+pitch;
-  x = orig + 0.5 * measure->_topWidth + measure->_w2_m + measure->_s2_m +
-      0.001 * measure->_minSpace;
+  x = orig + 0.5 * measure->_topWidth + measure->_w2_m + measure->_s2_m
+      + 0.001 * measure->_minSpace;
   for (uint jj = n + 2; jj < wireCnt; jj++) {
     m->writeRaphaelPoly(fp, jj + 1, 0.001 * measure->_minWidth, x, 0.0);
     x += min_pitch;
   }
 }
-void extRCModel::writeRuleWires_3D(FILE* fp, extMeasure* measure,
-                                   uint wireCnt) {
+void extRCModel::writeRuleWires_3D(FILE* fp, extMeasure* measure, uint wireCnt)
+{
   extMasterConductor* m = _process->getMasterConductor(measure->_met);
   double pitch = measure->_topWidth + measure->_seff;
   double minWidth = _process->getConductor(measure->_met)->_min_width;
@@ -3078,7 +3306,8 @@ void extRCModel::writeRuleWires_3D(FILE* fp, extMeasure* measure,
   }
 }
 
-void extRCModel::writeWires2_3D(FILE* fp, extMeasure* measure, uint wireCnt) {
+void extRCModel::writeWires2_3D(FILE* fp, extMeasure* measure, uint wireCnt)
+{
   extMasterConductor* m = _process->getMasterConductor(measure->_met);
   double pitch = measure->_topWidth + measure->_seff;
   double min_pitch = 0.001 * (measure->_minWidth + measure->_minSpace);
@@ -3089,8 +3318,8 @@ void extRCModel::writeWires2_3D(FILE* fp, extMeasure* measure, uint wireCnt) {
   // assume origin = (0,0)
   double x = -min_pitch * (n - 1) - pitch - 0.5 * measure->_topWidth + orig;
   for (uint ii = 0; ii < n - 1; ii++) {
-    m->writeRaphaelPoly3D(fp, ii + 1, 0.001 * measure->_minWidth,
-                          measure->_len * 0.001, 0.0);
+    m->writeRaphaelPoly3D(
+        fp, ii + 1, 0.001 * measure->_minWidth, measure->_len * 0.001, 0.0);
     x += min_pitch;
   }
   x += 0.5 * measure->_topWidth;
@@ -3098,18 +3327,19 @@ void extRCModel::writeWires2_3D(FILE* fp, extMeasure* measure, uint wireCnt) {
 
   m->writeRaphaelPoly3D(fp, n + 1, orig, measure->_len * 0.001, 1.0);
   x = 0.5 * measure->_w_m + measure->_s2_m;
-  m->writeRaphaelPoly3D(fp, n + 2, measure->_w2_m, measure->_len * 0.001, x,
-                        0.0);
+  m->writeRaphaelPoly3D(
+      fp, n + 2, measure->_w2_m, measure->_len * 0.001, x, 0.0);
 
-  x = orig + 0.5 * measure->_topWidth + measure->_w2_m + measure->_s2_m +
-      0.001 * measure->_minSpace;
+  x = orig + 0.5 * measure->_topWidth + measure->_w2_m + measure->_s2_m
+      + 0.001 * measure->_minSpace;
   for (uint jj = n + 2; jj < wireCnt; jj++) {
-    m->writeRaphaelPoly3D(fp, jj + 1, 0.001 * measure->_minWidth,
-                          measure->_len * 0.001, x, 0.0);
+    m->writeRaphaelPoly3D(
+        fp, jj + 1, 0.001 * measure->_minWidth, measure->_len * 0.001, x, 0.0);
     x += min_pitch;
   }
 }
-int extRCModel::writeBenchWires(FILE* fp, extMeasure* measure) {
+int extRCModel::writeBenchWires(FILE* fp, extMeasure* measure)
+{
   uint grid_gap_cnt = 20;
 
   int bboxLL[2];
@@ -3118,17 +3348,11 @@ int extRCModel::writeBenchWires(FILE* fp, extMeasure* measure) {
 
   extMasterConductor* m = _process->getMasterConductor(measure->_met);
 
-  int n =
-      measure->_wireCnt / 2;  // ASSUME odd number of wires, 2 will also work
+  int n
+      = measure->_wireCnt / 2;  // ASSUME odd number of wires, 2 will also work
 
   double pitchUp_print;
-  /*
-          if (measure->_diag)
-                  pitchUp_print= measure->_topWidth +
-     0.001*2*measure->_minSpace; else
-  */
   pitchUp_print = measure->_topWidth + measure->_seff;
-  //	double pitchDown_print= measure->_topWidth + measure->_seff;
   double pitch_print = 0.001 * (measure->_minWidth + measure->_minSpace);
 
   uint w_layout = measure->_minWidth;
@@ -3143,8 +3367,8 @@ int extRCModel::writeBenchWires(FILE* fp, extMeasure* measure) {
   uint idCnt = 1;
   int ii;
   for (ii = 0; ii < n - 1; ii++) {
-    netIdTable[idCnt] =
-        measure->createNetSingleWire(_wireDirName, idCnt, w_layout, s_layout);
+    netIdTable[idCnt]
+        = measure->createNetSingleWire(_wireDirName, idCnt, w_layout, s_layout);
     idCnt++;
     x_tmp[ii] = x;
     x -= pitch_print;
@@ -3158,76 +3382,67 @@ int extRCModel::writeBenchWires(FILE* fp, extMeasure* measure) {
 
   uint WW = measure->_w_nm;
   uint SS1;
-  //	if (measure->_diag)
-  //		SS1= 2*measure->_minSpace;
-  //	else
   SS1 = measure->_s_nm;
   uint WW2 = measure->_w2_nm;
   uint SS2 = measure->_s2_nm;
 
   X[cnt++] = -pitchUp_print;
   int mid = cnt;
-  netIdTable[idCnt] =
-      measure->createNetSingleWire(_wireDirName, idCnt, WW, s_layout);
+  netIdTable[idCnt]
+      = measure->createNetSingleWire(_wireDirName, idCnt, WW, s_layout);
   idCnt++;
 
   X[cnt++] = 0.0;
-  netIdTable[idCnt] =
-      measure->createNetSingleWire(_wireDirName, idCnt, WW, SS1);
+  netIdTable[idCnt]
+      = measure->createNetSingleWire(_wireDirName, idCnt, WW, SS1);
   idCnt++;
   uint base = measure->_ll[measure->_dir] + WW / 2;
 
   X[cnt++] = (SS2 + WW * 0.5) * 0.001;
-  netIdTable[idCnt] =
-      measure->createNetSingleWire(_wireDirName, idCnt, WW2, SS2);
+  netIdTable[idCnt]
+      = measure->createNetSingleWire(_wireDirName, idCnt, WW2, SS2);
   idCnt++;
 
-  //	x= measure->_topWidth*0.5+pitchUp_print+0.001*measure->_minSpace;
   x = measure->_topWidth * 0.5 + 0.001 * (WW2 + SS2 + measure->_minSpace);
   for (int jj = 0; jj < n - 1; jj++) {
     X[cnt++] = x;
     x += pitch_print;
-    netIdTable[idCnt] =
-        measure->createNetSingleWire(_wireDirName, idCnt, w_layout, s_layout);
+    netIdTable[idCnt]
+        = measure->createNetSingleWire(_wireDirName, idCnt, w_layout, s_layout);
     idCnt++;
   }
 
   for (ii = 0; ii < cnt; ii++) {
     uint length = measure->getBoxLength(ii, measure->_met, false);
-    // layout;
     if (ii == mid) {
       if (measure->_3dFlag)
-        //				m->writeRaphaelPoly3D(fp,
-        // netIdTable[ii+1], X[ii], measure->_len*0.001, 1.0);
-        m->writeRaphaelPoly3D(fp, netIdTable[ii + 1], X[ii], length * 0.001,
-                              1.0);
+        m->writeRaphaelPoly3D(
+            fp, netIdTable[ii + 1], X[ii], length * 0.001, 1.0);
       else
         m->writeRaphaelPoly(fp, netIdTable[ii + 1], X[ii], 1.0);
     } else if (ii == mid - 1) {
       if (measure->_3dFlag)
-        //				m->writeRaphaelPoly3D(fp,
-        // netIdTable[ii+1], X[ii], measure->_len*0.001, 0.0);
-        m->writeRaphaelPoly3D(fp, netIdTable[ii + 1], X[ii], length * 0.001,
-                              0.0);
+        m->writeRaphaelPoly3D(
+            fp, netIdTable[ii + 1], X[ii], length * 0.001, 0.0);
       else
         m->writeRaphaelPoly(fp, netIdTable[ii + 1], X[ii], 0.0);
     } else if (ii == mid + 1) {
       if (measure->_3dFlag)
-        m->writeRaphaelPoly3D(fp, netIdTable[ii + 1], 0.001 * WW2,
-                              length * 0.001, X[ii], 0.0);
+        m->writeRaphaelPoly3D(
+            fp, netIdTable[ii + 1], 0.001 * WW2, length * 0.001, X[ii], 0.0);
       else
         m->writeRaphaelPoly(fp, netIdTable[ii + 1], 0.001 * WW2, X[ii], 0.0);
     } else {
       if (measure->_3dFlag)
-        //				m->writeRaphaelPoly3D(fp,
-        // netIdTable[ii+1], 0.001*measure->_minWidth, measure->_len*0.001,
-        // X[ii], 0.0);
-        m->writeRaphaelPoly3D(fp, netIdTable[ii + 1],
-                              0.001 * measure->_minWidth, length * 0.001, X[ii],
+        m->writeRaphaelPoly3D(fp,
+                              netIdTable[ii + 1],
+                              0.001 * measure->_minWidth,
+                              length * 0.001,
+                              X[ii],
                               0.0);
       else
-        m->writeRaphaelPoly(fp, netIdTable[ii + 1], 0.001 * measure->_minWidth,
-                            X[ii], 0.0);
+        m->writeRaphaelPoly(
+            fp, netIdTable[ii + 1], 0.001 * measure->_minWidth, X[ii], 0.0);
     }
   }
 
@@ -3244,12 +3459,16 @@ int extRCModel::writeBenchWires(FILE* fp, extMeasure* measure) {
     double min_pitch = minWidth + minSpace;
     measure->clean2dBoxTable(met, false);
     int i;
-    uint begin = base - Ath__double2int(measure->_seff * 1000) +
-                 Ath__double2int(minWidth * 1000) / 2;
+    uint begin = base - Ath__double2int(measure->_seff * 1000)
+                 + Ath__double2int(minWidth * 1000) / 2;
     for (i = 0; i < n + 1; i++) {
-      netIdTable[idCnt] = measure->createDiagNetSingleWire(
-          _wireDirName, idCnt, begin, Ath__double2int(1000 * minWidth),
-          Ath__double2int(1000 * minSpace), measure->_dir);
+      netIdTable[idCnt]
+          = measure->createDiagNetSingleWire(_wireDirName,
+                                             idCnt,
+                                             begin,
+                                             Ath__double2int(1000 * minWidth),
+                                             Ath__double2int(1000 * minSpace),
+                                             measure->_dir);
       begin -= Ath__double2int(min_pitch * 1000);
       idCnt++;
     }
@@ -3266,10 +3485,6 @@ int extRCModel::writeBenchWires(FILE* fp, extMeasure* measure) {
     } else {
       fprintf(fp, "\nOPTIONS SET_GRID=10000;\n\n");
       fprintf(fp, "POTENTIAL");
-      /*
-                              for (ii= 0; ii<cnt; ii++)
-                                      m->writeBoxName(fp, netIdTable[ii+1]);
-      */
       fprintf(fp, " \n");
     }
 
@@ -3281,14 +3496,13 @@ int extRCModel::writeBenchWires(FILE* fp, extMeasure* measure) {
   double pitchMult = 1.0;
 
   measure->clean2dBoxTable(measure->_underMet, true);
-  measure->createContextNets(_wireDirName, bboxLL, bboxUR, measure->_underMet,
-                             pitchMult);
+  measure->createContextNets(
+      _wireDirName, bboxLL, bboxUR, measure->_underMet, pitchMult);
 
   measure->clean2dBoxTable(measure->_overMet, true);
-  measure->createContextNets(_wireDirName, bboxLL, bboxUR, measure->_overMet,
-                             pitchMult);
+  measure->createContextNets(
+      _wireDirName, bboxLL, bboxUR, measure->_overMet, pitchMult);
 
-  //	double mainNetStart= X[0];
   int main_xlo, main_ylo, main_xhi, main_yhi, low;
   measure->getBox(measure->_met, false, main_xlo, main_ylo, main_xhi, main_yhi);
   if (!measure->_dir)
@@ -3298,30 +3512,12 @@ int extRCModel::writeBenchWires(FILE* fp, extMeasure* measure) {
   if (measure->_underMet > 0) {
     double h = _process->getConductor(measure->_underMet)->_height;
     double t = _process->getConductor(measure->_underMet)->_thickness;
-    /*
-                    dbTechLayer
-       *layer=measure->_tech->findRoutingLayer(_underMet); uint minWidth=
-       layer->getWidth(); uint minSpace= layer->getSpacing(); uint pitch=
-       1000*((minWidth+minSpace)*pitchMult)/1000; uint offset=
-       2*(minWidth+minSpace); int start= mainNetStart+offset; contextRaphaelCnt=
-       measure->writeRaphael3D(fp, measure->_underMet, true, mainNetStart, h,
-       t);
-    */
     measure->writeRaphael3D(fp, measure->_underMet, true, low, h, t);
   }
 
   if (measure->_overMet > 0) {
     double h = _process->getConductor(measure->_overMet)->_height;
     double t = _process->getConductor(measure->_overMet)->_thickness;
-    /*
-                    dbTechLayer
-       *layer=measure->_tech->findRoutingLayer(_overMet); uint minWidth=
-       layer->getWidth(); uint minSpace= layer->getSpacing(); uint pitch=
-       1000*((minWidth+minSpace)*pitchMult)/1000; uint offset=
-       2*(minWidth+minSpace); int start= mainNetStart+offset; contextRaphaelCnt
-       += measure->writeRaphael3D(fp, measure->_overMet, true, mainNetStart, h,
-       t);
-    */
     measure->writeRaphael3D(fp, measure->_overMet, true, low, h, t);
   }
 
@@ -3333,44 +3529,23 @@ int extRCModel::writeBenchWires(FILE* fp, extMeasure* measure) {
   } else {
     fprintf(fp, "\nOPTIONS SET_GRID=10000;\n\n");
     fprintf(fp, "POTENTIAL");
-    /*
-                    for (ii= 0; ii<cnt; ii++)
-                            m->writeBoxName(fp, netIdTable[ii+1]);
-    */
     fprintf(fp, " \n");
   }
 
   return cnt;
 }
-void extRCModel::writeRaphaelCaps(FILE* fp, extMeasure* measure, uint wireCnt) {
+void extRCModel::writeRaphaelCaps(FILE* fp, extMeasure* measure, uint wireCnt)
+{
   fprintf(fp, "\nOPTIONS SET_GRID=10000;\n\n");
   fprintf(fp, "POTENTIAL\n");
-  /*
-          if (measure->_diag)
-                  fprintf(fp, "POTENTIAL\n");
-          else {
-                  fprintf(fp, "POTENTIAL");
-                  if (!measure->_plate) {
-                          for (uint kk= 1; kk<=wireCnt; kk++)
-                                  m->writeBoxName(fp, kk);
-                  } else  {
-                          m->writeBoxName(fp, wireCnt/2+1);
-                          if (measure->_overMet>0)
-                                  fprintf(fp, "M%d__%s;",
-     measure->_overMet,"GND");
-                  }
-                  fprintf(fp, " \n");
-          }
-  */
 }
-void extRCModel::writeRaphaelCaps3D(FILE* fp, extMeasure* measure,
-                                    uint wireCnt) {
-  //        extMasterConductor *m= _process->getMasterConductor(measure->_met);
-
+void extRCModel::writeRaphaelCaps3D(FILE* fp, extMeasure* measure, uint wireCnt)
+{
   fprintf(fp, "\nOPTIONS SET_GRID=1000000;\n\n");
   fprintf(fp, "POTENTIAL\n");
 }
-void extRCModel::writeWires(FILE* fp, extMeasure* measure, uint wireCnt) {
+void extRCModel::writeWires(FILE* fp, extMeasure* measure, uint wireCnt)
+{
   extMasterConductor* m = _process->getMasterConductor(measure->_met);
   double pitch = measure->_topWidth + measure->_seff;
 
@@ -3390,15 +3565,14 @@ void extRCModel::writeWires(FILE* fp, extMeasure* measure, uint wireCnt) {
 
   fprintf(fp, "\nOPTIONS SET_GRID=10000;\n\n");
   fprintf(fp, "POTENTIAL\n");
-  /*
-          fprintf(fp, "CAPACITANCE ");
-          for (uint kk= 1; kk<=wireCnt; kk++)
-                  m->writeBoxName(fp, kk);
-          fprintf(fp, " \n");
-  */
 }
-void extRCModel::writeWires(FILE* fp, extMasterConductor* m, uint wireCnt,
-                            double X, double width, double space) {
+void extRCModel::writeWires(FILE* fp,
+                            extMasterConductor* m,
+                            uint wireCnt,
+                            double X,
+                            double width,
+                            double space)
+{
   uint n = wireCnt / 2;  // ASSUME odd number of wires, 2 will also work
   double x = X - (width + space) * n;
 
@@ -3408,16 +3582,15 @@ void extRCModel::writeWires(FILE* fp, extMasterConductor* m, uint wireCnt,
 
   fprintf(fp, "\nOPTIONS SET_GRID=10000;\n\n");
   fprintf(fp, "POTENTIAL\n");
-  /*
-          fprintf(fp, "CAPACITANCE ");
-          for (uint kk= 1; kk<=wireCnt; kk++)
-                  m->writeBoxName(fp, kk);
-          fprintf(fp, " \n");
-  */
 }
-void extRCModel::setOptions(const char* topDir, const char* pattern,
-                            bool writeFiles, bool readFiles, bool runSolver,
-                            bool keepFile, uint metLevel) {
+void extRCModel::setOptions(const char* topDir,
+                            const char* pattern,
+                            bool writeFiles,
+                            bool readFiles,
+                            bool runSolver,
+                            bool keepFile,
+                            uint metLevel)
+{
   _logFP = openFile("./", "rulesGen", ".log", "w");
   strcpy(_topDir, topDir);
   strcpy(_patternName, pattern);
@@ -3443,12 +3616,13 @@ void extRCModel::setOptions(const char* topDir, const char* pattern,
     _keepFile = true;
   if (metLevel)
     _metLevel = metLevel;
-#ifdef _WIN32
-  _runSolver = false;
-#endif
 }
-void extRCModel::setOptions(const char* topDir, const char* pattern,
-                            bool writeFiles, bool readFiles, bool runSolver) {
+void extRCModel::setOptions(const char* topDir,
+                            const char* pattern,
+                            bool writeFiles,
+                            bool readFiles,
+                            bool runSolver)
+{
   _logFP = openFile("./", "rulesGen", ".log", "w");
   strcpy(_topDir, topDir);
   strcpy(_patternName, pattern);
@@ -3471,68 +3645,58 @@ void extRCModel::setOptions(const char* topDir, const char* pattern,
     _readSolver = false;
     _runSolver = true;
   }
-#ifdef _WIN32
-  _runSolver = false;
-#endif
 }
-void extRCModel::closeFiles() {
+void extRCModel::closeFiles()
+{
   fflush(_logFP);
 
   if (_logFP != NULL)
     fclose(_logFP);
 }
-void extRCModel::runSolver(const char* solverOption) {
+void extRCModel::runSolver(const char* solverOption)
+{
   char cmd[4000];
-#ifndef _WIN32
-  //	sprintf(cmd, "cd %s ; /opt/ads/bin/casyn raphael %s %s ; cd
-  //../../../../../../ ", _wireDirName, solverOption, _wireFileName);
-  // this is for check in
   if (_diagModel == 2)
-    sprintf(cmd, "ca raphael %s %s/%s -o %s/%s.out", solverOption, _wireDirName,
-            _wireFileName, _wireDirName, _wireFileName);
+    sprintf(cmd,
+            "ca raphael %s %s/%s -o %s/%s.out",
+            solverOption,
+            _wireDirName,
+            _wireFileName,
+            _wireDirName,
+            _wireFileName);
   else
-    sprintf(cmd, "ca raphael %s %s/%s -o %s/%s.out", solverOption, _wireDirName,
-            _wireFileName, _wireDirName, _wireFileName);
+    sprintf(cmd,
+            "ca raphael %s %s/%s -o %s/%s.out",
+            solverOption,
+            _wireDirName,
+            _wireFileName,
+            _wireDirName,
+            _wireFileName);
 
-  // this is for local run
-  /*	if (_diagModel==2)
-                  sprintf(cmd, "/opt/ads/bin/casyn raphael %s %s/%s -o
-     %s/%s.out", solverOption, _wireDirName, _wireFileName, _wireDirName,
-     _wireFileName); else sprintf(cmd, "/opt/ads/bin/casyn raphael %s %s/%s -o
-     %s/%s.out", solverOption, _wireDirName, _wireFileName, _wireDirName,
-     _wireFileName);
-  */
-
-  //	sprintf(cmd, "cd %s ; ca raphael %s %s ; cd ../../../../../../ ",
-  //_wireDirName, solverOption, _wireFileName);
   logger_->info(RCX, 69, "{}", cmd);
-#endif
-#ifdef _WIN32
-  if (_diagModel == 2)
-    sprintf(cmd, "cd %s ; dir ; cd ../../../../../../../../ ", _wireDirName);
-  else
-    sprintf(cmd, "cd %s ; dir ; cd ../../../../../../ ", _wireDirName);
-  logger_->info(RCX, 73, "{}", cmd);
-#endif
   if (system(cmd) == -1) {
     logger_->error(RCX, 490, "system failed: {}", cmd);
   }
 }
-void extRCModel::cleanFiles() {
+void extRCModel::cleanFiles()
+{
   char cmd[4000];
   sprintf(cmd, "rm -rf %s ", _wireDirName);
   if (system(cmd) == -1) {
     logger_->error(RCX, 491, "rm failed on {}", _wireDirName);
   }
 }
-int extRCModel::getOverUnderIndex(extMeasure* m, uint maxCnt) {
-  return getMetIndexOverUnder(m->_met, m->_underMet, m->_overMet, _layerCnt,
-                              maxCnt);
+int extRCModel::getOverUnderIndex(extMeasure* m, uint maxCnt)
+{
+  return getMetIndexOverUnder(
+      m->_met, m->_underMet, m->_overMet, _layerCnt, maxCnt);
 }
-uint extRCModel::getUnderIndex(extMeasure* m) {
+uint extRCModel::getUnderIndex(extMeasure* m)
+{
   return m->_overMet - m->_met - 1;
 }
-void extDistWidthRCTable::addRCw(uint n, uint w, extDistRC* rc) {
+void extDistWidthRCTable::addRCw(uint n, uint w, extDistRC* rc)
+{
   int wIndex = _widthTable->findIndex(w);
   if (wIndex < 0)
     wIndex = _widthTable->add(w);
@@ -3540,11 +3704,15 @@ void extDistWidthRCTable::addRCw(uint n, uint w, extDistRC* rc) {
   _rcDistTable[n][wIndex]->addMeasureRC(rc);
 }
 
-void extMetRCTable::addRCw(extMeasure* m) {
+void extMetRCTable::addRCw(extMeasure* m)
+{
   extDistWidthRCTable* table = NULL;
   int n;
   if (m->_overUnder) {
-    n = getMetIndexOverUnder(m->_met, m->_underMet, m->_overMet, _layerCnt,
+    n = getMetIndexOverUnder(m->_met,
+                             m->_underMet,
+                             m->_overMet,
+                             _layerCnt,
                              _capOverUnder[m->_met]->_metCnt);
     assert(n >= 0);
     table = _capOverUnder[m->_met];
@@ -3567,7 +3735,8 @@ void extMetRCTable::addRCw(extMeasure* m) {
   if (table != NULL)
     table->addRCw(n, m->_w_nm, m->_tmpRC);
 }
-void extRCModel::addRC(extMeasure* m) {
+void extRCModel::addRC(extMeasure* m)
+{
   if (m->_overUnder) {
     uint maxCnt = _modelTable[m->_rIndex]->_capOverUnder[m->_met]->_metCnt;
     uint n = getOverUnderIndex(m, maxCnt);
@@ -3607,7 +3776,8 @@ void extRCModel::addRC(extMeasure* m) {
         ->addMeasureRC(m->_tmpRC);
   }
 }
-void extMetRCTable::mkWidthAndSpaceMappings() {
+void extMetRCTable::mkWidthAndSpaceMappings()
+{
   for (uint ii = 1; ii < _layerCnt; ii++) {
     if (_capOver[ii] != NULL)
       _capOver[ii]->makeWSmapping();
@@ -3630,9 +3800,9 @@ void extMetRCTable::mkWidthAndSpaceMappings() {
       logger_->info(RCX, 217, "Can't find <OVERUNDER> rules for {}", ii);
   }
 }
-void extRCModel::writeRules(char* name, bool binary) {
+void extRCModel::writeRules(char* name, bool binary)
+{
   bool writeRes = true;
-  //	FILE *fp= openFile("./", name, NULL, "w");
   FILE* fp = fopen(name, "w");
 
   fprintf(fp, "Extraction Rules for OpenRCX\n\n");
@@ -3659,10 +3829,12 @@ void extRCModel::writeRules(char* name, bool binary) {
         else if ((m > 0) && (_modelTable[0]->_resOver[ii] != NULL))
           _modelTable[0]->_resOver[ii]->writeRulesOver_res(fp, binary);
         else if (m == 0) {
-          logger_->info(RCX, 410,
+          logger_->info(RCX,
+                        410,
                         "Cannot write <OVER> Res rules for <DensityModel> {} "
                         "and layer {}",
-                        m, ii);
+                        m,
+                        ii);
         }
       }
       if (_modelTable[m]->_capOver[ii] != NULL)
@@ -3671,8 +3843,10 @@ void extRCModel::writeRules(char* name, bool binary) {
         _modelTable[0]->_capOver[ii]->writeRulesOver(fp, binary);
       else if (m == 0) {
         logger_->info(
-            RCX, 218,
-            "Cannot write <OVER> rules for <DensityModel> {} and layer {}", m,
+            RCX,
+            218,
+            "Cannot write <OVER> rules for <DensityModel> {} and layer {}",
+            m,
             ii);
       }
 
@@ -3682,8 +3856,10 @@ void extRCModel::writeRules(char* name, bool binary) {
         _modelTable[0]->_capUnder[ii]->writeRulesUnder(fp, binary);
       else if (m == 0) {
         logger_->info(
-            RCX, 219,
-            "Cannot write <UNDER> rules for <DensityModel> {} and layer {}", m,
+            RCX,
+            219,
+            "Cannot write <UNDER> rules for <DensityModel> {} and layer {}",
+            m,
             ii);
       }
 
@@ -3699,9 +3875,11 @@ void extRCModel::writeRules(char* name, bool binary) {
           _modelTable[0]->_capDiagUnder[ii]->writeRulesDiagUnder2(fp, binary);
       } else if (m == 0) {
         logger_->info(
-            RCX, 220,
+            RCX,
+            220,
             "Cannot write <DIAGUNDER> rules for <DensityModel> {} and layer {}",
-            m, ii);
+            m,
+            ii);
       }
 
       if (_modelTable[m]->_capOverUnder[ii] != NULL)
@@ -3710,26 +3888,31 @@ void extRCModel::writeRules(char* name, bool binary) {
         _modelTable[0]->_capOverUnder[ii]->writeRulesOverUnder(fp, binary);
       else if ((m == 0) && (ii > 1) && (ii < _layerCnt - 1)) {
         logger_->info(
-            RCX, 221,
+            RCX,
+            221,
             "Cannot write <OVERUNDER> rules for <DensityModel> {} and layer {}",
-            m, ii);
+            m,
+            ii);
       }
     }
     fprintf(fp, "END DensityModel %d\n", m);
   }
   fclose(fp);
 }
-uint extRCModel::readMetalHeader(Ath__parser* parser, uint& met,
-                                 const char* keyword, bool bin, bool ignore) {
-  if (parser->isKeyword(0, "END") &&
-      (strcmp(parser->get(1), "DensityModel") == 0))
+uint extRCModel::readMetalHeader(Ath__parser* parser,
+                                 uint& met,
+                                 const char* keyword,
+                                 bool bin,
+                                 bool ignore)
+{
+  if (parser->isKeyword(0, "END")
+      && (strcmp(parser->get(1), "DensityModel") == 0))
     return 0;
 
   if (!(parser->parseNextLine() > 0)) {
     return 0;
   }
 
-  //	uint cnt= 0;
   if (parser->isKeyword(0, "Metal") && (strcmp(parser->get(2), keyword) == 0)) {
     met = parser->getInt(1);
     return 1;
@@ -3737,19 +3920,23 @@ uint extRCModel::readMetalHeader(Ath__parser* parser, uint& met,
 
   return 0;
 }
-void extMetRCTable::allocateInitialTables(uint layerCnt, uint widthCnt,
-                                          bool over, bool under, bool diag) {
+void extMetRCTable::allocateInitialTables(uint layerCnt,
+                                          uint widthCnt,
+                                          bool over,
+                                          bool under,
+                                          bool diag)
+{
   for (uint met = 1; met < _layerCnt; met++) {
     if (over && under && (met > 1) && (met < _layerCnt - 1)) {
       int n = getMaxMetIndexOverUnder(met, layerCnt);
-      _capOverUnder[met] = new extDistWidthRCTable(false, met, layerCnt, n + 1,
-                                                   widthCnt, _rcPoolPtr);
+      _capOverUnder[met] = new extDistWidthRCTable(
+          false, met, layerCnt, n + 1, widthCnt, _rcPoolPtr);
     }
     if (over) {
-      _capOver[met] = new extDistWidthRCTable(true, met, layerCnt, met,
-                                              widthCnt, _rcPoolPtr);
-      _resOver[met] = new extDistWidthRCTable(true, met, layerCnt, met,
-                                              widthCnt, _rcPoolPtr);
+      _capOver[met] = new extDistWidthRCTable(
+          true, met, layerCnt, met, widthCnt, _rcPoolPtr);
+      _resOver[met] = new extDistWidthRCTable(
+          true, met, layerCnt, met, widthCnt, _rcPoolPtr);
     }
     if (under) {
       _capUnder[met] = new extDistWidthRCTable(
@@ -3764,8 +3951,10 @@ void extMetRCTable::allocateInitialTables(uint layerCnt, uint widthCnt,
 Ath__array1D<double>* extRCModel::readHeaderAndWidth(Ath__parser* parser,
                                                      uint& met,
                                                      const char* ouKey,
-                                                     const char* wKey, bool bin,
-                                                     bool ignore) {
+                                                     const char* wKey,
+                                                     bool bin,
+                                                     bool ignore)
+{
   if (readMetalHeader(parser, met, ouKey, bin, ignore) <= 0)
     return NULL;
 
@@ -3774,14 +3963,22 @@ Ath__array1D<double>* extRCModel::readHeaderAndWidth(Ath__parser* parser,
 
   return parser->readDoubleArray("WIDTH", 4);
 }
-uint extRCModel::readRules(Ath__parser* parser, uint m, uint ii,
-                           const char* ouKey, const char* wKey, bool over,
-                           bool under, bool bin, bool diag, bool ignore,
-                           double dbFactor) {
+uint extRCModel::readRules(Ath__parser* parser,
+                           uint m,
+                           uint ii,
+                           const char* ouKey,
+                           const char* wKey,
+                           bool over,
+                           bool under,
+                           bool bin,
+                           bool diag,
+                           bool ignore,
+                           double dbFactor)
+{
   uint cnt = 0;
   uint met = 0;
-  Ath__array1D<double>* wTable =
-      readHeaderAndWidth(parser, met, ouKey, wKey, bin, false);
+  Ath__array1D<double>* wTable
+      = readHeaderAndWidth(parser, met, ouKey, wKey, bin, false);
 
   if (wTable == NULL)
     return 0;
@@ -3814,10 +4011,8 @@ uint extRCModel::readRules(Ath__parser* parser, uint m, uint ii,
   } else if (over) {
     if (strcmp(ouKey, "OVER") == 0) {
       if (!ignore) {
-        // Read RESOVER fisrt _modelTable[m]->allocOverTable(met, wTable,
-        // dbFactor);
-        _modelTable[m]->_capOver[met]->readRulesOver(parser, widthCnt, bin,
-                                                     ignore, "OVER", dbFactor);
+        _modelTable[m]->_capOver[met]->readRulesOver(
+            parser, widthCnt, bin, ignore, "OVER", dbFactor);
       } else
         dummy->readRulesOver(parser, widthCnt, bin, ignore, "OVER", dbFactor);
     } else {  // RESOVER
@@ -3826,20 +4021,20 @@ uint extRCModel::readRules(Ath__parser* parser, uint m, uint ii,
         _modelTable[m]->_resOver[met]->readRulesOver(
             parser, widthCnt, bin, ignore, "RESOVER", dbFactor);
       } else
-        dummy->readRulesOver(parser, widthCnt, bin, ignore, "RESOVER",
-                             dbFactor);
+        dummy->readRulesOver(
+            parser, widthCnt, bin, ignore, "RESOVER", dbFactor);
     }
   } else if (under) {
     if (!ignore) {
       _modelTable[m]->allocUnderTable(met, wTable, dbFactor);
-      _modelTable[m]->_capUnder[met]->readRulesUnder(parser, widthCnt, bin,
-                                                     ignore, dbFactor);
+      _modelTable[m]->_capUnder[met]->readRulesUnder(
+          parser, widthCnt, bin, ignore, dbFactor);
     } else
       dummy->readRulesUnder(parser, widthCnt, bin, ignore, dbFactor);
   } else if (diag) {
     if (!ignore && _diagModel == 2) {
-      _modelTable[m]->allocDiagUnderTable(met, wTable, diagWidthCnt,
-                                          diagDistCnt, dbFactor);
+      _modelTable[m]->allocDiagUnderTable(
+          met, wTable, diagWidthCnt, diagDistCnt, dbFactor);
       _modelTable[m]->_capDiagUnder[met]->readRulesDiagUnder(
           parser, widthCnt, diagWidthCnt, diagDistCnt, bin, ignore, dbFactor);
     } else if (!ignore && _diagModel == 1) {
@@ -3848,8 +4043,8 @@ uint extRCModel::readRules(Ath__parser* parser, uint m, uint ii,
           parser, widthCnt, bin, ignore, dbFactor);
     } else if (ignore) {
       if (_diagModel == 2)
-        dummy->readRulesDiagUnder(parser, widthCnt, diagWidthCnt, diagDistCnt,
-                                  bin, ignore, dbFactor);
+        dummy->readRulesDiagUnder(
+            parser, widthCnt, diagWidthCnt, diagDistCnt, bin, ignore, dbFactor);
       else if (_diagModel == 1)
         dummy->readRulesDiagUnder(parser, widthCnt, bin, ignore, dbFactor);
     }
@@ -3863,14 +4058,20 @@ uint extRCModel::readRules(Ath__parser* parser, uint m, uint ii,
   return cnt;
 }
 
-bool extRCModel::readRules(char* name, bool bin, bool over, bool under,
-                           bool overUnder, bool diag, uint cornerCnt,
-                           uint* cornerTable, double dbFactor) {
+bool extRCModel::readRules(char* name,
+                           bool bin,
+                           bool over,
+                           bool under,
+                           bool overUnder,
+                           bool diag,
+                           uint cornerCnt,
+                           uint* cornerTable,
+                           double dbFactor)
+{
   OUREVERSEORDER = false;
   diag = false;
   _ruleFileName = strdup(name);
   Ath__parser parser;
-  // parser.setDbg(1);
   parser.addSeparator("\r");
   parser.openFile(name);
   while (parser.parseNextLine() > 0) {
@@ -3890,7 +4091,7 @@ bool extRCModel::readRules(char* name, bool bin, bool over, bool under,
       continue;
     }
 
-    if (parser.isKeyword(0, "rcStats")) {  // TO_TEST
+    if (parser.isKeyword(0, "rcStats")) {
       _layerCnt = parser.getInt(2);
       createModelTable(1, _layerCnt);
       for (uint kk = 0; kk < _modelCnt; kk++)
@@ -3916,10 +4117,13 @@ bool extRCModel::readRules(char* name, bool bin, bool over, bool under,
       if (cornerCnt > 0) {
         if ((rulesFileModelCnt > 0) && (rulesFileModelCnt < cornerCnt)) {
           logger_->warn(
-              RCX, 222,
+              RCX,
+              222,
               "There were {} extraction models defined but only {} exists "
               "in the extraction rules file {}",
-              cornerCnt, rulesFileModelCnt, name);
+              cornerCnt,
+              rulesFileModelCnt,
+              name);
           return false;
         }
         createModelTable(cornerCnt, _layerCnt);
@@ -3935,16 +4139,15 @@ bool extRCModel::readRules(char* name, bool bin, bool over, bool under,
             break;
           }
           if (kk == rulesFileModelCnt) {
-            logger_->warn(RCX, 223,
+            logger_->warn(RCX,
+                          223,
                           "Cannot find model index {} in extRules file {}",
-                          modelIndex, name);
+                          modelIndex,
+                          name);
             return false;
           }
         }
-      } else {  // old behavior;
-                // david 7.20
-                // createModelTable(rulesFileModelCnt,
-        // _layerCnt);
+      } else {
         createModelTable(1, _layerCnt);
 
         for (uint kk = 0; kk < _modelCnt; kk++) {
@@ -3956,7 +4159,6 @@ bool extRCModel::readRules(char* name, bool bin, bool over, bool under,
       }
       continue;
     }
-    // parser.setDbg(1);
 
     if (parser.isKeyword(0, "DensityModel")) {
       uint m = parser.getInt(1);
@@ -3975,46 +4177,93 @@ bool extRCModel::readRules(char* name, bool bin, bool over, bool under,
           skipModel = false;
           modelIndex = jj;
         }
-      } else {  // david 7.20
+      } else {
         if (modelIndex)
           skipModel = true;
       }
-      // skipModel= true;
+
       bool res_skipModel = false;
 
       for (uint ii = 1; ii < _layerCnt; ii++) {
         if (!res_skipModel) {
-          readRules(&parser, modelIndex, ii, "RESOVER", "WIDTH", over,
-                    false, bin, false, res_skipModel, dbFactor);
+          readRules(&parser,
+                    modelIndex,
+                    ii,
+                    "RESOVER",
+                    "WIDTH",
+                    over,
+                    false,
+                    bin,
+                    false,
+                    res_skipModel,
+                    dbFactor);
         }
-        readRules(&parser, modelIndex, ii, "OVER", "WIDTH", over, false,
-                  bin, false, skipModel, dbFactor);
+        readRules(&parser,
+                  modelIndex,
+                  ii,
+                  "OVER",
+                  "WIDTH",
+                  over,
+                  false,
+                  bin,
+                  false,
+                  skipModel,
+                  dbFactor);
         if (ii < _layerCnt - 1) {
-          readRules(&parser, modelIndex, ii, "UNDER", "WIDTH", false,
-                    under, bin, false, skipModel, dbFactor);
+          readRules(&parser,
+                    modelIndex,
+                    ii,
+                    "UNDER",
+                    "WIDTH",
+                    false,
+                    under,
+                    bin,
+                    false,
+                    skipModel,
+                    dbFactor);
           if (diag)
-            readRules(&parser, modelIndex, ii, "DIAGUNDER", "WIDTH",
-                      false, false, bin, diag, skipModel, dbFactor);
+            readRules(&parser,
+                      modelIndex,
+                      ii,
+                      "DIAGUNDER",
+                      "WIDTH",
+                      false,
+                      false,
+                      bin,
+                      diag,
+                      skipModel,
+                      dbFactor);
         }
 
         if ((ii > 1) && (ii < _layerCnt - 1))
-          readRules(&parser, modelIndex, ii, "OVERUNDER", "WIDTH",
-                    overUnder, overUnder, bin, false, skipModel, dbFactor);
+          readRules(&parser,
+                    modelIndex,
+                    ii,
+                    "OVERUNDER",
+                    "WIDTH",
+                    overUnder,
+                    overUnder,
+                    bin,
+                    false,
+                    skipModel,
+                    dbFactor);
       }
-      // break;
       parser.parseNextLine();
     }
   }
   return true;
 }
-double extRCModel::measureResistance(extMeasure* m, double ro,
-                                     double top_widthR, double bot_widthR,
-                                     double thicknessR) {
+double extRCModel::measureResistance(extMeasure* m,
+                                     double ro,
+                                     double top_widthR,
+                                     double bot_widthR,
+                                     double thicknessR)
+{
   double r = ro / ((top_widthR + bot_widthR) * thicknessR * 0.5);
   return r;
 }
-bool extRCModel::solverStep(extMeasure* m) {
-#ifndef SKIP_SOLVER
+bool extRCModel::solverStep(extMeasure* m)
+{
   if (_runSolver) {
     if (m->_3dFlag)
       runSolver("rc3 -n -x -z");
@@ -4022,20 +4271,21 @@ bool extRCModel::solverStep(extMeasure* m) {
       runSolver("rc2 -n -x -z");
     return true;
   }
-#endif
 
   return false;
 }
-bool extRCModel::measurePatternVar(extMeasure* m, double top_width,
-                                   double bot_width, double thickness,
-                                   uint wireCnt, char* wiresNameSuffix,
-                                   double res) {
+bool extRCModel::measurePatternVar(extMeasure* m,
+                                   double top_width,
+                                   double bot_width,
+                                   double thickness,
+                                   uint wireCnt,
+                                   char* wiresNameSuffix,
+                                   double res)
+{
   m->setEffParams(top_width, bot_width, thickness);
-  double thicknessChange =
-      _process->adjustMasterLayersForHeight(m->_met, thickness);
+  double thicknessChange
+      = _process->adjustMasterLayersForHeight(m->_met, thickness);
 
-  // _process->getMasterConductor(m->_met)->reset(m->_heff, top_width,
-  // bot_width, thickness);
   _process->getMasterConductor(m->_met)->resetWidth(top_width, bot_width);
 
   mkFileNames(m, wiresNameSuffix);
@@ -4051,29 +4301,38 @@ bool extRCModel::measurePatternVar(extMeasure* m, double top_width,
     if (wfp == NULL)
       return false;  // should be an exception!! and return!
 
-    double maxHeight =
-        _process->adjustMasterDielectricsForHeight(m->_met, thicknessChange);
+    double maxHeight
+        = _process->adjustMasterDielectricsForHeight(m->_met, thicknessChange);
     maxHeight *= 1.2;
 
     if (m->_3dFlag) {
-      //			double W = (m->_ur[m->_dir] -
-      // m->_ll[m->_dir])*10;
       double W = 40;
-      // DKF  _process->writeProcessAndGround3D(wfp, "GND", m->_underMet,
-      // m->_overMet, -30.0, 60.0, m->_len*0.001, maxHeight, W);
-      _process->writeProcessAndGround3D(wfp, "GND", -1, -1, -30.0, 60.0,
-                                        m->_len * 0.001, maxHeight, W,
+      _process->writeProcessAndGround3D(wfp,
+                                        "GND",
+                                        -1,
+                                        -1,
+                                        -30.0,
+                                        60.0,
+                                        m->_len * 0.001,
+                                        maxHeight,
+                                        W,
                                         m->_diag);
     } else {
       if (m->_diag) {
         int met = -1;
-        if (m->_overMet + 1 < (int)_layerCnt)
+        if (m->_overMet + 1 < (int) _layerCnt)
           met = m->_overMet + 1;
-        _process->writeProcessAndGround(wfp, "GND", m->_met - 1, met, -50.0,
-                                        100.0, maxHeight, m->_diag);
+        _process->writeProcessAndGround(
+            wfp, "GND", m->_met - 1, met, -50.0, 100.0, maxHeight, m->_diag);
       } else
-        _process->writeProcessAndGround(wfp, "GND", m->_underMet, m->_overMet,
-                                        -50.0, 100.0, maxHeight, m->_diag);
+        _process->writeProcessAndGround(wfp,
+                                        "GND",
+                                        m->_underMet,
+                                        m->_overMet,
+                                        -50.0,
+                                        100.0,
+                                        maxHeight,
+                                        m->_diag);
     }
 
     if (_commentFlag)
@@ -4082,13 +4341,10 @@ bool extRCModel::measurePatternVar(extMeasure* m, double top_width,
     if (m->_benchFlag) {
       writeBenchWires(wfp, m);
     } else {
-      if (m->_3dFlag) {  // 3d based extraction rules
-                         //				writeWires2_3D(wfp, m,
-                         // wireCnt);
+      if (m->_3dFlag) {
         writeRuleWires_3D(wfp, m, wireCnt);
         writeRaphaelCaps3D(wfp, m, wireCnt);
       } else {
-        //				writeWires2(wfp, m, wireCnt);
         writeRuleWires(wfp, m, wireCnt);
         writeRaphaelCaps(wfp, m, wireCnt);
       }
@@ -4098,7 +4354,6 @@ bool extRCModel::measurePatternVar(extMeasure* m, double top_width,
   }
   solverStep(m);
 
-  // if (!m->_benchFlag && _readSolver) {
   if (_readSolver) {
     uint lineCnt = 0;
 
@@ -4137,8 +4392,8 @@ bool extRCModel::measurePatternVar(extMeasure* m, double top_width,
         return true;
 
       if (lineCnt <= 0) {
-        logger_->info(RCX, 224, "Not valid cap values from solver dir {}",
-                      _wireDirName);
+        logger_->info(
+            RCX, 224, "Not valid cap values from solver dir {}", _wireDirName);
         return true;
       }
 
@@ -4152,7 +4407,6 @@ bool extRCModel::measurePatternVar(extMeasure* m, double top_width,
 
       m->_rcValid = true;
 
-      // m->addCap();
       addRC(m);
     }
     if (m->_benchFlag && (lineCnt > 0)) {
@@ -4166,8 +4420,10 @@ bool extRCModel::measurePatternVar(extMeasure* m, double top_width,
     cleanFiles();
   return true;
 }
-uint extRCModel::readCapacitanceBench3D(bool readCapLog, extMeasure* m,
-                                        bool skipPrintWires) {
+uint extRCModel::readCapacitanceBench3D(bool readCapLog,
+                                        extMeasure* m,
+                                        bool skipPrintWires)
+{
   double units = 1.0e+15;
 
   FILE* solverFP = NULL;
@@ -4192,7 +4448,6 @@ uint extRCModel::readCapacitanceBench3D(bool readCapLog, extMeasure* m,
       if (!_parser->isKeyword(0, "Charge"))
         continue;
 
-      //_parser->printWords(stdout);
       _parser->printWords(_capLogFP);
 
       double cap = _parser->getDouble(4);
@@ -4226,8 +4481,8 @@ uint extRCModel::readCapacitanceBench3D(bool readCapLog, extMeasure* m,
         }
       }
       continue;
-    } else if (_parser->isKeyword(0, "BEGIN") &&
-               (strcmp(_parser->get(1), _wireDirName) == 0)) {
+    } else if (_parser->isKeyword(0, "BEGIN")
+               && (strcmp(_parser->get(1), _wireDirName) == 0)) {
       matrixFlag = true;
 
       fprintf(_capLogFP, "BEGIN %s\n", _wireDirName);
@@ -4254,19 +4509,41 @@ uint extRCModel::readCapacitanceBench3D(bool readCapLog, extMeasure* m,
 
   return cnt;
 }
-void extRCModel::printCommentLine(char commentChar, extMeasure* m) {
+void extRCModel::printCommentLine(char commentChar, extMeasure* m)
+{
   sprintf(_commentLine,
           "%c %s w= %g s= %g r= %g\n\n%c %s %6.3f %6.3f top_width\n%c %s %6.3f "
           "%g bot_width\n%c %s %6.3f %6.3f spacing\n%c %s %6.3f %6.3f height "
           "\n%c %s %6.3f %6.3f thicknes\n",
-          commentChar, "Layout params", m->_w_m, m->_s_m, m->_r, commentChar,
-          "Layout/Eff", m->_w_m, m->_topWidth, commentChar, "Layout/Eff",
-          m->_w_m, m->_botWidth, commentChar, "Layout/Eff", m->_s_m, m->_seff,
-          commentChar, "Layout/Eff", m->_h, m->_heff, commentChar, "Layout/Eff",
-          m->_t, m->_teff);
+          commentChar,
+          "Layout params",
+          m->_w_m,
+          m->_s_m,
+          m->_r,
+          commentChar,
+          "Layout/Eff",
+          m->_w_m,
+          m->_topWidth,
+          commentChar,
+          "Layout/Eff",
+          m->_w_m,
+          m->_botWidth,
+          commentChar,
+          "Layout/Eff",
+          m->_s_m,
+          m->_seff,
+          commentChar,
+          "Layout/Eff",
+          m->_h,
+          m->_heff,
+          commentChar,
+          "Layout/Eff",
+          m->_t,
+          m->_teff);
   _commentFlag = true;
 }
-void extRCModel::getDiagTables(extMeasure* m, uint widthCnt, uint spaceCnt) {
+void extRCModel::getDiagTables(extMeasure* m, uint widthCnt, uint spaceCnt)
+{
   Ath__array1D<double>* diagSTable0 = NULL;
   Ath__array1D<double>* diagWTable0 = NULL;
   diagSTable0 = _process->getDiagSpaceTable(m->_overMet);
@@ -4274,7 +4551,8 @@ void extRCModel::getDiagTables(extMeasure* m, uint widthCnt, uint spaceCnt) {
   m->_diagWidthTable0.resetCnt();
   if (diagWTable0) {
     for (uint wIndex = 0;
-         (wIndex < diagWTable0->getCnt()) && (wIndex < widthCnt); wIndex++) {
+         (wIndex < diagWTable0->getCnt()) && (wIndex < widthCnt);
+         wIndex++) {
       double w = diagWTable0->get(wIndex);
       m->_diagWidthTable0.add(w);
     }
@@ -4282,15 +4560,19 @@ void extRCModel::getDiagTables(extMeasure* m, uint widthCnt, uint spaceCnt) {
   m->_diagSpaceTable0.resetCnt();
   if (diagSTable0) {
     for (uint dsIndex = 0;
-         (dsIndex < diagSTable0->getCnt()) && (dsIndex < spaceCnt); dsIndex++) {
+         (dsIndex < diagSTable0->getCnt()) && (dsIndex < spaceCnt);
+         dsIndex++) {
       double ds = diagSTable0->get(dsIndex);
       m->_diagSpaceTable0.add(ds);
     }
   }
 }
-void extRCModel::computeTables(extMeasure* m, uint wireCnt, uint widthCnt,
-                               uint spaceCnt, uint dCnt) {
-  //	extVariation *xvar= _process->getVariation(m->_met);
+void extRCModel::computeTables(extMeasure* m,
+                               uint wireCnt,
+                               uint widthCnt,
+                               uint spaceCnt,
+                               uint dCnt)
+{
   extVariation* xvar = NULL;
   if (!_maxMinFlag)
     xvar = _process->getVariation(m->_met);
@@ -4312,7 +4594,7 @@ void extRCModel::computeTables(extMeasure* m, uint wireCnt, uint widthCnt,
     pTable = xvar->getPTable();
     wTable0 = _process->getWidthTable(m->_met);
     sTable0 = _process->getSpaceTable(m->_met);
-    if (_diagModel == 2 && m->_overMet < (int)_layerCnt) {
+    if (_diagModel == 2 && m->_overMet < (int) _layerCnt) {
       diagSTable0 = _process->getDiagSpaceTable(m->_overMet);
       diagWTable0 = _process->getWidthTable(m->_overMet);
     } else {
@@ -4324,7 +4606,7 @@ void extRCModel::computeTables(extMeasure* m, uint wireCnt, uint widthCnt,
     dTable = _process->getDataRateTable(m->_met);
     wTable0 = _process->getWidthTable(m->_met);
     sTable0 = _process->getSpaceTable(m->_met);
-    if (_diagModel == 2 && m->_overMet < (int)_layerCnt) {
+    if (_diagModel == 2 && m->_overMet < (int) _layerCnt) {
       diagSTable0 = _process->getDiagSpaceTable(m->_overMet);
       diagWTable0 = _process->getWidthTable(m->_overMet);
     } else {
@@ -4341,11 +4623,12 @@ void extRCModel::computeTables(extMeasure* m, uint wireCnt, uint widthCnt,
     double w = wTable->get(wIndex);  // layout
     m->_widthTable.add(w);
   }
-  if (_diagModel == 2 && m->_overMet < (int)_layerCnt) {
+  if (_diagModel == 2 && m->_overMet < (int) _layerCnt) {
     m->_diagWidthTable0.resetCnt();
     if (diagWTable0) {
       for (uint wIndex = 0;
-           (wIndex < diagWTable0->getCnt()) && (wIndex < widthCnt); wIndex++) {
+           (wIndex < diagWTable0->getCnt()) && (wIndex < widthCnt);
+           wIndex++) {
         double w = diagWTable0->get(wIndex);
         m->_diagWidthTable0.add(w);
       }
@@ -4366,13 +4649,13 @@ void extRCModel::computeTables(extMeasure* m, uint wireCnt, uint widthCnt,
   m->_diagSpaceTable0.resetCnt();
   if (diagSTable0) {
     for (uint dsIndex = 0;
-         (dsIndex < diagSTable0->getCnt()) && (dsIndex < spaceCnt); dsIndex++) {
+         (dsIndex < diagSTable0->getCnt()) && (dsIndex < spaceCnt);
+         dsIndex++) {
       double ds = diagSTable0->get(dsIndex);
       m->_diagSpaceTable0.add(ds);
     }
   }
   m->_dataTable.resetCnt();
-  //	if (xvar!=NULL || _maxMinFlag) {
   if (!_maxMinFlag && xvar != NULL)
     m->_dataTable.add(0.0);
   m->_widthTable0.resetCnt();
@@ -4393,7 +4676,6 @@ void extRCModel::computeTables(extMeasure* m, uint wireCnt, uint widthCnt,
   if (m->_diagModel == 2)
     m->_spaceTable0.add(99);
   m->_spaceTable0.add(100);
-  //	}
 
   for (uint dIndex = 0; (dIndex < dTable->getCnt()) && (dIndex < dCnt);
        dIndex++) {
@@ -4408,7 +4690,8 @@ void extRCModel::computeTables(extMeasure* m, uint wireCnt, uint widthCnt,
     }
   }
 }
-uint extRCModel::measureDiagWithVar(extMeasure* measure) {
+uint extRCModel::measureDiagWithVar(extMeasure* measure)
+{
   uint cnt = 0;
   int met = measure->_met;
   extVariation* xvar = _process->getVariation(measure->_met);
@@ -4421,7 +4704,6 @@ uint extRCModel::measureDiagWithVar(extMeasure* measure) {
   double top_ext = cond->_top_ext;
   double bot_ext = cond->_bot_ext;
 
-  //        extMasterConductor* m= _process->getMasterConductor(met);
   if (top_ext != 0.0 || bot_ext != 0.0) {
     xvar = NULL;
     measure->_metExtFlag = true;
@@ -4475,25 +4757,18 @@ uint extRCModel::measureDiagWithVar(extMeasure* measure) {
             double thicknessR = t;
 
             if (r == 0.0) {
-              //                                        		top_width=
-              //                                        w;
-              //                                        top_widthR= w;
               if (xvar != NULL) {
                 double a = xvar->getP(w);
                 if (a != 0.0)
                   ro = a;
               }
-              res = measureResistance(measure, ro, top_widthR, bot_widthR,
-                                      thicknessR);
+              res = measureResistance(
+                  measure, ro, top_widthR, bot_widthR, thicknessR);
             } else if (xvar != NULL && !_maxMinFlag) {
               uint ss;
-              //							if
-              //(sIndex < scnt-1)
               if (sIndex < scnt - 2)
                 ss = sIndex;
               else
-                //								ss
-                //= scnt-2;
                 ss = scnt - 3;
               top_width = xvar->getTopWidth(wIndex, ss);
               top_widthR = xvar->getTopWidthR(wIndex, ss);
@@ -4506,24 +4781,24 @@ uint extRCModel::measureDiagWithVar(extMeasure* measure) {
               double a = xvar->getP(w);
               if (a != 0.0)
                 ro = a;
-              res = measureResistance(measure, ro, top_widthR, bot_widthR,
-                                      thicknessR);
+              res = measureResistance(
+                  measure, ro, top_widthR, bot_widthR, thicknessR);
             } else if (_maxMinFlag && r == 1.0) {
               top_width = w - 2 * cond->_min_cw_del;
               thickness = t - cond->_min_ct_del;
               bot_width = top_width - 2 * thickness * cond->_min_ca;
               if (bot_width > w)
                 bot_width = w;
-              res = measureResistance(measure, ro, top_widthR, bot_widthR,
-                                      thicknessR);
+              res = measureResistance(
+                  measure, ro, top_widthR, bot_widthR, thicknessR);
             } else if (_maxMinFlag && r == 2.0) {
               top_width = w + 2 * cond->_max_cw_del;
               thickness = t + cond->_max_ct_del;
               bot_width = top_width - 2 * thickness * cond->_max_ca;
               if (bot_width < w)
                 bot_width = w;
-              res = measureResistance(measure, ro, top_widthR, bot_widthR,
-                                      thicknessR);
+              res = measureResistance(
+                  measure, ro, top_widthR, bot_widthR, thicknessR);
             } else if (measure->_thickVarFlag) {
               thickness *= 1 + r;
               thicknessR *= 1 + r;
@@ -4531,8 +4806,13 @@ uint extRCModel::measureDiagWithVar(extMeasure* measure) {
               continue;
             }
             measure->setTargetParams(w, s, r, t, h, dw, ds);
-            measurePatternVar(measure, top_width, bot_width, thickness,
-                              measure->_wireCnt, NULL, res * 0.5);
+            measurePatternVar(measure,
+                              top_width,
+                              bot_width,
+                              thickness,
+                              measure->_wireCnt,
+                              NULL,
+                              res * 0.5);
 
             cnt++;
           }
@@ -4542,7 +4822,8 @@ uint extRCModel::measureDiagWithVar(extMeasure* measure) {
   }
   return cnt;
 }
-uint extRCModel::measureWithVar(extMeasure* measure) {
+uint extRCModel::measureWithVar(extMeasure* measure)
+{
   uint cnt = 0;
   int met = measure->_met;
   extVariation* xvar = _process->getVariation(measure->_met);
@@ -4555,7 +4836,6 @@ uint extRCModel::measureWithVar(extMeasure* measure) {
   double top_ext = cond->_top_ext;
   double bot_ext = cond->_bot_ext;
 
-  //	extMasterConductor* m= _process->getMasterConductor(met);
   if (top_ext != 0.0 || bot_ext != 0.0) {
     xvar = NULL;
     measure->_metExtFlag = true;
@@ -4572,7 +4852,6 @@ uint extRCModel::measureWithVar(extMeasure* measure) {
       if (!measure->_diag)
         scnt = measure->_spaceTable.getCnt();
       else
-        //      scnt=measure->_spaceTable0.getCnt();
         scnt = measure->_diagSpaceTable0.getCnt();
     } else {
       wcnt = measure->_widthTable0.getCnt();
@@ -4611,15 +4890,13 @@ uint extRCModel::measureWithVar(extMeasure* measure) {
         double thicknessR = t;
 
         if (r == 0.0) {
-          //					top_width= w;
-          //					top_widthR= w;
           if (xvar != NULL) {
             double a = xvar->getP(w);
             if (a != 0.0)
               ro = a;
           }
-          res = measureResistance(measure, ro, top_widthR, bot_widthR,
-                                  thicknessR);
+          res = measureResistance(
+              measure, ro, top_widthR, bot_widthR, thicknessR);
         } else if (xvar != NULL && !_maxMinFlag) {
           uint ss;
           if (measure->_diag)
@@ -4630,11 +4907,6 @@ uint extRCModel::measureWithVar(extMeasure* measure) {
             else
               ss = scnt - 2;
           }
-          /*
-                                                  top_width=
-             xvar->getTopWidth(wIndex, sIndex); top_widthR=
-             xvar->getTopWidthR(wIndex, sIndex);
-          */
           top_width = xvar->getTopWidth(wIndex, ss);
           top_widthR = xvar->getTopWidthR(wIndex, ss);
 
@@ -4650,24 +4922,24 @@ uint extRCModel::measureWithVar(extMeasure* measure) {
           double a = xvar->getP(w);
           if (a != 0.0)
             ro = a;
-          res = measureResistance(measure, ro, top_widthR, bot_widthR,
-                                  thicknessR);
+          res = measureResistance(
+              measure, ro, top_widthR, bot_widthR, thicknessR);
         } else if (_maxMinFlag && r == 1.0) {
           top_width = w - 2 * cond->_min_cw_del;
           thickness = t - cond->_min_ct_del;
           bot_width = top_width - 2 * thickness * cond->_min_ca;
           if (bot_width > w)
             bot_width = w;
-          res = measureResistance(measure, ro, top_widthR, bot_widthR,
-                                  thicknessR);
+          res = measureResistance(
+              measure, ro, top_widthR, bot_widthR, thicknessR);
         } else if (_maxMinFlag && r == 2.0) {
           top_width = w + 2 * cond->_max_cw_del;
           thickness = t + cond->_max_ct_del;
           bot_width = top_width - 2 * thickness * cond->_max_ca;
           if (bot_width < w)
             bot_width = w;
-          res = measureResistance(measure, ro, top_widthR, bot_widthR,
-                                  thicknessR);
+          res = measureResistance(
+              measure, ro, top_widthR, bot_widthR, thicknessR);
         } else if (measure->_thickVarFlag) {
           thickness *= 1 + r;
           thicknessR *= 1 + r;
@@ -4676,13 +4948,13 @@ uint extRCModel::measureWithVar(extMeasure* measure) {
         }
 
         measure->setTargetParams(w, s, r, t, h);
-        measurePatternVar(measure, top_width, bot_width, thickness,
-                          measure->_wireCnt, NULL, res * 0.5);
-
-        //				measure->setTargetParams(w, s, 0.0, t,
-        // h); 				measurePatternVar(measure, w, w, t,
-        // measure->_wireCnt, "2");
-
+        measurePatternVar(measure,
+                          top_width,
+                          bot_width,
+                          thickness,
+                          measure->_wireCnt,
+                          NULL,
+                          res * 0.5);
         cnt++;
       }
     }
@@ -4690,7 +4962,8 @@ uint extRCModel::measureWithVar(extMeasure* measure) {
 
   return cnt;
 }
-void extRCModel::allocOverTable(extMeasure* measure) {
+void extRCModel::allocOverTable(extMeasure* measure)
+{
   for (uint ii = 0; ii < measure->_dataTable.getCnt(); ii++) {
     if (!ii)
       _modelTable[ii]->allocOverTable(measure->_met, &measure->_widthTable0);
@@ -4698,36 +4971,42 @@ void extRCModel::allocOverTable(extMeasure* measure) {
       _modelTable[ii]->allocOverTable(measure->_met, &measure->_widthTable);
   }
 }
-void extRCModel::allocDiagUnderTable(extMeasure* measure) {
+void extRCModel::allocDiagUnderTable(extMeasure* measure)
+{
   for (uint ii = 0; ii < measure->_dataTable.getCnt(); ii++) {
     if (!ii) {
       if (_diagModel == 2)
-        _modelTable[ii]
-            ->allocDiagUnderTable(measure->_met, &measure->_widthTable0,
-                                  measure->_diagWidthTable0.getCnt(),
-                                  measure->_diagSpaceTable0.getCnt());
+        _modelTable[ii]->allocDiagUnderTable(
+            measure->_met,
+            &measure->_widthTable0,
+            measure->_diagWidthTable0.getCnt(),
+            measure->_diagSpaceTable0.getCnt());
       else if (_diagModel == 1)
-        _modelTable[ii]
-            ->allocDiagUnderTable(measure->_met, &measure->_widthTable0);
+        _modelTable[ii]->allocDiagUnderTable(measure->_met,
+                                             &measure->_widthTable0);
     } else {
       if (_diagModel == 2)
-        _modelTable[ii]
-            ->allocDiagUnderTable(measure->_met, &measure->_widthTable,
-                                  measure->_diagWidthTable0.getCnt(),
-                                  measure->_diagSpaceTable0.getCnt());
+        _modelTable[ii]->allocDiagUnderTable(
+            measure->_met,
+            &measure->_widthTable,
+            measure->_diagWidthTable0.getCnt(),
+            measure->_diagSpaceTable0.getCnt());
       else if (_diagModel == 1)
-        _modelTable[ii]
-            ->allocDiagUnderTable(measure->_met, &measure->_widthTable);
+        _modelTable[ii]->allocDiagUnderTable(measure->_met,
+                                             &measure->_widthTable);
     }
   }
 }
-void extRCModel::setDiagUnderTables(extMeasure* measure) {
+void extRCModel::setDiagUnderTables(extMeasure* measure)
+{
   for (uint ii = 0; ii < measure->_dataTable.getCnt(); ii++)
-    _modelTable[ii]->setDiagUnderTables(measure->_met, measure->_overMet,
+    _modelTable[ii]->setDiagUnderTables(measure->_met,
+                                        measure->_overMet,
                                         &measure->_diagWidthTable0,
                                         &measure->_diagSpaceTable0);
 }
-void extRCModel::allocUnderTable(extMeasure* measure) {
+void extRCModel::allocUnderTable(extMeasure* measure)
+{
   for (uint ii = 0; ii < measure->_dataTable.getCnt(); ii++) {
     if (!ii)
       _modelTable[ii]->allocUnderTable(measure->_met, &measure->_widthTable0);
@@ -4735,18 +5014,23 @@ void extRCModel::allocUnderTable(extMeasure* measure) {
       _modelTable[ii]->allocUnderTable(measure->_met, &measure->_widthTable);
   }
 }
-void extRCModel::allocOverUnderTable(extMeasure* measure) {
+void extRCModel::allocOverUnderTable(extMeasure* measure)
+{
   for (uint ii = 0; ii < measure->_dataTable.getCnt(); ii++) {
     if (!ii)
-      _modelTable[ii]
-          ->allocOverUnderTable(measure->_met, &measure->_widthTable0);
+      _modelTable[ii]->allocOverUnderTable(measure->_met,
+                                           &measure->_widthTable0);
     else
-      _modelTable[ii]
-          ->allocOverUnderTable(measure->_met, &measure->_widthTable);
+      _modelTable[ii]->allocOverUnderTable(measure->_met,
+                                           &measure->_widthTable);
   }
 }
-uint extRCModel::linesOver(uint wireCnt, uint widthCnt, uint spaceCnt,
-                           uint dCnt, uint metLevel) {
+uint extRCModel::linesOver(uint wireCnt,
+                           uint widthCnt,
+                           uint spaceCnt,
+                           uint dCnt,
+                           uint metLevel)
+{
   sprintf(_patternName, "Over%d", wireCnt);
 
   openCapLogFile();
@@ -4770,22 +5054,29 @@ uint extRCModel::linesOver(uint wireCnt, uint widthCnt, uint spaceCnt,
 
       uint cnt1 = measureWithVar(&measure);
 
-      logger_->info(RCX, 225,
-                    "Finished {} measurements for pattern M{}_over_M{}", cnt1,
-                    met, underMet);
+      logger_->info(RCX,
+                    225,
+                    "Finished {} measurements for pattern M{}_over_M{}",
+                    cnt1,
+                    met,
+                    underMet);
 
       cnt += cnt1;
     }
   }
   if (metLevel < 0)
-    logger_->info(RCX, 226, "Finished {} measurements for pattern MET_OVER_MET",
-                  cnt);
+    logger_->info(
+        RCX, 226, "Finished {} measurements for pattern MET_OVER_MET", cnt);
 
   closeCapLogFile();
   return cnt;
 }
-uint extRCModel::linesDiagUnder(uint wireCnt, uint widthCnt, uint spaceCnt,
-                                uint dCnt, uint metLevel) {
+uint extRCModel::linesDiagUnder(uint wireCnt,
+                                uint widthCnt,
+                                uint spaceCnt,
+                                uint dCnt,
+                                uint metLevel)
+{
   _diag = true;
   sprintf(_patternName, "DiagUnder%d", wireCnt);
   openCapLogFile();
@@ -4821,23 +5112,31 @@ uint extRCModel::linesDiagUnder(uint wireCnt, uint widthCnt, uint spaceCnt,
         cnt1 = measureWithVar(&measure);
       }
 
-      logger_->info(RCX, 227,
+      logger_->info(RCX,
+                    227,
                     "Finished {} measurements for pattern M{}_diagUnder_M{}",
-                    cnt1, met, overMet);
+                    cnt1,
+                    met,
+                    overMet);
 
       cnt += cnt1;
     }
   }
   if (metLevel < 0)
-    logger_->info(RCX, 228,
+    logger_->info(RCX,
+                  228,
                   "Finished {} measurements for pattern MET_DIAGUNDER_MET",
                   cnt);
 
   closeCapLogFile();
   return cnt;
 }
-uint extRCModel::linesUnder(uint wireCnt, uint widthCnt, uint spaceCnt,
-                            uint dCnt, uint metLevel) {
+uint extRCModel::linesUnder(uint wireCnt,
+                            uint widthCnt,
+                            uint spaceCnt,
+                            uint dCnt,
+                            uint metLevel)
+{
   sprintf(_patternName, "Under%d", wireCnt);
   openCapLogFile();
   uint cnt = 0;
@@ -4860,22 +5159,29 @@ uint extRCModel::linesUnder(uint wireCnt, uint widthCnt, uint spaceCnt,
 
       uint cnt1 = measureWithVar(&measure);
 
-      logger_->info(RCX, 229,
-                    "Finished {} measurements for pattern M{}_under_M{}", cnt1,
-                    met, overMet);
+      logger_->info(RCX,
+                    229,
+                    "Finished {} measurements for pattern M{}_under_M{}",
+                    cnt1,
+                    met,
+                    overMet);
 
       cnt += cnt1;
     }
   }
   if (metLevel < 0)
-    logger_->info(RCX, 409,
-                  "Finished {} measurements for pattern MET_UNDER_MET", cnt);
+    logger_->info(
+        RCX, 409, "Finished {} measurements for pattern MET_UNDER_MET", cnt);
 
   closeCapLogFile();
   return cnt;
 }
-uint extRCModel::linesOverUnder(uint wireCnt, uint widthCnt, uint spaceCnt,
-                                uint dCnt, uint metLevel) {
+uint extRCModel::linesOverUnder(uint wireCnt,
+                                uint widthCnt,
+                                uint spaceCnt,
+                                uint dCnt,
+                                uint metLevel)
+{
   sprintf(_patternName, "OverUnder%d", wireCnt);
   openCapLogFile();
   uint cnt = 0;
@@ -4898,26 +5204,36 @@ uint extRCModel::linesOverUnder(uint wireCnt, uint widthCnt, uint spaceCnt,
         uint cnt1 = measureWithVar(&measure);
 
         logger_->info(
-            RCX, 231,
-            "Finished {} measurements for pattern M{}_over_M{}_under_M{}", cnt1,
-            met, underMet, overMet);
+            RCX,
+            231,
+            "Finished {} measurements for pattern M{}_over_M{}_under_M{}",
+            cnt1,
+            met,
+            underMet,
+            overMet);
 
         cnt += cnt1;
       }
     }
   }
   if (metLevel < 0)
-    logger_->info(RCX, 230,
-                  "Finished {} measurements for pattern MET_UNDER_MET", cnt);
+    logger_->info(
+        RCX, 230, "Finished {} measurements for pattern MET_UNDER_MET", cnt);
 
   closeCapLogFile();
   return cnt;
 }
 
-uint extMain::metRulesGen(const char* name, const char* topDir,
-                          const char* rulesFile, int pattern, bool writeFiles,
-                          bool readFiles, bool runSolver, bool keepFile,
-                          uint met) {
+uint extMain::metRulesGen(const char* name,
+                          const char* topDir,
+                          const char* rulesFile,
+                          int pattern,
+                          bool writeFiles,
+                          bool readFiles,
+                          bool runSolver,
+                          bool keepFile,
+                          uint met)
+{
   extRCModel* m = _modelTable->get(0);
 
   m->setOptions(topDir, name, writeFiles, readFiles, runSolver, keepFile, met);
@@ -4937,9 +5253,13 @@ uint extMain::metRulesGen(const char* name, const char* topDir,
   m->closeFiles();
   return 0;
 }
-uint extMain::writeRules(const char* name, const char* topDir,
-                         const char* rulesFile, int pattern, bool readDb,
-                         bool readFiles) {
+uint extMain::writeRules(const char* name,
+                         const char* topDir,
+                         const char* rulesFile,
+                         int pattern,
+                         bool readDb,
+                         bool readFiles)
+{
   if (readDb) {
     GenExtRules(rulesFile, pattern);
     return 0;
@@ -4949,7 +5269,7 @@ uint extMain::writeRules(const char* name, const char* topDir,
     extRCModel* m = _modelTable->get(0);
 
     m->setOptions(topDir, name, false, true, false, false);
-    m->writeRules((char*)rulesFile, false);
+    m->writeRules((char*) rulesFile, false);
     return 0;
   }
 
@@ -4959,9 +5279,15 @@ uint extMain::writeRules(const char* name, const char* topDir,
     rulesGen(name, topDir, rulesFile, 205, false, true, false, false);
   return 0;
 }
-uint extMain::rulesGen(const char* name, const char* topDir,
-                       const char* rulesFile, int pattern, bool writeFiles,
-                       bool readFiles, bool runSolver, bool keepFile) {
+uint extMain::rulesGen(const char* name,
+                       const char* topDir,
+                       const char* rulesFile,
+                       int pattern,
+                       bool writeFiles,
+                       bool readFiles,
+                       bool runSolver,
+                       bool keepFile)
+{
   extRCModel* m = _modelTable->get(0);
 
   m->setOptions(topDir, name, writeFiles, readFiles, runSolver, keepFile);
@@ -4990,39 +5316,20 @@ uint extMain::rulesGen(const char* name, const char* topDir,
   }
   m->closeFiles();
 
-  m->writeRules((char*)rulesFile, false);
+  m->writeRules((char*) rulesFile, false);
   return 0;
 }
-uint extMain::readProcess(const char* name, const char* filename) {
-  /** for testing OverUnderIndex
-  uint mCnt= atoi(filename);
-
-  for (uint ii= 2; ii<mCnt; ii++) {
-          fprintf(stdout, "\n");
-          for (uint u= ii-1; u>0; u--) {
-                  for (uint o=  ii+1; o<mCnt; o++) {
-                          uint metIndex= getMetIndexOverUnder(ii, u, o, mCnt,
-  logger_);
-
-                          fprintf(stdout, "%d  m= %d  %d  = %d\n", u,ii,o,
-  metIndex);
-                  }
-          }
-          uint maxIndex= getMaxMetIndexOverUnder(ii, mCnt, logger_);
-          fprintf(stdout, "\nm= %d  maxIndex= %d\n\n", ii, maxIndex);
-  }
-  return 1;
-  */
-
+uint extMain::readProcess(const char* name, const char* filename)
+{
   extProcess* p = new extProcess(32, 32, logger_);
 
-  p->readProcess(name, (char*)filename);
+  p->readProcess(name, (char*) filename);
   p->writeProcess("process.out");
 
   // create rc model
 
   uint layerCnt = p->getConductorCnt();
-  extRCModel* m = new extRCModel(layerCnt, (char*)name, logger_);
+  extRCModel* m = new extRCModel(layerCnt, (char*) name, logger_);
   _modelTable->add(m);
 
   m->setProcess(p);
@@ -5030,15 +5337,15 @@ uint extMain::readProcess(const char* name, const char* filename) {
 
   return 0;
 }
-uint extMain::readExtRules(const char* name, const char* filename, int min,
-                           int typ, int max) {
-  //	extProcess *p= new extProcess(32, 32, logger_);
-
-  //	p->readProcess(name, (char *) filename);
-
+uint extMain::readExtRules(const char* name,
+                           const char* filename,
+                           int min,
+                           int typ,
+                           int max)
+{
   // create rc model
 
-  extRCModel* m = new extRCModel((char*)name, logger_);
+  extRCModel* m = new extRCModel((char*) name, logger_);
   _modelTable->add(m);
 
   uint cornerTable[10];
@@ -5055,7 +5362,6 @@ uint extMain::readExtRules(const char* name, const char* filename, int min,
     if ((min >= 0) && (max >= 0)) {
       _minModelIndex = min;
       _maxModelIndex = max;
-      // ypModelIndex= (min+max)/2;
 
       cornerTable[cornerCnt++] = min;
       cornerTable[cornerCnt++] = max;
@@ -5066,11 +5372,24 @@ uint extMain::readExtRules(const char* name, const char* filename, int min,
       _maxModelIndex = max;
       cornerTable[cornerCnt++] = max;
     }
-    m->readRules((char*)filename, false, true, true, true, true, cornerCnt,
-                 cornerTable, dbFactor);
-    //		int modelCnt= getRCmodel(0)->getModelCnt();
+    m->readRules((char*) filename,
+                 false,
+                 true,
+                 true,
+                 true,
+                 true,
+                 cornerCnt,
+                 cornerTable,
+                 dbFactor);
   } else {
-    m->readRules((char*)filename, false, true, true, true, true, 0, cornerTable,
+    m->readRules((char*) filename,
+                 false,
+                 true,
+                 true,
+                 true,
+                 true,
+                 0,
+                 cornerTable,
                  dbFactor);
     int modelCnt = getRCmodel(0)->getModelCnt();
     _minModelIndex = 0;
@@ -5078,16 +5397,15 @@ uint extMain::readExtRules(const char* name, const char* filename, int min,
     _typModelIndex = (modelCnt - 1) / 2;
   }
 
-  //	m->setProcess(p);
-  //	m->setDataRateTable(1);
-
   return 0;
 }
 
-uint extRCModel::findBiggestDatarateIndex(double d) {
+uint extRCModel::findBiggestDatarateIndex(double d)
+{
   return _dataRateTable->findNextBiggestIndex(d, 1);
 }
-int extRCModel::findDatarateIndex(double d) {
+int extRCModel::findDatarateIndex(double d)
+{
   for (uint ii = 0; ii < _modelCnt; ii++) {
     if (d == _dataRateTable->get(ii))
       return ii;
@@ -5096,7 +5414,8 @@ int extRCModel::findDatarateIndex(double d) {
   }
   return -1;
 }
-int extRCModel::findClosestDataRate(uint n, double diff) {
+int extRCModel::findClosestDataRate(uint n, double diff)
+{
   if (n == _modelCnt - 1)
     return n;
   if (n == 0)
@@ -5113,13 +5432,17 @@ int extRCModel::findClosestDataRate(uint n, double diff) {
 
   return n;
 }
-int extRCModel::findVariationZero(double d) {
+int extRCModel::findVariationZero(double d)
+{
   _noVariationIndex = _dataRateTable->findIndex(d);
   return _noVariationIndex;
 }
-extDistWidthRCTable* extRCModel::getWidthDistRCtable(uint met, int mUnder,
-                                                     int mOver, int& n,
-                                                     double dRate) {
+extDistWidthRCTable* extRCModel::getWidthDistRCtable(uint met,
+                                                     int mUnder,
+                                                     int mOver,
+                                                     int& n,
+                                                     double dRate)
+{
   int rIndex = 0;
   if (dRate > 0) {
     rIndex = findDatarateIndex(dRate);
@@ -5127,7 +5450,10 @@ extDistWidthRCTable* extRCModel::getWidthDistRCtable(uint met, int mUnder,
       return NULL;
   }
   if ((mUnder > 0) && (mOver > 0)) {
-    n = getMetIndexOverUnder(met, mUnder, mOver, _layerCnt,
+    n = getMetIndexOverUnder(met,
+                             mUnder,
+                             mOver,
+                             _layerCnt,
                              _modelTable[rIndex]->_capOverUnder[met]->_metCnt);
     assert(n >= 0);
     return _modelTable[rIndex]->_capOverUnder[met];
@@ -5139,21 +5465,4 @@ extDistWidthRCTable* extRCModel::getWidthDistRCtable(uint met, int mUnder,
     return _modelTable[rIndex]->_capUnder[met];
   }
 }
-/*
-void extRCModel::getRCtable(Ath__array1D<int> *sTable, Ath__array1D<double>
-*rcTable, uint valType, uint met, int mUnder, int mOver, int width, double
-dRate)
-{
-        int n= 0;
-        extDistWidthRCTable *capTable= getWidthDistRCtable(met, mUnder, mOver,
-n, dRate); if (valType==0) // coupling ;
-//_modelTable[rIndex]->_capOverUnder[met]->getFringeTable(n, width, sTable,
-rcTable, false); else if (valType==1) // fringe capTable->getFringeTable(n,
-width, sTable, rcTable, false); else if (valType==2) // res ;
-//_modelTable[rIndex]->_capOverUnder[met]->getFringeTable(n, width, sTable,
-rcTable, false); else // total ;
-//_modelTable[rIndex]->_capOverUnder[met]->getFringeTable(n, width, sTable,
-rcTable, false);
-}
-*/
 }  // namespace rcx

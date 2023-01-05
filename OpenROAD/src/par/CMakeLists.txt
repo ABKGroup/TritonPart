@@ -35,27 +35,6 @@
 
 include("openroad")
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_MODULE_PATH               "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-
-set(JULIA                           "/home/bodhi91/software/julia-1.7.2/bin/julia")
-set(JULIA_DIR                       "/home/bodhi91/software/julia-1.7.2")
-set(JULIA_INCLUDE_DIR               "${JULIA_DIR}/include/julia")
-set(JULIA_LIB                       "${JULIA_DIR}/lib")
-
-set(CMAKE_CXX_FLAGS                 "${CMAKE_CXX_FLAGS} -DIL_STD -m64 -Wall -fPIC")
-set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX   "-isystem ")
-set(LINKER_OPTIONS                  "-Wl,--export-dynamic")
-
-find_package(Cplex)
-find_package(Threads REQUIRED)
-find_package(ortools REQUIRED)
-include_directories(SYSTEM ${CPLEX_INCLUDE_DIRS})
-include_directories(${JULIA_INCLUDE_DIR})
-include_directories(${JULIA_DIR}/include)
-
-
 option(LOAD_PARTITIONERS "Load GPMetis and Chaco" OFF)
 
 if (LOAD_PARTITIONERS)
@@ -77,15 +56,6 @@ target_sources(par
     src/HypergraphDecomposition.cpp
     src/PartitionNetwork.cpp
     src/PartOptions.cpp
-    src/autocluster.cpp
-    src/TritonPart.cpp
-    src/TPHypergraph.cpp
-    src/Utilities.cpp
-    src/Coarsening.cpp
-    src/Partitioner.cpp
-    src/Multilevel.cpp
-    src/KPMRefinement.cpp
-    src/ILPbasedRefinement.cpp
 )
 
 messages(
@@ -140,26 +110,33 @@ target_include_directories(par
     include
 )
 
-target_link_directories(par
-  PUBLIC
-    ${JULIA_LIB}
-    ${JULIA_LIB}/julia
-)
-
 target_link_libraries(par
   PUBLIC
     odb
     OpenSTA
     utl
     dbSta
-    -ljulia
-    -L${JULIA_LIB}
-    -L${JULIA_LIB}/julia
-  PRIVATE
-    ortools::ortools
-    ${CPLEX_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT}
-    dl
 )
 
 unset(LOAD_PARTITIONERS)
+
+if (Python3_FOUND AND BUILD_PYTHON)
+  swig_lib(NAME          par_py
+           NAMESPACE     par
+           LANGUAGE      python
+           I_FILE        src/partitionmgr-py.i
+           SWIG_INCLUDES ${PROJECT_SOURCE_DIR}/include/par
+           SCRIPTS       ${CMAKE_CURRENT_BINARY_DIR}/par_py.py
+  )
+
+  target_include_directories(par_py
+    PUBLIC
+      include
+  )
+
+  target_link_libraries(par_py
+    PUBLIC
+      par
+  )
+
+endif()

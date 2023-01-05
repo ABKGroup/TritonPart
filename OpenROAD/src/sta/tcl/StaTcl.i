@@ -79,7 +79,6 @@
 #include "search/CheckMinPulseWidths.hh"
 #include "search/Levelize.hh"
 #include "search/ReportPath.hh"
-#include "search/Power.hh"
 
 namespace sta {
 
@@ -2394,6 +2393,13 @@ find_pin(const char *path_name)
   return cmdLinkedNetwork()->findPin(path_name);
 }
 
+Pin *
+get_port_pin(const Port *port)
+{
+  Network *network = cmdLinkedNetwork();
+  return network->findPin(network->topInstance(), port);
+}
+
 TmpPinSeq *
 find_pins_matching(const char *pattern,
 		   bool regexp,
@@ -2991,8 +2997,6 @@ make_generated_clock(const char *name,
 		     bool add_to_pins,
 		     Pin *src_pin,
 		     Clock *master_clk,
-		     Pin *pll_out,
-		     Pin *pll_fdbk,
 		     int divide_by,
 		     int multiply_by,
 		     float duty_cycle,
@@ -3004,7 +3008,7 @@ make_generated_clock(const char *name,
 {
   cmdLinkedNetwork();
   Sta::sta()->makeGeneratedClock(name, pins, add_to_pins,
-				 src_pin, master_clk, pll_out, pll_fdbk,
+				 src_pin, master_clk,
 				 divide_by, multiply_by, duty_cycle, invert,
 				 combinational, edges, edge_shifts,
 				 comment);
@@ -4946,69 +4950,6 @@ report_capacitance_limit_verbose(Pin *pin,
 
 ////////////////////////////////////////////////////////////////
 
-TmpFloatSeq *
-design_power(const Corner *corner)
-{
-  cmdLinkedNetwork();
-  PowerResult total, sequential, combinational, macro, pad;
-  Sta::sta()->power(corner, total, sequential, combinational, macro, pad);
-  FloatSeq *floats = new FloatSeq;
-  pushPowerResultFloats(total, floats);
-  pushPowerResultFloats(sequential, floats);
-  pushPowerResultFloats(combinational, floats);
-  pushPowerResultFloats(macro, floats);
-  pushPowerResultFloats(pad, floats);
-  return floats;
-}
-
-TmpFloatSeq *
-instance_power(Instance *inst,
-	       const Corner *corner)
-{
-  cmdLinkedNetwork();
-  PowerResult power;
-  Sta::sta()->power(inst, corner, power);
-  FloatSeq *floats = new FloatSeq;
-  floats->push_back(power.internal());
-  floats->push_back(power.switching());
-  floats->push_back(power.leakage());
-  floats->push_back(power.total());
-  return floats;
-}
-
-void
-set_power_global_activity(float activity,
-			  float duty)
-{
-  Sta::sta()->power()->setGlobalActivity(activity, duty);
-}
-
-void
-set_power_input_activity(float activity,
-			 float duty)
-{
-  return Sta::sta()->power()->setInputActivity(activity, duty);
-}
-
-void
-set_power_input_port_activity(const Port *input_port,
-			      float activity,
-			      float duty)
-{
-  return Sta::sta()->power()->setInputPortActivity(input_port, activity, duty);
-}
-
-void
-set_power_pin_activity(const Pin *pin,
-		       float activity,
-		       float duty)
-{
-  return Sta::sta()->power()->setUserActivity(pin, activity, duty,
-					      PwrActivityOrigin::user);
-}
-
-////////////////////////////////////////////////////////////////
-
 EdgeSeq *
 disabled_edges_sorted()
 {
@@ -5567,7 +5508,13 @@ port_location(const Port *port)
 int
 endpoint_count()
 {
-  return Sta::sta()->endpointCount();
+  return Sta::sta()->endpoints()->size();
+}
+
+int
+endpoint_violation_count(const MinMax *min_max)
+{
+  return  Sta::sta()->endpointViolationCount(min_max);
 }
 
 %} // inline

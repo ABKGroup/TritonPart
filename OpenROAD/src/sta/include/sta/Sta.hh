@@ -277,8 +277,6 @@ public:
 			  bool add_to_pins,
 			  Pin *src_pin,
 			  Clock *master_clk,
-			  Pin *pll_out,
-			  Pin *pll_fdbk,
 			  int divide_by,
 			  int multiply_by,
 			  float duty_cycle,
@@ -929,7 +927,8 @@ public:
   void arrivalsInvalid();
   void visitStartpoints(VertexVisitor *visitor);
   void visitEndpoints(VertexVisitor *visitor);
-  int endpointCount();
+  VertexSet *endpoints();
+  int endpointViolationCount(const MinMax *min_max);
   // Find the fanin vertices for a group path.
   // Vertices in the clock network are NOT included.
   // Return value is owned by the caller.
@@ -1058,6 +1057,8 @@ public:
   Slew vertexSlew(Vertex *vertex,
 		  const RiseFall *rf,
 		  const MinMax *min_max);
+  Slew vertexSlew(Vertex *vertex,
+		  const MinMax *min_max);
   ArcDelay arcDelay(Edge *edge,
 		    TimingArc *arc,
 		    const DcalcAnalysisPt *dcalc_ap);
@@ -1113,7 +1114,6 @@ public:
 		Instance *instance,
 		const Corner *corner,
                 const MinMaxAll *min_max,
-		bool increment,
 		bool pin_cap_included,
 		bool keep_coupling_caps,
 		float coupling_cap_factor,

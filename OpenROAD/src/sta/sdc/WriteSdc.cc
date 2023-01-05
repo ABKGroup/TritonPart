@@ -433,16 +433,6 @@ WriteSdc::writeGeneratedClock(Clock *clk) const
     gzprintf(stream_, " -master_clock ");
     writeGetClock(master);
   }
-  Pin *pll_out = clk->pllOut();
-  if (pll_out) {
-    gzprintf(stream_, " -pll_out ");
-    writeGetPin(pll_out, true);
-  }
-  Pin *pll_fdbk = clk->pllFdbk();
-  if (pll_fdbk) {
-    gzprintf(stream_, " -pll_feedback ");
-    writeGetPin(pll_fdbk, false);
-  }
   if (clk->combinational())
     gzprintf(stream_, " -combinational");
   int divide_by = clk->divideBy();
@@ -956,9 +946,8 @@ ClockGroupLess::operator()(const ClockGroup *clk_group1,
 void
 WriteSdc::writeClockGroups() const
 {
-  ClockGroupIterator groups_iter(sdc_);
-  while (groups_iter.hasNext()) {
-    ClockGroups *clk_groups = groups_iter.next();
+  for (auto name_groups : sdc_->clk_groups_name_map_) {
+    ClockGroups *clk_groups = name_groups.second;
     writeClockGroups(clk_groups);
   }
 }

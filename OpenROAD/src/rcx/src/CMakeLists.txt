@@ -52,7 +52,6 @@ target_sources(rcx
     extRCmodel.cpp
     extSpef.cpp
     extSpefIn.cpp
-    ext_test_wire.cpp
     extmain.cpp
     extmeasure.cpp
     extDebugPrint.cpp
@@ -84,3 +83,24 @@ messages(
   TARGET rcx
   OUTPUT_DIR ..
 )
+
+if (Python3_FOUND AND BUILD_PYTHON)
+  swig_lib(NAME          rcx_py
+           NAMESPACE     rcx
+           LANGUAGE      python
+           I_FILE        ext-py.i
+           SWIG_INCLUDES ${PROJECT_SOURCE_DIR}/../include
+           SCRIPTS       ${CMAKE_CURRENT_BINARY_DIR}/rcx_py.py
+  )
+
+  target_include_directories(rcx_py
+    PUBLIC
+      ../include
+  )
+
+  target_link_libraries(rcx_py
+    PUBLIC
+      rcx
+  )
+
+endif()

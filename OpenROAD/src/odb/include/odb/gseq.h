@@ -67,6 +67,7 @@ const int WIDTH = 1;
 const int SLICES = 2;
 const int SCALING = 4;
 const int ALLOCATED = 8;
+
 const int GS_ALL = (WIDTH | SLICES | SCALING | ALLOCATED);
 
 #define GS_FILE 1

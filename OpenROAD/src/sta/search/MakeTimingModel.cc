@@ -71,8 +71,10 @@ MakeTimingModel::makeTimingModel(const char *lib_name,
   makeCell(cell_name, filename);
   makePorts();
 
-  for (Clock *clk : *sdc_->clocks())
+  for (Clock *clk : *sdc_->clocks()) {
     sta_->setPropagatedClock(clk);
+    checkClock(clk);
+  }
 
   sta_->searchPreamble();
   graph_ = sta_->graph();
@@ -157,6 +159,17 @@ MakeTimingModel::makePorts()
   delete port_iter;
 }
 
+void
+MakeTimingModel::checkClock(Clock *clk)
+{
+  for (const Pin *pin : clk->leafPins()) {
+    if (!network_->isTopLevelPort(pin))
+      report_->warn(810, "clock %s pin %s is inside model block.",
+                    clk->name(),
+                    network_->pathName(pin));
+  }
+}
+
 ////////////////////////////////////////////////////////////////
 
 class MakeEndTimingArcs : public PathEndVisitor
@@ -207,31 +220,40 @@ MakeEndTimingArcs::setInputRf(const RiseFall *input_rf)
 void
 MakeEndTimingArcs::visit(PathEnd *path_end)
 {
+  Path *src_path = path_end->path();
+  Clock *src_clk = src_path->clock(sta_);
   ClockEdge *tgt_clk_edge = path_end->targetClkEdge(sta_);
-  Debug *debug = sta_->debug();
-  const MinMax *min_max = path_end->minMax(sta_);
-  debugPrint(debug, "make_timing_model", 2, "%s %s -> clock %s %s %s",
-             sta_->network()->pathName(input_pin_),
-             input_rf_->shortName(),
-             tgt_clk_edge->name(),
-             path_end->typeName(),
-             min_max->asString());
-  if (debug->check("make_timing_model", 3))
-    sta_->reportPathEnd(path_end);
-  Arrival data_delay = path_end->path()->arrival(sta_);
-  Delay clk_latency = path_end->targetClkDelay(sta_);
-  ArcDelay check_margin = path_end->margin(sta_);
-  Delay margin = min_max == MinMax::max()
-    ? data_delay - clk_latency + check_margin
-    : clk_latency - data_delay + check_margin;
-  float delay1 = delayAsFloat(margin, MinMax::max(), sta_);
-  RiseFallMinMax &margins = margins_[tgt_clk_edge];
-  float max_margin;
-  bool max_exists;
-  margins.value(input_rf_, min_max, max_margin, max_exists);
-  // Always max margin, even for min/hold checks.
-  margins.setValue(input_rf_, min_max,
-                   max_exists ? max(max_margin, delay1) : delay1);
+  if (src_clk == sta_->sdc()->defaultArrivalClock()
+      && tgt_clk_edge) {
+    Network *network = sta_->network();
+    Debug *debug = sta_->debug();
+    const MinMax *min_max = path_end->minMax(sta_);
+    Arrival data_delay = src_path->arrival(sta_);
+    Delay clk_latency = path_end->targetClkDelay(sta_);
+    ArcDelay check_margin = path_end->margin(sta_);
+    Delay margin = min_max == MinMax::max()
+      ? data_delay - clk_latency + check_margin
+      : clk_latency - data_delay + check_margin;
+    float delay1 = delayAsFloat(margin, MinMax::max(), sta_);
+    debugPrint(debug, "make_timing_model", 2, "%s %s -> %s clock %s %s %s %s",
+               network->pathName(input_pin_),
+               input_rf_->shortName(),
+               network->pathName(src_path->pin(sta_)),
+               tgt_clk_edge->name(),
+               path_end->typeName(),
+               min_max->asString(),
+               delayAsString(margin, sta_));
+    if (debug->check("make_timing_model", 3))
+      sta_->reportPathEnd(path_end);
+
+    RiseFallMinMax &margins = margins_[tgt_clk_edge];
+    float max_margin;
+    bool max_exists;
+    margins.value(input_rf_, min_max, max_margin, max_exists);
+    // Always max margin, even for min/hold checks.
+    margins.setValue(input_rf_, min_max,
+                     max_exists ? max(max_margin, delay1) : delay1);
+  }
 }
 
 // input -> register setup/hold
@@ -342,11 +364,13 @@ MakeTimingModel::makeSetupHoldTimingArcs(const Pin *input_pin,
         LibertyPort *input_port = modelPort(input_pin);
         for (const Pin *clk_pin : clk_edge->clock()->pins()) {
           LibertyPort *clk_port = modelPort(clk_pin);
-          RiseFall *clk_rf = clk_edge->transition();
-          TimingRole *role = setup ? TimingRole::setup() : TimingRole::hold();
-          lib_builder_->makeFromTransitionArcs(cell_, clk_port,
-                                               input_port, nullptr,
-                                               clk_rf, role, attrs);
+          if (clk_port) {
+            RiseFall *clk_rf = clk_edge->transition();
+            TimingRole *role = setup ? TimingRole::setup() : TimingRole::hold();
+            lib_builder_->makeFromTransitionArcs(cell_, clk_port,
+                                                 input_port, nullptr,
+                                                 clk_rf, role, attrs);
+          }
         }
       }
     }
@@ -420,20 +444,22 @@ MakeTimingModel::findClkedOutputPaths()
         RiseFallMinMax &delays = clk_edge_delay.second;
         for (const Pin *clk_pin : clk_edge->clock()->pins()) {
           LibertyPort *clk_port = modelPort(clk_pin);
-          RiseFall *clk_rf = clk_edge->transition();
-          TimingArcAttrsPtr attrs = nullptr;
-          for (RiseFall *output_rf : RiseFall::range()) {
-            float delay = delays.value(output_rf, min_max_) - clk_edge->time();
-            TimingModel *gate_model = makeGateModelTable(output_pin, delay, output_rf);
-            if (attrs == nullptr)
-              attrs = std::make_shared<TimingArcAttrs>();
-            attrs->setModel(output_rf, gate_model);
-          }
-          if (attrs) {
-            lib_builder_->makeFromTransitionArcs(cell_, clk_port,
-                                                 output_port, nullptr,
-                                                 clk_rf, TimingRole::regClkToQ(),
-                                                 attrs);
+          if (clk_port) {
+            RiseFall *clk_rf = clk_edge->transition();
+            TimingArcAttrsPtr attrs = nullptr;
+            for (RiseFall *output_rf : RiseFall::range()) {
+              float delay = delays.value(output_rf, min_max_) - clk_edge->time();
+              TimingModel *gate_model = makeGateModelTable(output_pin, delay, output_rf);
+              if (attrs == nullptr)
+                attrs = std::make_shared<TimingArcAttrs>();
+              attrs->setModel(output_rf, gate_model);
+            }
+            if (attrs) {
+              lib_builder_->makeFromTransitionArcs(cell_, clk_port,
+                                                   output_port, nullptr,
+                                                   clk_rf, TimingRole::regClkToQ(),
+                                                   attrs);
+            }
           }
         }
       }

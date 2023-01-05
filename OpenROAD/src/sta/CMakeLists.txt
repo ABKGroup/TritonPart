@@ -24,7 +24,7 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.14)
 cmake_policy(SET CMP0086 NEW)
 endif()
 
-project(STA VERSION 2.3.2
+project(STA VERSION 2.3.3
   LANGUAGES CXX
 )
 
@@ -173,7 +173,6 @@ set(STA_SOURCE
   search/PathRef.cc
   search/PathVertex.cc
   search/PathVertexRep.cc
-  search/Power.cc
   search/Property.cc
   search/ReportPath.cc
   search/Search.cc
@@ -188,6 +187,11 @@ set(STA_SOURCE
   search/VisitPathGroupVertices.cc
   search/WorstSlack.cc
   search/WritePathSpice.cc
+
+  power/Power.cc
+  power/ReadVcdActivities.cc
+  power/Vcd.cc
+  power/VcdReader.cc
 
   util/Debug.cc
   util/DispatchQueue.cc
@@ -215,6 +219,7 @@ set(STA_SOURCE
 
 # Source files.
 set(STA_TCL_FILES
+  tcl/Init.tcl
   tcl/Util.tcl
   tcl/Graph.tcl
   tcl/Liberty.tcl
@@ -226,10 +231,10 @@ set(STA_TCL_FILES
   tcl/Cmds.tcl
   tcl/Variables.tcl
   tcl/Sta.tcl
-  tcl/Power.tcl
   tcl/Splash.tcl
   dcalc/DelayCalc.tcl
   parasitics/Parasitics.tcl
+  power/Power.tcl
   sdf/Sdf.tcl
   verilog/Verilog.tcl
   )
@@ -312,18 +317,20 @@ set_property(SOURCE ${STA_SWIG_FILE}
   -I${STA_HOME}/sdf
   -I${STA_HOME}/dcalc
   -I${STA_HOME}/parasitics
+  -I${STA_HOME}/power
   -I${STA_HOME}/verilog
 )
 
 set_property(SOURCE ${STA_SWIG_FILE}
   PROPERTY DEPENDS
+  ${STA_HOME}/dcalc/DelayCalc.i
+  ${STA_HOME}/parasitics/Parasitics.i
+  ${STA_HOME}/power/Power.i
+  ${STA_HOME}/sdf/Sdf.i
   ${STA_HOME}/tcl/Exception.i
   ${STA_HOME}/tcl/StaTcl.i
-  ${STA_HOME}/verilog/Verilog.i
   ${STA_HOME}/tcl/NetworkEdit.i
-  ${STA_HOME}/sdf/Sdf.i
-  ${STA_HOME}/parasitics/Parasitics.i
-  ${STA_HOME}/dcalc/DelayCalc.i
+  ${STA_HOME}/verilog/Verilog.i
 )
 
 swig_add_library(sta_swig
@@ -337,7 +344,9 @@ get_target_property(SWIG_FILES sta_swig SOURCES)
 foreach(SWIG_FILE ${SWIG_FILES})
   set_source_files_properties(${SWIG_FILE}
     PROPERTIES
-    COMPILE_OPTIONS "-Wno-cast-qual;-Wno-missing-braces"
+    # No simple way to modify the swig template that emits code full of warnings
+    # so suppress them.
+    COMPILE_OPTIONS "-Wno-cast-qual;-Wno-missing-braces;-Wno-deprecated-declarations"
   )
 endforeach()
 
@@ -384,6 +393,31 @@ add_custom_command(OUTPUT ${STA_TCL_INIT}
 # Do not use REQUIRED because it also requires TK, which is not used by OpenSTA.
 find_package(TCL)
 
+option(USE_TCL_READLINE "Use TCL readliine package")
+
+set(TCL_READLINE 0)
+# check for tclReadline
+if (USE_TCL_READLINE)
+  find_library(TCL_READLINE_LIBRARY tclreadline)
+  if (TCL_READLINE_LIBRARY)
+    message(STATUS "TCL readline: ${TCL_READLINE_LIBRARY}")
+    # Referenced by StaConfig.hh.cmake
+    set(TCL_READLINE 1)
+
+    get_filename_component(TCL_READLINE_LIB_DIR "${TCL_READLINE_LIBRARY}" PATH)
+    get_filename_component(TCL_READLINE_LIB_PARENT "${TCL_READLINE_LIB_DIR}" PATH)
+    find_file(TCL_READLINE_HEADER tclreadline.h
+      PATHS ${TCL_READLINE_LIB_PARENT}
+      PATH_SUFFIXES include
+      NO_DEFAULT_PATH
+      )
+    message(STATUS "TCL readline header: ${TCL_READLINE_HEADER}")
+    get_filename_component(TCL_READLINE_INCLUDE "${TCL_READLINE_HEADER}" PATH)
+  else()
+    message(STATUS "TCL readline: not found")
+  endif()
+endif()
+
 # Zlib
 include(FindZLIB)
 
@@ -409,7 +443,7 @@ if (USE_CUDD)
     if (CUDD_HEADER)
       get_filename_component(CUDD_INCLUDE "${CUDD_HEADER}" PATH)
       message(STATUS "CUDD header: ${CUDD_HEADER}")
-      # CUDD referenced by StaConfig.hh.cmake
+      # Referenced by StaConfig.hh.cmake
       set(CUDD 1)
     else()
       message(STATUS "CUDD header: not found")
@@ -460,6 +494,7 @@ target_include_directories(OpenSTA
   PUBLIC
   include
   ${TCL_INCLUDE_PATH}
+  ${TCL_READLINE_INCLUDE}
 
   PRIVATE
   include/sta
@@ -496,6 +531,10 @@ target_link_libraries(sta
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
   )
+
+if (TCL_READLINE_LIBRARY)
+  target_link_libraries(sta ${TCL_READLINE_LIBRARY})
+endif()
 
 if (ZLIB_LIBRARIES)
   target_link_libraries(sta ${ZLIB_LIBRARIES})
