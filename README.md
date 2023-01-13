@@ -25,7 +25,8 @@ Currently our repo is under active development.
 ## How to build TritonPart
 The first step, independent of the build method, is to download the repository:
 - We implement our TritonPart based on OpenROAD app.  Please check the dependencies of [OpenROAD app](https://github.com/The-OpenROAD-Project/OpenROAD.git) first.  
-- We use Google OR-Tools as our ILP solver.  Please install Google OR-Tools following the [instructions](https://developers.google.com/optimization/install).
+- We use Google OR-Tools and CPLEX as our ILP solver.  Please install Google OR-Tools following the [instructions](https://developers.google.com/optimization/install) and CPLEX.
+- Please unload Anaconda from the environment.
 - Run following scripts
 ``` shell
 mkdir build
