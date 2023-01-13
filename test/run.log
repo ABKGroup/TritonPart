@@ -1,10 +1,10 @@
-OpenROAD 484ba28b33d561a2ef65226cd47f21f39efd5bf9 
+OpenROAD d7a7879f8a6576221fa73c105886ae09ab71cbe8 
 This program is licensed under the BSD-3 license. See the LICENSE file for details.
 Components of this program may be licensed under more restrictive licenses which must be honored.
 Starting TritonPart Partitioner
 Partition Parameters**
 Number of partitions = 5
-UBfactor = 2
+UBfactor = 2.0
 Vertex dimensions = 1
 Hyperedge dimensions = 1
 Hypergraph Information**
@@ -15,1163 +15,378 @@ Pre-processing hypergraph by temporarily removing hyperedges of size 50
 Post processing hypergraph information**
 #Vertices = 111221
 #Hyperedges = 138266
-[COARSEN] [ITER 0] num_vertices = 111221 num_hyperedges = 139557 tot_vertex_weights 111221.000000  tot_hyperedge_weights 139557.000000 
-[COARSEN] [ITER 1] num_vertices = 74147 num_hyperedges = 99591 tot_vertex_weights 111221.000000  tot_hyperedge_weights 108334.000000 
-[COARSEN] [ITER 2] num_vertices = 49431 num_hyperedges = 79327 tot_vertex_weights 111221.000000  tot_hyperedge_weights 87624.000000 
-[COARSEN] [ITER 3] num_vertices = 32953 num_hyperedges = 64382 tot_vertex_weights 111221.000000  tot_hyperedge_weights 73430.000000 
-[COARSEN] [ITER 4] num_vertices = 21968 num_hyperedges = 52838 tot_vertex_weights 111221.000000  tot_hyperedge_weights 62428.000000 
-[COARSEN] [ITER 5] num_vertices = 14645 num_hyperedges = 42900 tot_vertex_weights 111221.000000  tot_hyperedge_weights 53984.000000 
-[COARSEN] [ITER 6] num_vertices = 9763 num_hyperedges = 33646 tot_vertex_weights 111221.000000  tot_hyperedge_weights 47028.000000 
-[COARSEN] [ITER 7] num_vertices = 6508 num_hyperedges = 25012 tot_vertex_weights 111221.000000  tot_hyperedge_weights 41030.000000 
-[COARSEN] [ITER 8] num_vertices = 4338 num_hyperedges = 17746 tot_vertex_weights 111221.000000  tot_hyperedge_weights 35618.000000 
-[COARSEN] [ITER 9] num_vertices = 2891 num_hyperedges = 12070 tot_vertex_weights 111221.000000  tot_hyperedge_weights 30678.000000 
-[COARSEN] [ITER 10] num_vertices = 1927 num_hyperedges = 7851 tot_vertex_weights 111221.000000  tot_hyperedge_weights 26189.000000 
-[COARSEN] [ITER 11] num_vertices = 1284 num_hyperedges = 4969 tot_vertex_weights 111221.000000  tot_hyperedge_weights 21782.000000 
-[COARSEN] [ITER 12] num_vertices = 855 num_hyperedges = 3054 tot_vertex_weights 111221.000000  tot_hyperedge_weights 17676.000000 
-[COARSEN] [ITER 13] num_vertices = 569 num_hyperedges = 1887 tot_vertex_weights 111221.000000  tot_hyperedge_weights 14406.000000 
-[COARSEN] [ITER 14] num_vertices = 379 num_hyperedges = 1173 tot_vertex_weights 111221.000000  tot_hyperedge_weights 11010.000000 
-[COARSEN] [ITER 15] num_vertices = 252 num_hyperedges = 774 tot_vertex_weights 111221.000000  tot_hyperedge_weights 8647.000000 
-[COARSEN] [ITER 16] num_vertices = 167 num_hyperedges = 527 tot_vertex_weights 111221.000000  tot_hyperedge_weights 7178.000000 
-[INIT PART] 0 Init cutsize 2106
-[INIT PART] 1 Init cutsize 3021
-[INIT PART] 2 Init cutsize 1885
-[INIT PART] 3 Init cutsize 2478
-[INIT PART] 4 Init cutsize 2209
-[INIT PART] 5 Init cutsize 3966
-[INIT PART] 6 Init cutsize 2369
-[INIT PART] 7 Init cutsize 2005
-[INIT PART] 8 Init cutsize 2639
-[INIT PART] 9 Init cutsize 1843
-[INIT PART] 10 Init cutsize 1993
-[INIT PART] 11 Init cutsize 2682
-[INIT PART] 12 Init cutsize 1829
-[INIT PART] 13 Init cutsize 4007
-[INIT PART] 14 Init cutsize 2831
-[INIT PART] 15 Init cutsize 2770
-[INIT PART] 16 Init cutsize 2162
-[INIT PART] 17 Init cutsize 2321
-[INIT PART] 18 Init cutsize 2092
-[INIT PART] 19 Init cutsize 5202
-[INIT PART] Best init cutsize 1829
-[INIT PART] 20 Init cutsize 1415
-[INIT PART] Best init cutsize 1415
-[DEBUG] Wave front size 50 and set 106
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 159
-[DEBUG] Wave front size 50 and set 90
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 115
-[DEBUG] Wave front size 50 and set 110
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 126
-[DEBUG] Wave front size 50 and set 111
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 127
-[DEBUG] Wave front size 50 and set 93
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 115
-[DEBUG] Wave front size 50 and set 109
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 173
-[DEBUG] Wave front size 50 and set 108
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 105
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 178
-[DEBUG] Wave front size 50 and set 89
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 86
-[DEBUG] Max clusterid 53[DEBUG] ILP hypergraph contains 55 and 127
-[DEBUG] Wave front size 50 and set 162
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 158
-[DEBUG] Wave front size 50 and set 132
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 165
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 126
-[DEBUG] Wave front size 50 and set 159
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 162
-[DEBUG] Wave front size 50 and set 137
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 149
-[DEBUG] Wave front size 50 and set 172
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 127
-[DEBUG] Wave front size 50 and set 155
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 135
-[DEBUG] Wave front size 50 and set 167
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 122
-[DEBUG] Wave front size 50 and set 127
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 151
-[DEBUG] Wave front size 50 and set 141
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 145
-[DEBUG] Wave front size 50 and set 240
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 149
-[DEBUG] Wave front size 50 and set 211
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 127
-[DEBUG] Wave front size 50 and set 247
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 128
-[DEBUG] Wave front size 50 and set 234
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 114
-[DEBUG] Wave front size 50 and set 202
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 140
-[DEBUG] Wave front size 50 and set 242
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 142
-[DEBUG] Wave front size 50 and set 243
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 253
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 175
-[DEBUG] Wave front size 50 and set 198
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 116
-[DEBUG] Wave front size 50 and set 206
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 158
-[DEBUG] Wave front size 50 and set 349
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 191
-[DEBUG] Wave front size 50 and set 316
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 117
-[DEBUG] Wave front size 50 and set 378
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 142
-[DEBUG] Wave front size 50 and set 365
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 319
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 365
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 137
-[DEBUG] Wave front size 50 and set 361
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 132
-[DEBUG] Wave front size 50 and set 361
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 132
-[DEBUG] Wave front size 50 and set 303
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 130
-[DEBUG] Wave front size 50 and set 303
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 113
-[DEBUG] Wave front size 50 and set 531
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 214
-[DEBUG] Wave front size 50 and set 472
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 133
-[DEBUG] Wave front size 50 and set 563
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 117
-[DEBUG] Wave front size 50 and set 551
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 471
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 174
-[DEBUG] Wave front size 50 and set 543
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 134
-[DEBUG] Wave front size 50 and set 552
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 543
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 144
-[DEBUG] Wave front size 50 and set 459
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 125
-[DEBUG] Wave front size 50 and set 451
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 131
-[DEBUG] Wave front size 50 and set 791
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 273
-[DEBUG] Wave front size 50 and set 713
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 861
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 129
-[DEBUG] Wave front size 50 and set 826
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 112
-[DEBUG] Wave front size 50 and set 697
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 148
-[DEBUG] Wave front size 50 and set 807
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 112
-[DEBUG] Wave front size 50 and set 843
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 140
-[DEBUG] Wave front size 50 and set 825
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 101
-[DEBUG] Wave front size 50 and set 682
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 662
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 137
-[DEBUG] Wave front size 50 and set 1203
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 338
-[DEBUG] Wave front size 50 and set 1092
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 130
-[DEBUG] Wave front size 50 and set 1251
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 116
-[DEBUG] Wave front size 50 and set 1203
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 122
-[DEBUG] Wave front size 50 and set 1033
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 130
-[DEBUG] Wave front size 50 and set 1193
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 125
-[DEBUG] Wave front size 50 and set 1262
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 1251
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 109
-[DEBUG] Wave front size 50 and set 1043
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 161
-[DEBUG] Wave front size 50 and set 1032
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 1788
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 338
-[DEBUG] Wave front size 50 and set 1638
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 112
-[DEBUG] Wave front size 50 and set 1874
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 1833
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 1588
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 115
-[DEBUG] Wave front size 50 and set 1780
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 1883
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 86
-[DEBUG] Wave front size 50 and set 1830
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 1595
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 130
-[DEBUG] Wave front size 50 and set 1543
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 112
-[DEBUG] Wave front size 50 and set 2657
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 389
-[DEBUG] Wave front size 50 and set 2487
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 130
-[DEBUG] Wave front size 50 and set 2833
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 115
-[DEBUG] Wave front size 50 and set 2719
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 2381
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 128
-[DEBUG] Wave front size 50 and set 2664
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 100
-[DEBUG] Wave front size 50 and set 2826
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 106
-[DEBUG] Wave front size 50 and set 2772
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 114
-[DEBUG] Wave front size 50 and set 2374
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 110
-[DEBUG] Wave front size 50 and set 2321
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 4028
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 322
-[DEBUG] Wave front size 50 and set 3693
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 129
-[DEBUG] Wave front size 50 and set 4202
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 4063
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 106
-[DEBUG] Wave front size 50 and set 3576
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 130
-[DEBUG] Wave front size 50 and set 4050
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 112
-[DEBUG] Wave front size 50 and set 4180
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 91
-[DEBUG] Wave front size 50 and set 4168
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 3540
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 122
-[DEBUG] Wave front size 50 and set 3552
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 133
-[DEBUG] Wave front size 50 and set 6038
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 299
-[DEBUG] Wave front size 50 and set 5538
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 109
-[DEBUG] Wave front size 50 and set 6296
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 100
-[DEBUG] Wave front size 50 and set 6069
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 92
-[DEBUG] Wave front size 50 and set 5379
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 114
-[DEBUG] Wave front size 50 and set 6105
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 94
-[DEBUG] Wave front size 50 and set 6264
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 149
-[DEBUG] Wave front size 50 and set 6229
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 5314
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 5347
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 9097
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 246
-[DEBUG] Wave front size 50 and set 8283
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 9329
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 103
-[DEBUG] Wave front size 50 and set 9115
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 8129
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 9156
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 109
-[DEBUG] Wave front size 50 and set 9311
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 94
-[DEBUG] Wave front size 50 and set 9270
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 8070
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 115
-[DEBUG] Wave front size 50 and set 8111
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 13654
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 226
-[DEBUG] Wave front size 50 and set 12389
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 88
-[DEBUG] Wave front size 50 and set 14010
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 104
-[DEBUG] Wave front size 50 and set 13620
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 92
-[DEBUG] Wave front size 50 and set 13843
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 95
-[DEBUG] Wave front size 50 and set 12185
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 97
-[DEBUG] Wave front size 50 and set 14044
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 94
-[DEBUG] Wave front size 50 and set 13823
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 85
-[DEBUG] Wave front size 50 and set 11997
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 97
-[DEBUG] Wave front size 50 and set 12217
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 20438
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 219
-[DEBUG] Wave front size 50 and set 18703
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 101
-[DEBUG] Wave front size 50 and set 20905
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 92
-[DEBUG] Wave front size 50 and set 20233
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 21110
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 91
-[DEBUG] Wave front size 50 and set 20680
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 81
-[DEBUG] Wave front size 50 and set 18273
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 83
-[DEBUG] Wave front size 50 and set 20659
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 91
-[DEBUG] Wave front size 50 and set 18025
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 94
-[DEBUG] Wave front size 50 and set 18475
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 30444
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 176
-[DEBUG] Wave front size 50 and set 27710
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 79
-[DEBUG] Wave front size 50 and set 30030
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 80
-[DEBUG] Wave front size 50 and set 30942
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 77
-[DEBUG] Wave front size 50 and set 31334
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 78
-[DEBUG] Wave front size 50 and set 27082
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 92
-[DEBUG] Wave front size 50 and set 30710
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 86
-[DEBUG] Wave front size 50 and set 30646
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 88
-[DEBUG] Wave front size 50 and set 26784
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 100
-[DEBUG] Wave front size 50 and set 27474
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 88
-[DEBUG] Wave front size 50 and set 43964
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 179
-[DEBUG] Wave front size 50 and set 43300
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 39963
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 125
-[DEBUG] Wave front size 50 and set 44444
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 45069
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 44087
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 115
-[DEBUG] Wave front size 50 and set 39074
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 93
-[DEBUG] Wave front size 50 and set 44213
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 116
-[DEBUG] Wave front size 50 and set 38654
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 109
-[DEBUG] Wave front size 50 and set 39594
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 125
+[COARSEN] [ITER 0] num_vertices = 111221 num_hyperedges = 138266 tot_vertex_weights 111221.000000  tot_hyperedge_weights 138266.000000 
+[COARSEN] [ITER 1] num_vertices = 74147 num_hyperedges = 98272 tot_vertex_weights 111221.000000  tot_hyperedge_weights 107014.000000 
+[COARSEN] [ITER 2] num_vertices = 49431 num_hyperedges = 78235 tot_vertex_weights 111221.000000  tot_hyperedge_weights 86280.000000 
+[COARSEN] [ITER 3] num_vertices = 32953 num_hyperedges = 63298 tot_vertex_weights 111221.000000  tot_hyperedge_weights 71992.000000 
+[COARSEN] [ITER 4] num_vertices = 21968 num_hyperedges = 51636 tot_vertex_weights 111221.000000  tot_hyperedge_weights 61099.000000 
+[COARSEN] [ITER 5] num_vertices = 14645 num_hyperedges = 41836 tot_vertex_weights 111221.000000  tot_hyperedge_weights 52844.000000 
+[COARSEN] [ITER 6] num_vertices = 9763 num_hyperedges = 32825 tot_vertex_weights 111221.000000  tot_hyperedge_weights 46155.000000 
+[COARSEN] [ITER 7] num_vertices = 6508 num_hyperedges = 24450 tot_vertex_weights 111221.000000  tot_hyperedge_weights 40073.000000 
+[COARSEN] [ITER 8] num_vertices = 4338 num_hyperedges = 17019 tot_vertex_weights 111221.000000  tot_hyperedge_weights 34551.000000 
+[COARSEN] [ITER 9] num_vertices = 2891 num_hyperedges = 11166 tot_vertex_weights 111221.000000  tot_hyperedge_weights 29531.000000 
+[COARSEN] [ITER 10] num_vertices = 1927 num_hyperedges = 7088 tot_vertex_weights 111221.000000  tot_hyperedge_weights 24783.000000 
+[COARSEN] [ITER 11] num_vertices = 1284 num_hyperedges = 4237 tot_vertex_weights 111221.000000  tot_hyperedge_weights 20281.000000 
+[COARSEN] [ITER 12] num_vertices = 855 num_hyperedges = 2435 tot_vertex_weights 111221.000000  tot_hyperedge_weights 16249.000000 
+[COARSEN] [ITER 13] num_vertices = 569 num_hyperedges = 1345 tot_vertex_weights 111221.000000  tot_hyperedge_weights 12082.000000 
+[COARSEN] [ITER 14] num_vertices = 379 num_hyperedges = 665 tot_vertex_weights 111221.000000  tot_hyperedge_weights 8597.000000 
+[COARSEN] [ITER 15] num_vertices = 252 num_hyperedges = 326 tot_vertex_weights 111221.000000  tot_hyperedge_weights 5982.000000 
+[COARSEN] [ITER 16] num_vertices = 175 num_hyperedges = 125 tot_vertex_weights 111221.000000  tot_hyperedge_weights 4236.000000 
+num_vertices = 175
+num_hyperedges = 125
+vertex_weights.size() = 175
+hyperedge_weights.size() = 125
+[INIT PART]  solution id :  0  Init cutsize : 1805.0
+[INIT PART]  solution id :  1  Init cutsize : 2798.0
+[INIT PART]  solution id :  2  Init cutsize : 3200.0
+[INIT PART]  solution id :  3  Init cutsize : 1762.0
+[INIT PART]  solution id :  4  Init cutsize : 1452.0
+[INIT PART]  solution id :  5  Init cutsize : 1600.0
+[INIT PART]  solution id :  6  Init cutsize : 1629.0
+[INIT PART]  solution id :  7  Init cutsize : 2074.0
+[INIT PART]  solution id :  8  Init cutsize : 1866.0
+[INIT PART]  solution id :  9  Init cutsize : 2499.0
+[INIT PART]  solution id :  10  Init cutsize : 2972.0
+[INIT PART]  solution id :  11  Init cutsize : 2100.0
+[INIT PART]  solution id :  12  Init cutsize : 2551.0
+[INIT PART]  solution id :  13  Init cutsize : 1596.0
+[INIT PART]  solution id :  14  Init cutsize : 1688.0
+[INIT PART]  solution id :  15  Init cutsize : 2122.0
+[INIT PART]  solution id :  16  Init cutsize : 2006.0
+[INIT PART]  solution id :  17  Init cutsize : 1796.0
+[INIT PART]  solution id :  18  Init cutsize : 1583.0
+[INIT PART]  solution id :  19  Init cutsize : 2773.0
+[INIT PART] Best cutsize of random solutions : 1452.0
+[INIT PART]  ILP-based initial solution.  Init cutsize : 1331.0
+[INIT PART] Best init cutsize : 1331.0
+[REFINE] Refining 3 initial solutions in parallel
+[K-PM-FM] Hypergraph (252, 326): Refined cut 1583
+[K-PM-FM] Hypergraph (252, 326): Refined cut [K-PM-FM] Hypergraph (252, 326): Refined cut 1452
+1331
+[K-PM-FM] Hypergraph (379, 665): Refined cut 1512
+[K-PM-FM] Hypergraph (379, 665): Refined cut 1331
+[K-PM-FM] Hypergraph (379, 665): Refined cut 1452
+[K-PM-FM] Hypergraph (569, 1345): Refined cut 1327
+[K-PM-FM] Hypergraph (569, 1345): Refined cut 1451
+[K-PM-FM] Hypergraph (569, 1345): Refined cut 1510
+[K-PM-FM] Hypergraph (855, 2435): Refined cut 1510
+[K-PM-FM] Hypergraph (855, 2435): Refined cut 1327
+[K-PM-FM] Hypergraph (855, 2435): Refined cut 1450
+[K-PM-FM] Hypergraph (1284, 4237): Refined cut 1509
+[K-PM-FM] Hypergraph (1284, 4237): Refined cut 1324
+[K-PM-FM] Hypergraph (1284, 4237): Refined cut 1449
+[K-PM-FM] Hypergraph (1927, 7088): Refined cut 1506
+[K-PM-FM] Hypergraph (1927, 7088): Refined cut 1448
+[K-PM-FM] Hypergraph (1927, 7088): Refined cut 1322
+[K-PM-FM] Hypergraph (2891, 11166): Refined cut 1506
+[K-PM-FM] Hypergraph (2891, 11166): Refined cut 1446
+[K-PM-FM] Hypergraph (2891, 11166): Refined cut 1317
+[K-PM-FM] Hypergraph (4338, 17019): Refined cut 1498
+[K-PM-FM] Hypergraph (4338, 17019): Refined cut 1298
+[K-PM-FM] Hypergraph (4338, 17019): Refined cut 1439
+[K-PM-FM] Hypergraph (6508, 24450): Refined cut 1489
+[K-PM-FM] Hypergraph (6508, 24450): Refined cut 1290
+[K-PM-FM] Hypergraph (6508, 24450): Refined cut 1436
+[K-PM-FM] Hypergraph (9763, 32825): Refined cut 1463
+[K-PM-FM] Hypergraph (9763, 32825): Refined cut 1426
+[K-PM-FM] Hypergraph (9763, 32825): Refined cut 1268
+[K-PM-FM] Hypergraph (14645, 41836): Refined cut 1432
+[K-PM-FM] Hypergraph (14645, 41836): Refined cut 1199
+[K-PM-FM] Hypergraph (14645, 41836): Refined cut 1378
+[K-PM-FM] Hypergraph (21968, 51636): Refined cut 1358
+[K-PM-FM] Hypergraph (21968, 51636): Refined cut 1125
+[K-PM-FM] Hypergraph (21968, 51636): Refined cut 1328
+[K-PM-FM] Hypergraph (32953, 63298): Refined cut 1287
+[K-PM-FM] Hypergraph (32953, 63298): Refined cut 1094
+[K-PM-FM] Hypergraph (32953, 63298): Refined cut 1285
+[K-PM-FM] Hypergraph (49431, 78235): Refined cut 1008
+[K-PM-FM] Hypergraph (49431, 78235): Refined cut 1202
+[K-PM-FM] Hypergraph (49431, 78235): Refined cut 1210
+[K-PM-FM] Hypergraph (74147, 98272): Refined cut 973
+[K-PM-FM] Hypergraph (74147, 98272): Refined cut 1151
+[K-PM-FM] Hypergraph (74147, 98272): Refined cut 1143
+[K-PM-FM] Hypergraph (111221, 138266): Refined cut 941
+[K-PM-FM] Hypergraph (111221, 138266): Refined cut 1116
+[K-PM-FM] Hypergraph (111221, 138266): Refined cut 1105
+[PARTITION] Refined solution id : 0, refined cutsize : 941.0
+[PARTITION] Refined solution id : 1, refined cutsize : 1116.0
+[PARTITION] Refined solution id : 2, refined cutsize : 1105.0
+[BEST CUT] Best partition has cutsize : 941.0
 [INFO PAR-3939] V-cycle Iteration 0
 
-[COARSEN] [ITER 0] num_vertices = 111221 num_hyperedges = 139557 tot_vertex_weights 111221.000000  tot_hyperedge_weights 139557.000000 
-[COARSEN] [ITER 1] num_vertices = 74147 num_hyperedges = 99597 tot_vertex_weights 111221.000000  tot_hyperedge_weights 108325.000000 
-[COARSEN] [ITER 2] num_vertices = 49431 num_hyperedges = 79387 tot_vertex_weights 111221.000000  tot_hyperedge_weights 87677.000000 
-[COARSEN] [ITER 3] num_vertices = 32953 num_hyperedges = 64445 tot_vertex_weights 111221.000000  tot_hyperedge_weights 73286.000000 
-[COARSEN] [ITER 4] num_vertices = 21968 num_hyperedges = 52963 tot_vertex_weights 111221.000000  tot_hyperedge_weights 62362.000000 
-[COARSEN] [ITER 5] num_vertices = 14645 num_hyperedges = 42964 tot_vertex_weights 111221.000000  tot_hyperedge_weights 54241.000000 
-[COARSEN] [ITER 6] num_vertices = 9763 num_hyperedges = 33607 tot_vertex_weights 111221.000000  tot_hyperedge_weights 47396.000000 
-[COARSEN] [ITER 7] num_vertices = 6508 num_hyperedges = 25053 tot_vertex_weights 111221.000000  tot_hyperedge_weights 41230.000000 
-[COARSEN] [ITER 8] num_vertices = 4338 num_hyperedges = 17734 tot_vertex_weights 111221.000000  tot_hyperedge_weights 35585.000000 
-[COARSEN] [ITER 9] num_vertices = 2891 num_hyperedges = 11811 tot_vertex_weights 111221.000000  tot_hyperedge_weights 30447.000000 
-[COARSEN] [ITER 10] num_vertices = 1927 num_hyperedges = 7383 tot_vertex_weights 111221.000000  tot_hyperedge_weights 25247.000000 
-[COARSEN] [ITER 11] num_vertices = 1284 num_hyperedges = 4513 tot_vertex_weights 111221.000000  tot_hyperedge_weights 20732.000000 
-[COARSEN] [ITER 12] num_vertices = 855 num_hyperedges = 2680 tot_vertex_weights 111221.000000  tot_hyperedge_weights 16658.000000 
-[COARSEN] [ITER 13] num_vertices = 569 num_hyperedges = 1587 tot_vertex_weights 111221.000000  tot_hyperedge_weights 13095.000000 
-[COARSEN] [ITER 14] num_vertices = 379 num_hyperedges = 1078 tot_vertex_weights 111221.000000  tot_hyperedge_weights 10453.000000 
-[COARSEN] [ITER 15] num_vertices = 252 num_hyperedges = 744 tot_vertex_weights 111221.000000  tot_hyperedge_weights 8033.000000 
-[COARSEN] [ITER 16] num_vertices = 167 num_hyperedges = 539 tot_vertex_weights 111221.000000  tot_hyperedge_weights 6473.000000 
-[INFO PAR-2910] Cutsize (cost): 1180.00
-[INFO PAR-2911] Vertex balance of block_0 : 0.20401  ( 22690.00000 )    
-cutsize : 1180
-balance : Vertex balance of block_0 : 0.20401  ( 22690.00000 )    
-[INFO PAR-2911] Vertex balance of block_1 : 0.21411  ( 23814.00000 )    
-cutsize : 1180
-balance : Vertex balance of block_1 : 0.21411  ( 23814.00000 )    
-[INFO PAR-2911] Vertex balance of block_2 : 0.20677  ( 22997.00000 )    
-cutsize : 1180
-balance : Vertex balance of block_2 : 0.20677  ( 22997.00000 )    
-[INFO PAR-2911] Vertex balance of block_3 : 0.21167  ( 23542.00000 )    
-cutsize : 1180
-balance : Vertex balance of block_3 : 0.21167  ( 23542.00000 )    
-[INFO PAR-2911] Vertex balance of block_4 : 0.16344  ( 18178.00000 )    
-cutsize : 1180
-balance : Vertex balance of block_4 : 0.16344  ( 18178.00000 )    
-[DEBUG] Wave front size 50 and set 82
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 114
-[DEBUG] Wave front size 50 and set 58
-[DEBUG] Max clusterid 53[DEBUG] ILP hypergraph contains 55 and 175
-[DEBUG] Wave front size 50 and set 57
-[DEBUG] Max clusterid 53[DEBUG] ILP hypergraph contains 55 and 163
-[DEBUG] Wave front size 50 and set 51
-[DEBUG] Max clusterid 53[DEBUG] ILP hypergraph contains 55 and 251
-[DEBUG] Wave front size 50 and set 48
-[DEBUG] Max clusterid 50[DEBUG] ILP hypergraph contains 51 and 233
-[DEBUG] Wave front size 50 and set 81
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 163
-[DEBUG] Wave front size 50 and set 57
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 235
-[DEBUG] Wave front size 50 and set 66
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 189
-[DEBUG] Wave front size 50 and set 72
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 141
-[DEBUG] Wave front size 50 and set 70
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 243
-[DEBUG] Wave front size 50 and set 88
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 136
-[DEBUG] Wave front size 50 and set 122
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 93
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 159
-[DEBUG] Wave front size 50 and set 90
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 227
-[DEBUG] Wave front size 50 and set 96
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 223
-[DEBUG] Wave front size 50 and set 85
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 156
-[DEBUG] Wave front size 50 and set 113
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 117
-[DEBUG] Wave front size 50 and set 119
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 128
-[DEBUG] Wave front size 50 and set 91
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 150
-[DEBUG] Wave front size 50 and set 114
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 120
-[DEBUG] Wave front size 50 and set 138
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 134
-[DEBUG] Wave front size 50 and set 181
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 89
-[DEBUG] Wave front size 50 and set 179
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 128
-[DEBUG] Wave front size 50 and set 127
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 213
-[DEBUG] Wave front size 50 and set 186
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 146
-[DEBUG] Wave front size 50 and set 131
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 134
-[DEBUG] Wave front size 50 and set 122
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 130
-[DEBUG] Wave front size 50 and set 153
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 151
-[DEBUG] Wave front size 50 and set 166
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 138
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 129
-[DEBUG] Wave front size 50 and set 278
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 135
-[DEBUG] Wave front size 50 and set 255
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 196
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 226
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 266
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 116
-[DEBUG] Wave front size 50 and set 208
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 95
-[DEBUG] Wave front size 50 and set 216
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 102
-[DEBUG] Wave front size 50 and set 200
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 142
-[DEBUG] Wave front size 50 and set 249
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 113
-[DEBUG] Wave front size 50 and set 183
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 117
-[DEBUG] Wave front size 50 and set 300
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 202
-[DEBUG] Wave front size 50 and set 397
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 154
-[DEBUG] Wave front size 50 and set 398
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 112
-[DEBUG] Wave front size 50 and set 311
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 135
-[DEBUG] Wave front size 50 and set 304
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 132
-[DEBUG] Wave front size 50 and set 393
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 132
-[DEBUG] Wave front size 50 and set 319
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 130
-[DEBUG] Wave front size 50 and set 311
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 129
-[DEBUG] Wave front size 50 and set 383
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 110
-[DEBUG] Wave front size 50 and set 302
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 133
-[DEBUG] Wave front size 50 and set 476
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 247
-[DEBUG] Wave front size 50 and set 550
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 120
-[DEBUG] Wave front size 50 and set 566
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 89
-[DEBUG] Wave front size 50 and set 499
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 145
-[DEBUG] Wave front size 50 and set 565
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 461
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 130
-[DEBUG] Wave front size 50 and set 515
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 156
-[DEBUG] Wave front size 50 and set 502
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 120
-[DEBUG] Wave front size 50 and set 525
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 475
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 132
-[DEBUG] Wave front size 50 and set 839
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 271
-[DEBUG] Wave front size 50 and set 709
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 128
-[DEBUG] Wave front size 50 and set 815
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 766
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 114
-[DEBUG] Wave front size 50 and set 822
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 121
-[DEBUG] Wave front size 50 and set 702
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 173
-[DEBUG] Wave front size 50 and set 787
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 124
-[DEBUG] Wave front size 50 and set 783
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 132
-[DEBUG] Wave front size 50 and set 760
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 722
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 122
-[DEBUG] Wave front size 50 and set 1142
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 309
-[DEBUG] Wave front size 50 and set 1184
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 117
-[DEBUG] Wave front size 50 and set 1150
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 134
-[DEBUG] Wave front size 50 and set 1220
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 112
-[DEBUG] Wave front size 50 and set 1054
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 132
-[DEBUG] Wave front size 50 and set 1166
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 121
-[DEBUG] Wave front size 50 and set 1252
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 124
-[DEBUG] Wave front size 50 and set 1238
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 121
-[DEBUG] Wave front size 50 and set 1072
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 134
-[DEBUG] Wave front size 50 and set 1086
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 139
-[DEBUG] Wave front size 50 and set 1845
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 381
-[DEBUG] Wave front size 50 and set 1854
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 116
-[DEBUG] Wave front size 50 and set 1595
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 114
-[DEBUG] Wave front size 50 and set 1820
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 126
-[DEBUG] Wave front size 50 and set 1753
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 102
-[DEBUG] Wave front size 50 and set 1620
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 114
-[DEBUG] Wave front size 50 and set 1787
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 1762
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 121
-[DEBUG] Wave front size 50 and set 1687
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 113
-[DEBUG] Wave front size 50 and set 1629
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 129
-[DEBUG] Wave front size 50 and set 2741
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 375
-[DEBUG] Wave front size 50 and set 2741
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 114
-[DEBUG] Wave front size 50 and set 2416
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 117
-[DEBUG] Wave front size 50 and set 2655
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 2692
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 2465
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 2704
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 104
-[DEBUG] Wave front size 50 and set 2653
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 2502
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 117
-[DEBUG] Wave front size 50 and set 2463
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 124
-[DEBUG] Wave front size 50 and set 3687
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 365
-[DEBUG] Wave front size 50 and set 4060
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 4054
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 101
-[DEBUG] Wave front size 50 and set 4015
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 4035
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 3706
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 123
-[DEBUG] Wave front size 50 and set 4040
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 113
-[DEBUG] Wave front size 50 and set 4017
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 122
-[DEBUG] Wave front size 50 and set 3728
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 3710
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 115
-[DEBUG] Wave front size 50 and set 6115
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 382
-[DEBUG] Wave front size 50 and set 6027
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 121
-[DEBUG] Wave front size 50 and set 5543
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 6012
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 113
-[DEBUG] Wave front size 50 and set 5959
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 113
-[DEBUG] Wave front size 50 and set 5559
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 103
-[DEBUG] Wave front size 50 and set 6063
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 123
-[DEBUG] Wave front size 50 and set 6046
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 5611
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 110
-[DEBUG] Wave front size 50 and set 5648
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 104
-[DEBUG] Wave front size 50 and set 9191
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 343
-[DEBUG] Wave front size 50 and set 9063
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 106
-[DEBUG] Wave front size 50 and set 8314
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 9015
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 103
-[DEBUG] Wave front size 50 and set 8877
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 99
-[DEBUG] Wave front size 50 and set 8362
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 110
-[DEBUG] Wave front size 50 and set 9054
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 81
-[DEBUG] Wave front size 50 and set 9005
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 8500
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 8490
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 117
-[DEBUG] Wave front size 50 and set 13596
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 218
-[DEBUG] Wave front size 50 and set 13743
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 113
-[DEBUG] Wave front size 50 and set 12463
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 13538
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 95
-[DEBUG] Wave front size 50 and set 13425
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 99
-[DEBUG] Wave front size 50 and set 12521
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 95
-[DEBUG] Wave front size 50 and set 13633
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 13571
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 97
-[DEBUG] Wave front size 50 and set 12633
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 100
-[DEBUG] Wave front size 50 and set 12667
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 101
-[DEBUG] Wave front size 50 and set 20325
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 171
-[DEBUG] Wave front size 50 and set 20500
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 92
-[DEBUG] Wave front size 50 and set 18728
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 95
-[DEBUG] Wave front size 50 and set 20279
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 91
-[DEBUG] Wave front size 50 and set 20252
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 91
-[DEBUG] Wave front size 50 and set 18773
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 89
-[DEBUG] Wave front size 50 and set 20473
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 93
-[DEBUG] Wave front size 50 and set 20425
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 101
-[DEBUG] Wave front size 50 and set 18798
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 90
-[DEBUG] Wave front size 50 and set 18944
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 87
-[DEBUG] Wave front size 50 and set 30411
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 184
-[DEBUG] Wave front size 50 and set 30265
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 79
-[DEBUG] Wave front size 50 and set 27769
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 90
-[DEBUG] Wave front size 50 and set 30170
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 77
-[DEBUG] Wave front size 50 and set 30177
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 79
-[DEBUG] Wave front size 50 and set 27844
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 82
-[DEBUG] Wave front size 50 and set 30399
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 88
-[DEBUG] Wave front size 50 and set 30316
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 82
-[DEBUG] Wave front size 50 and set 27840
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 81
-[DEBUG] Wave front size 50 and set 27981
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 91
-[DEBUG] Wave front size 50 and set 43868
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 165
-[DEBUG] Wave front size 50 and set 43593
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 103
-[DEBUG] Wave front size 50 and set 40064
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 110
-[DEBUG] Wave front size 50 and set 43399
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 117
-[DEBUG] Wave front size 50 and set 43362
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 109
-[DEBUG] Wave front size 50 and set 40162
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 80
-[DEBUG] Wave front size 50 and set 43743
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 112
-[DEBUG] Wave front size 50 and set 43634
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 123
-[DEBUG] Wave front size 50 and set 40155
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 40338
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 122
-[INFO PAR-2910] Cutsize (cost): 1167.00
-[INFO PAR-2911] Vertex balance of block_0 : 0.20599  ( 22910.00000 )    
-cutsize : 1167
-balance : Vertex balance of block_0 : 0.20599  ( 22910.00000 )    
-[INFO PAR-2911] Vertex balance of block_1 : 0.20687  ( 23008.00000 )    
-cutsize : 1167
-balance : Vertex balance of block_1 : 0.20687  ( 23008.00000 )    
-[INFO PAR-2911] Vertex balance of block_2 : 0.20840  ( 23179.00000 )    
-cutsize : 1167
-balance : Vertex balance of block_2 : 0.20840  ( 23179.00000 )    
-[INFO PAR-2911] Vertex balance of block_3 : 0.20443  ( 22737.00000 )    
-cutsize : 1167
-balance : Vertex balance of block_3 : 0.20443  ( 22737.00000 )    
-[INFO PAR-2911] Vertex balance of block_4 : 0.17431  ( 19387.00000 )    
-cutsize : 1167
-balance : Vertex balance of block_4 : 0.17431  ( 19387.00000 )    
+[COARSEN] [ITER 0] num_vertices = 111221 num_hyperedges = 138266 tot_vertex_weights 111221.000000  tot_hyperedge_weights 138266.000000 
+[COARSEN] [ITER 1] num_vertices = 74147 num_hyperedges = 98278 tot_vertex_weights 111221.000000  tot_hyperedge_weights 107009.000000 
+[COARSEN] [ITER 2] num_vertices = 49431 num_hyperedges = 78206 tot_vertex_weights 111221.000000  tot_hyperedge_weights 86628.000000 
+[COARSEN] [ITER 3] num_vertices = 32953 num_hyperedges = 63331 tot_vertex_weights 111221.000000  tot_hyperedge_weights 71906.000000 
+[COARSEN] [ITER 4] num_vertices = 21968 num_hyperedges = 51649 tot_vertex_weights 111221.000000  tot_hyperedge_weights 61142.000000 
+[COARSEN] [ITER 5] num_vertices = 14645 num_hyperedges = 41965 tot_vertex_weights 111221.000000  tot_hyperedge_weights 52854.000000 
+[COARSEN] [ITER 6] num_vertices = 9763 num_hyperedges = 33049 tot_vertex_weights 111221.000000  tot_hyperedge_weights 45922.000000 
+[COARSEN] [ITER 7] num_vertices = 6508 num_hyperedges = 24764 tot_vertex_weights 111221.000000  tot_hyperedge_weights 40187.000000 
+[COARSEN] [ITER 8] num_vertices = 4338 num_hyperedges = 17365 tot_vertex_weights 111221.000000  tot_hyperedge_weights 34891.000000 
+[COARSEN] [ITER 9] num_vertices = 2891 num_hyperedges = 11333 tot_vertex_weights 111221.000000  tot_hyperedge_weights 29635.000000 
+[COARSEN] [ITER 10] num_vertices = 1927 num_hyperedges = 6928 tot_vertex_weights 111221.000000  tot_hyperedge_weights 24516.000000 
+[COARSEN] [ITER 11] num_vertices = 1284 num_hyperedges = 3952 tot_vertex_weights 111221.000000  tot_hyperedge_weights 19704.000000 
+[COARSEN] [ITER 12] num_vertices = 855 num_hyperedges = 2237 tot_vertex_weights 111221.000000  tot_hyperedge_weights 15370.000000 
+[COARSEN] [ITER 13] num_vertices = 569 num_hyperedges = 1141 tot_vertex_weights 111221.000000  tot_hyperedge_weights 11507.000000 
+[COARSEN] [ITER 14] num_vertices = 379 num_hyperedges = 548 tot_vertex_weights 111221.000000  tot_hyperedge_weights 7716.000000 
+[COARSEN] [ITER 15] num_vertices = 252 num_hyperedges = 234 tot_vertex_weights 111221.000000  tot_hyperedge_weights 4272.000000 
+[COARSEN] [ITER 16] num_vertices = 234 num_hyperedges = 172 tot_vertex_weights 111221.000000  tot_hyperedge_weights 3754.000000 
+[K-PM-FM] Hypergraph (234, 172): Refined cut 935
+[K-PM-FM] Hypergraph (252, 234): Refined cut 935
+[K-PM-FM] Hypergraph (379, 548): Refined cut 935
+[K-PM-FM] Hypergraph (569, 1141): Refined cut 933
+[K-PM-FM] Hypergraph (855, 2237): Refined cut 933
+[K-PM-FM] Hypergraph (1284, 3952): Refined cut 932
+[K-PM-FM] Hypergraph (1927, 6928): Refined cut 932
+[K-PM-FM] Hypergraph (2891, 11333): Refined cut 932
+[K-PM-FM] Hypergraph (4338, 17365): Refined cut 932
+[K-PM-FM] Hypergraph (6508, 24764): Refined cut 932
+[K-PM-FM] Hypergraph (9763, 33049): Refined cut 932
+[K-PM-FM] Hypergraph (14645, 41965): Refined cut 932
+[K-PM-FM] Hypergraph (21968, 51649): Refined cut 931
+[K-PM-FM] Hypergraph (32953, 63331): Refined cut 929
+[K-PM-FM] Hypergraph (49431, 78206): Refined cut 929
+[K-PM-FM] Hypergraph (74147, 98278): Refined cut 914
+[K-PM-FM] Hypergraph (111221, 138266): Refined cut 892
+[INFO PAR-2910] Cutsize (cost): 892.00
+[INFO PAR-2911] Vertex balance of block_0 : 0.21291  ( 23680.00000 )    
+cutsize : 892
+balance : Vertex balance of block_0 : 0.21291  ( 23680.00000 )    
+[INFO PAR-2911] Vertex balance of block_1 : 0.21626  ( 24053.00000 )    
+cutsize : 892
+balance : Vertex balance of block_1 : 0.21626  ( 24053.00000 )    
+[INFO PAR-2911] Vertex balance of block_2 : 0.21199  ( 23578.00000 )    
+cutsize : 892
+balance : Vertex balance of block_2 : 0.21199  ( 23578.00000 )    
+[INFO PAR-2911] Vertex balance of block_3 : 0.14817  ( 16480.00000 )    
+cutsize : 892
+balance : Vertex balance of block_3 : 0.14817  ( 16480.00000 )    
+[INFO PAR-2911] Vertex balance of block_4 : 0.21066  ( 23430.00000 )    
+cutsize : 892
+balance : Vertex balance of block_4 : 0.21066  ( 23430.00000 )    
 [INFO PAR-3939] V-cycle Iteration 1
 
-[COARSEN] [ITER 0] num_vertices = 111221 num_hyperedges = 139557 tot_vertex_weights 111221.000000  tot_hyperedge_weights 139557.000000 
-[COARSEN] [ITER 1] num_vertices = 74147 num_hyperedges = 99602 tot_vertex_weights 111221.000000  tot_hyperedge_weights 108337.000000 
-[COARSEN] [ITER 2] num_vertices = 49431 num_hyperedges = 79401 tot_vertex_weights 111221.000000  tot_hyperedge_weights 87853.000000 
-[COARSEN] [ITER 3] num_vertices = 32953 num_hyperedges = 64492 tot_vertex_weights 111221.000000  tot_hyperedge_weights 73174.000000 
-[COARSEN] [ITER 4] num_vertices = 21968 num_hyperedges = 53007 tot_vertex_weights 111221.000000  tot_hyperedge_weights 62589.000000 
-[COARSEN] [ITER 5] num_vertices = 14645 num_hyperedges = 42918 tot_vertex_weights 111221.000000  tot_hyperedge_weights 54142.000000 
-[COARSEN] [ITER 6] num_vertices = 9763 num_hyperedges = 33596 tot_vertex_weights 111221.000000  tot_hyperedge_weights 47421.000000 
-[COARSEN] [ITER 7] num_vertices = 6508 num_hyperedges = 24976 tot_vertex_weights 111221.000000  tot_hyperedge_weights 41332.000000 
-[COARSEN] [ITER 8] num_vertices = 4338 num_hyperedges = 17596 tot_vertex_weights 111221.000000  tot_hyperedge_weights 35805.000000 
-[COARSEN] [ITER 9] num_vertices = 2891 num_hyperedges = 11729 tot_vertex_weights 111221.000000  tot_hyperedge_weights 30552.000000 
-[COARSEN] [ITER 10] num_vertices = 1927 num_hyperedges = 7550 tot_vertex_weights 111221.000000  tot_hyperedge_weights 25630.000000 
-[COARSEN] [ITER 11] num_vertices = 1284 num_hyperedges = 4612 tot_vertex_weights 111221.000000  tot_hyperedge_weights 21040.000000 
-[COARSEN] [ITER 12] num_vertices = 855 num_hyperedges = 2740 tot_vertex_weights 111221.000000  tot_hyperedge_weights 16677.000000 
-[COARSEN] [ITER 13] num_vertices = 569 num_hyperedges = 1692 tot_vertex_weights 111221.000000  tot_hyperedge_weights 13500.000000 
-[COARSEN] [ITER 14] num_vertices = 379 num_hyperedges = 1156 tot_vertex_weights 111221.000000  tot_hyperedge_weights 10516.000000 
-[COARSEN] [ITER 15] num_vertices = 252 num_hyperedges = 790 tot_vertex_weights 111221.000000  tot_hyperedge_weights 8146.000000 
-[COARSEN] [ITER 16] num_vertices = 167 num_hyperedges = 524 tot_vertex_weights 111221.000000  tot_hyperedge_weights 6399.000000 
-[INFO PAR-2910] Cutsize (cost): 1167.00
-[INFO PAR-2911] Vertex balance of block_0 : 0.20599  ( 22910.00000 )    
-cutsize : 1167
-balance : Vertex balance of block_0 : 0.20599  ( 22910.00000 )    
-[INFO PAR-2911] Vertex balance of block_1 : 0.20687  ( 23008.00000 )    
-cutsize : 1167
-balance : Vertex balance of block_1 : 0.20687  ( 23008.00000 )    
-[INFO PAR-2911] Vertex balance of block_2 : 0.20840  ( 23179.00000 )    
-cutsize : 1167
-balance : Vertex balance of block_2 : 0.20840  ( 23179.00000 )    
-[INFO PAR-2911] Vertex balance of block_3 : 0.20443  ( 22737.00000 )    
-cutsize : 1167
-balance : Vertex balance of block_3 : 0.20443  ( 22737.00000 )    
-[INFO PAR-2911] Vertex balance of block_4 : 0.17431  ( 19387.00000 )    
-cutsize : 1167
-balance : Vertex balance of block_4 : 0.17431  ( 19387.00000 )    
-[DEBUG] Wave front size 50 and set 83
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 122
-[DEBUG] Wave front size 50 and set 62
-[DEBUG] Max clusterid 53[DEBUG] ILP hypergraph contains 55 and 213
-[DEBUG] Wave front size 50 and set 57
-[DEBUG] Max clusterid 53[DEBUG] ILP hypergraph contains 55 and 131
-[DEBUG] Wave front size 50 and set 62
-[DEBUG] Max clusterid 53[DEBUG] ILP hypergraph contains 55 and 201
-[DEBUG] Wave front size 50 and set 56
-[DEBUG] Max clusterid 53[DEBUG] ILP hypergraph contains 55 and 189
-[DEBUG] Wave front size 50 and set 55
-[DEBUG] Max clusterid 53[DEBUG] ILP hypergraph contains 55 and 159
-[DEBUG] Wave front size 50 and set 73
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 147
-[DEBUG] Wave front size 50 and set 78
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 158
-[DEBUG] Wave front size 50 and set 64
-[DEBUG] Max clusterid 53[DEBUG] ILP hypergraph contains 55 and 144
-[DEBUG] Wave front size 50 and set 82
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 126
-[DEBUG] Wave front size 50 and set 101
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 135
-[DEBUG] Wave front size 50 and set 90
-[DEBUG] Max clusterid 53[DEBUG] ILP hypergraph contains 55 and 148
-[DEBUG] Wave front size 50 and set 110
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 124
-[DEBUG] Wave front size 50 and set 108
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 143
-[DEBUG] Wave front size 50 and set 87
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 147
-[DEBUG] Wave front size 50 and set 90
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 135
-[DEBUG] Wave front size 50 and set 112
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 192
-[DEBUG] Wave front size 50 and set 114
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 97
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 148
-[DEBUG] Wave front size 50 and set 114
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 156
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 147
-[DEBUG] Wave front size 50 and set 163
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 139
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 138
-[DEBUG] Wave front size 50 and set 171
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 113
-[DEBUG] Wave front size 50 and set 140
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 127
-[DEBUG] Wave front size 50 and set 172
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 117
-[DEBUG] Wave front size 50 and set 132
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 150
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 149
-[DEBUG] Wave front size 50 and set 166
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 137
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 154
-[DEBUG] Wave front size 50 and set 193
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 182
-[DEBUG] Wave front size 50 and set 280
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 99
-[DEBUG] Wave front size 50 and set 259
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 96
-[DEBUG] Wave front size 50 and set 198
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 162
-[DEBUG] Wave front size 50 and set 213
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 109
-[DEBUG] Wave front size 50 and set 187
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 137
-[DEBUG] Wave front size 50 and set 265
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 109
-[DEBUG] Wave front size 50 and set 219
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 148
-[DEBUG] Wave front size 50 and set 254
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 92
-[DEBUG] Wave front size 50 and set 207
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 396
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 296
-[DEBUG] Wave front size 50 and set 390
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 116
-[DEBUG] Wave front size 50 and set 298
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 141
-[DEBUG] Wave front size 50 and set 329
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 123
-[DEBUG] Wave front size 50 and set 301
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 127
-[DEBUG] Wave front size 50 and set 322
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 129
-[DEBUG] Wave front size 50 and set 393
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 117
-[DEBUG] Wave front size 50 and set 325
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 140
-[DEBUG] Wave front size 50 and set 372
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 104
-[DEBUG] Wave front size 50 and set 304
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 562
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 343
-[DEBUG] Wave front size 50 and set 460
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 127
-[DEBUG] Wave front size 50 and set 588
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 479
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 136
-[DEBUG] Wave front size 50 and set 451
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 133
-[DEBUG] Wave front size 50 and set 494
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 139
-[DEBUG] Wave front size 50 and set 572
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 128
-[DEBUG] Wave front size 50 and set 506
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 545
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 481
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 830
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 343
-[DEBUG] Wave front size 50 and set 707
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 137
-[DEBUG] Wave front size 50 and set 845
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 766
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 110
-[DEBUG] Wave front size 50 and set 691
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 145
-[DEBUG] Wave front size 50 and set 762
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 122
-[DEBUG] Wave front size 50 and set 849
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 778
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 101
-[DEBUG] Wave front size 50 and set 774
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 137
-[DEBUG] Wave front size 50 and set 703
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 114
-[DEBUG] Wave front size 50 and set 1241
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 362
-[DEBUG] Wave front size 50 and set 1075
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 135
-[DEBUG] Wave front size 50 and set 1240
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 127
-[DEBUG] Wave front size 50 and set 1179
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 123
-[DEBUG] Wave front size 50 and set 1048
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 126
-[DEBUG] Wave front size 50 and set 1151
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 115
-[DEBUG] Wave front size 50 and set 1268
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 119
-[DEBUG] Wave front size 50 and set 1178
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 112
-[DEBUG] Wave front size 50 and set 1137
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 135
-[DEBUG] Wave front size 50 and set 1048
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 114
-[DEBUG] Wave front size 50 and set 1804
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 340
-[DEBUG] Wave front size 50 and set 1839
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 121
-[DEBUG] Wave front size 50 and set 1633
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 100
-[DEBUG] Wave front size 50 and set 1799
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 123
-[DEBUG] Wave front size 50 and set 1767
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 129
-[DEBUG] Wave front size 50 and set 1636
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 102
-[DEBUG] Wave front size 50 and set 1836
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 121
-[DEBUG] Wave front size 50 and set 1764
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 127
-[DEBUG] Wave front size 50 and set 1672
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 116
-[DEBUG] Wave front size 50 and set 1600
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 129
-[DEBUG] Wave front size 50 and set 2744
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 385
-[DEBUG] Wave front size 50 and set 2677
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 104
-[DEBUG] Wave front size 50 and set 2456
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 106
-[DEBUG] Wave front size 50 and set 2698
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 2508
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 2681
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 2694
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 2629
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 106
-[DEBUG] Wave front size 50 and set 2504
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 122
-[DEBUG] Wave front size 50 and set 2439
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 4087
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 367
-[DEBUG] Wave front size 50 and set 3981
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 106
-[DEBUG] Wave front size 50 and set 3691
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 120
-[DEBUG] Wave front size 50 and set 4098
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 99
-[DEBUG] Wave front size 50 and set 3776
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 110
-[DEBUG] Wave front size 50 and set 4076
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 108
-[DEBUG] Wave front size 50 and set 4003
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 3990
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 3681
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 126
-[DEBUG] Wave front size 50 and set 3668
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 134
-[DEBUG] Wave front size 50 and set 6147
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 302
-[DEBUG] Wave front size 50 and set 5995
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 104
-[DEBUG] Wave front size 50 and set 5519
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 104
-[DEBUG] Wave front size 50 and set 6135
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 107
-[DEBUG] Wave front size 50 and set 5646
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 6109
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 6021
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 97
-[DEBUG] Wave front size 50 and set 5982
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 93
-[DEBUG] Wave front size 50 and set 5532
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 5493
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 102
-[DEBUG] Wave front size 50 and set 9196
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 277
-[DEBUG] Wave front size 50 and set 8934
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 102
-[DEBUG] Wave front size 50 and set 8328
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 9266
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 99
-[DEBUG] Wave front size 50 and set 8474
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 98
-[DEBUG] Wave front size 50 and set 9152
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 94
-[DEBUG] Wave front size 50 and set 9050
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 88
-[DEBUG] Wave front size 50 and set 9004
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 92
-[DEBUG] Wave front size 50 and set 8256
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 96
-[DEBUG] Wave front size 50 and set 8210
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 102
-[DEBUG] Wave front size 50 and set 13850
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 212
-[DEBUG] Wave front size 50 and set 13360
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 110
-[DEBUG] Wave front size 50 and set 12503
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 101
-[DEBUG] Wave front size 50 and set 13934
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 86
-[DEBUG] Wave front size 50 and set 12734
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 93
-[DEBUG] Wave front size 50 and set 13619
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 88
-[DEBUG] Wave front size 50 and set 13675
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 104
-[DEBUG] Wave front size 50 and set 13442
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 87
-[DEBUG] Wave front size 50 and set 12418
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 86
-[DEBUG] Wave front size 50 and set 12241
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 90
-[DEBUG] Wave front size 50 and set 20766
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 175
-[DEBUG] Wave front size 50 and set 19975
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 96
-[DEBUG] Wave front size 50 and set 18746
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 105
-[DEBUG] Wave front size 50 and set 20832
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 92
-[DEBUG] Wave front size 50 and set 19205
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 91
-[DEBUG] Wave front size 50 and set 20304
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 93
-[DEBUG] Wave front size 50 and set 20504
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 86
-[DEBUG] Wave front size 50 and set 20041
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 93
-[DEBUG] Wave front size 50 and set 18676
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 101
-[DEBUG] Wave front size 50 and set 18413
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 95
-[DEBUG] Wave front size 50 and set 30937
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 154
-[DEBUG] Wave front size 50 and set 29740
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 88
-[DEBUG] Wave front size 50 and set 27706
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 80
-[DEBUG] Wave front size 50 and set 30861
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 79
-[DEBUG] Wave front size 50 and set 28554
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 87
-[DEBUG] Wave front size 50 and set 30071
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 86
-[DEBUG] Wave front size 50 and set 30516
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 87
-[DEBUG] Wave front size 50 and set 27766
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 84
-[DEBUG] Wave front size 50 and set 29654
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 89
-[DEBUG] Wave front size 50 and set 27344
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 82
-[DEBUG] Wave front size 50 and set 42943
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 160
-[DEBUG] Wave front size 50 and set 44540
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 120
-[DEBUG] Wave front size 50 and set 39966
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 102
-[DEBUG] Wave front size 50 and set 44325
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 123
-[DEBUG] Wave front size 50 and set 43935
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[DEBUG] Wave front size 50 and set 41155
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 111
-[DEBUG] Wave front size 50 and set 43260
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 133
-[DEBUG] Wave front size 50 and set 42716
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 122
-[DEBUG] Wave front size 50 and set 40047
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 101
-[DEBUG] Wave front size 50 and set 39449
-[DEBUG] Max clusterid 54[DEBUG] ILP hypergraph contains 55 and 118
-[INFO PAR-2910] Cutsize (cost): 1181.00
-[INFO PAR-2911] Vertex balance of block_0 : 0.20567  ( 22875.00000 )    
-cutsize : 1181
-balance : Vertex balance of block_0 : 0.20567  ( 22875.00000 )    
-[INFO PAR-2911] Vertex balance of block_1 : 0.21660  ( 24091.00000 )    
-cutsize : 1181
-balance : Vertex balance of block_1 : 0.21660  ( 24091.00000 )    
-[INFO PAR-2911] Vertex balance of block_2 : 0.19997  ( 22241.00000 )    
-cutsize : 1181
-balance : Vertex balance of block_2 : 0.19997  ( 22241.00000 )    
-[INFO PAR-2911] Vertex balance of block_3 : 0.20372  ( 22658.00000 )    
-cutsize : 1181
-balance : Vertex balance of block_3 : 0.20372  ( 22658.00000 )    
-[INFO PAR-2911] Vertex balance of block_4 : 0.17403  ( 19356.00000 )    
-cutsize : 1181
-balance : Vertex balance of block_4 : 0.17403  ( 19356.00000 )    
-[INFO PAR-2910] Cutsize (cost): 1181.00
-[INFO PAR-2911] Vertex balance of block_0 : 0.20567  ( 22875.00000 )    
-cutsize : 1181
-balance : Vertex balance of block_0 : 0.20567  ( 22875.00000 )    
-[INFO PAR-2911] Vertex balance of block_1 : 0.21660  ( 24091.00000 )    
-cutsize : 1181
-balance : Vertex balance of block_1 : 0.21660  ( 24091.00000 )    
-[INFO PAR-2911] Vertex balance of block_2 : 0.19997  ( 22241.00000 )    
-cutsize : 1181
-balance : Vertex balance of block_2 : 0.19997  ( 22241.00000 )    
-[INFO PAR-2911] Vertex balance of block_3 : 0.20372  ( 22658.00000 )    
-cutsize : 1181
-balance : Vertex balance of block_3 : 0.20372  ( 22658.00000 )    
-[INFO PAR-2911] Vertex balance of block_4 : 0.17403  ( 19356.00000 )    
-cutsize : 1181
-balance : Vertex balance of block_4 : 0.17403  ( 19356.00000 )    
-Total runtime 808.975
-Exiting TritonPart 
+[COARSEN] [ITER 0] num_vertices = 111221 num_hyperedges = 138266 tot_vertex_weights 111221.000000  tot_hyperedge_weights 138266.000000 
+[COARSEN] [ITER 1] num_vertices = 74147 num_hyperedges = 98292 tot_vertex_weights 111221.000000  tot_hyperedge_weights 107009.000000 
+[COARSEN] [ITER 2] num_vertices = 49431 num_hyperedges = 78276 tot_vertex_weights 111221.000000  tot_hyperedge_weights 86604.000000 
+[COARSEN] [ITER 3] num_vertices = 32953 num_hyperedges = 63348 tot_vertex_weights 111221.000000  tot_hyperedge_weights 71972.000000 
+[COARSEN] [ITER 4] num_vertices = 21968 num_hyperedges = 51900 tot_vertex_weights 111221.000000  tot_hyperedge_weights 61419.000000 
+[COARSEN] [ITER 5] num_vertices = 14645 num_hyperedges = 41917 tot_vertex_weights 111221.000000  tot_hyperedge_weights 53093.000000 
+[COARSEN] [ITER 6] num_vertices = 9763 num_hyperedges = 32800 tot_vertex_weights 111221.000000  tot_hyperedge_weights 46368.000000 
+[COARSEN] [ITER 7] num_vertices = 6508 num_hyperedges = 24314 tot_vertex_weights 111221.000000  tot_hyperedge_weights 40251.000000 
+[COARSEN] [ITER 8] num_vertices = 4338 num_hyperedges = 17024 tot_vertex_weights 111221.000000  tot_hyperedge_weights 34641.000000 
+[COARSEN] [ITER 9] num_vertices = 2891 num_hyperedges = 11158 tot_vertex_weights 111221.000000  tot_hyperedge_weights 29468.000000 
+[COARSEN] [ITER 10] num_vertices = 1927 num_hyperedges = 6834 tot_vertex_weights 111221.000000  tot_hyperedge_weights 24405.000000 
+[COARSEN] [ITER 11] num_vertices = 1284 num_hyperedges = 3872 tot_vertex_weights 111221.000000  tot_hyperedge_weights 19059.000000 
+[COARSEN] [ITER 12] num_vertices = 855 num_hyperedges = 2148 tot_vertex_weights 111221.000000  tot_hyperedge_weights 14900.000000 
+[COARSEN] [ITER 13] num_vertices = 569 num_hyperedges = 1135 tot_vertex_weights 111221.000000  tot_hyperedge_weights 10630.000000 
+[COARSEN] [ITER 14] num_vertices = 379 num_hyperedges = 546 tot_vertex_weights 111221.000000  tot_hyperedge_weights 7156.000000 
+[COARSEN] [ITER 15] num_vertices = 252 num_hyperedges = 223 tot_vertex_weights 111221.000000  tot_hyperedge_weights 4530.000000 
+[COARSEN] [ITER 16] num_vertices = 231 num_hyperedges = 149 tot_vertex_weights 111221.000000  tot_hyperedge_weights 3775.000000 
+[K-PM-FM] Hypergraph (231, 149): Refined cut 890
+[K-PM-FM] Hypergraph (252, 223): Refined cut 890
+[K-PM-FM] Hypergraph (379, 546): Refined cut 888
+[K-PM-FM] Hypergraph (569, 1135): Refined cut 888
+[K-PM-FM] Hypergraph (855, 2148): Refined cut 888
+[K-PM-FM] Hypergraph (1284, 3872): Refined cut 888
+[K-PM-FM] Hypergraph (1927, 6834): Refined cut 888
+[K-PM-FM] Hypergraph (2891, 11158): Refined cut 888
+[K-PM-FM] Hypergraph (4338, 17024): Refined cut 888
+[K-PM-FM] Hypergraph (6508, 24314): Refined cut 888
+[K-PM-FM] Hypergraph (9763, 32800): Refined cut 888
+[K-PM-FM] Hypergraph (14645, 41917): Refined cut 888
+[K-PM-FM] Hypergraph (21968, 51900): Refined cut 881
+[K-PM-FM] Hypergraph (32953, 63348): Refined cut 881
+[K-PM-FM] Hypergraph (49431, 78276): Refined cut 881
+[K-PM-FM] Hypergraph (74147, 98292): Refined cut 881
+[K-PM-FM] Hypergraph (111221, 138266): Refined cut 878
+[INFO PAR-2910] Cutsize (cost): 878.00
+[INFO PAR-2911] Vertex balance of block_0 : 0.21400  ( 23801.00000 )    
+cutsize : 878
+balance : Vertex balance of block_0 : 0.21400  ( 23801.00000 )    
+[INFO PAR-2911] Vertex balance of block_1 : 0.21571  ( 23991.00000 )    
+cutsize : 878
+balance : Vertex balance of block_1 : 0.21571  ( 23991.00000 )    
+[INFO PAR-2911] Vertex balance of block_2 : 0.21399  ( 23800.00000 )    
+cutsize : 878
+balance : Vertex balance of block_2 : 0.21399  ( 23800.00000 )    
+[INFO PAR-2911] Vertex balance of block_3 : 0.14531  ( 16162.00000 )    
+cutsize : 878
+balance : Vertex balance of block_3 : 0.14531  ( 16162.00000 )    
+[INFO PAR-2911] Vertex balance of block_4 : 0.21099  ( 23467.00000 )    
+cutsize : 878
+balance : Vertex balance of block_4 : 0.21099  ( 23467.00000 )    
+[INFO PAR-3939] V-cycle Iteration 2
+
+[COARSEN] [ITER 0] num_vertices = 111221 num_hyperedges = 138266 tot_vertex_weights 111221.000000  tot_hyperedge_weights 138266.000000 
+[COARSEN] [ITER 1] num_vertices = 74147 num_hyperedges = 98301 tot_vertex_weights 111221.000000  tot_hyperedge_weights 107018.000000 
+[COARSEN] [ITER 2] num_vertices = 49431 num_hyperedges = 78272 tot_vertex_weights 111221.000000  tot_hyperedge_weights 86317.000000 
+[COARSEN] [ITER 3] num_vertices = 32953 num_hyperedges = 63449 tot_vertex_weights 111221.000000  tot_hyperedge_weights 71826.000000 
+[COARSEN] [ITER 4] num_vertices = 21968 num_hyperedges = 51968 tot_vertex_weights 111221.000000  tot_hyperedge_weights 61092.000000 
+[COARSEN] [ITER 5] num_vertices = 14645 num_hyperedges = 41965 tot_vertex_weights 111221.000000  tot_hyperedge_weights 52643.000000 
+[COARSEN] [ITER 6] num_vertices = 9763 num_hyperedges = 32884 tot_vertex_weights 111221.000000  tot_hyperedge_weights 45694.000000 
+[COARSEN] [ITER 7] num_vertices = 6508 num_hyperedges = 24500 tot_vertex_weights 111221.000000  tot_hyperedge_weights 39868.000000 
+[COARSEN] [ITER 8] num_vertices = 4338 num_hyperedges = 17114 tot_vertex_weights 111221.000000  tot_hyperedge_weights 34552.000000 
+[COARSEN] [ITER 9] num_vertices = 2891 num_hyperedges = 11278 tot_vertex_weights 111221.000000  tot_hyperedge_weights 29311.000000 
+[COARSEN] [ITER 10] num_vertices = 1927 num_hyperedges = 6921 tot_vertex_weights 111221.000000  tot_hyperedge_weights 24146.000000 
+[COARSEN] [ITER 11] num_vertices = 1284 num_hyperedges = 4068 tot_vertex_weights 111221.000000  tot_hyperedge_weights 19746.000000 
+[COARSEN] [ITER 12] num_vertices = 855 num_hyperedges = 2277 tot_vertex_weights 111221.000000  tot_hyperedge_weights 15800.000000 
+[COARSEN] [ITER 13] num_vertices = 569 num_hyperedges = 1161 tot_vertex_weights 111221.000000  tot_hyperedge_weights 11607.000000 
+[COARSEN] [ITER 14] num_vertices = 379 num_hyperedges = 602 tot_vertex_weights 111221.000000  tot_hyperedge_weights 8255.000000 
+[COARSEN] [ITER 15] num_vertices = 252 num_hyperedges = 274 tot_vertex_weights 111221.000000  tot_hyperedge_weights 5243.000000 
+[COARSEN] [ITER 16] num_vertices = 192 num_hyperedges = 128 tot_vertex_weights 111221.000000  tot_hyperedge_weights 3766.000000 
+[K-PM-FM] Hypergraph (192, 128): Refined cut 878
+[K-PM-FM] Hypergraph (252, 274): Refined cut 878
+[K-PM-FM] Hypergraph (379, 602): Refined cut 878
+[K-PM-FM] Hypergraph (569, 1161): Refined cut 878
+[K-PM-FM] Hypergraph (855, 2277): Refined cut 878
+[K-PM-FM] Hypergraph (1284, 4068): Refined cut 878
+[K-PM-FM] Hypergraph (1927, 6921): Refined cut 878
+[K-PM-FM] Hypergraph (2891, 11278): Refined cut 878
+[K-PM-FM] Hypergraph (4338, 17114): Refined cut 872
+[K-PM-FM] Hypergraph (6508, 24500): Refined cut 870
+[K-PM-FM] Hypergraph (9763, 32884): Refined cut 870
+[K-PM-FM] Hypergraph (14645, 41965): Refined cut 870
+[K-PM-FM] Hypergraph (21968, 51968): Refined cut 868
+[K-PM-FM] Hypergraph (32953, 63449): Refined cut 868
+[K-PM-FM] Hypergraph (49431, 78272): Refined cut 868
+[K-PM-FM] Hypergraph (74147, 98301): Refined cut 869
+[K-PM-FM] Hypergraph (111221, 138266): Refined cut 868
+[INFO PAR-2910] Cutsize (cost): 868.00
+[INFO PAR-2911] Vertex balance of block_0 : 0.14975  ( 16655.00000 )    
+cutsize : 868
+balance : Vertex balance of block_0 : 0.14975  ( 16655.00000 )    
+[INFO PAR-2911] Vertex balance of block_1 : 0.21599  ( 24023.00000 )    
+cutsize : 868
+balance : Vertex balance of block_1 : 0.21599  ( 24023.00000 )    
+[INFO PAR-2911] Vertex balance of block_2 : 0.21102  ( 23470.00000 )    
+cutsize : 868
+balance : Vertex balance of block_2 : 0.21102  ( 23470.00000 )    
+[INFO PAR-2911] Vertex balance of block_3 : 0.21267  ( 23653.00000 )    
+cutsize : 868
+balance : Vertex balance of block_3 : 0.21267  ( 23653.00000 )    
+[INFO PAR-2911] Vertex balance of block_4 : 0.21057  ( 23420.00000 )    
+cutsize : 868
+balance : Vertex balance of block_4 : 0.21057  ( 23420.00000 )    
+[INFO PAR-3939] V-cycle Iteration 3
+
+[COARSEN] [ITER 0] num_vertices = 111221 num_hyperedges = 138266 tot_vertex_weights 111221.000000  tot_hyperedge_weights 138266.000000 
+[COARSEN] [ITER 1] num_vertices = 74147 num_hyperedges = 98283 tot_vertex_weights 111221.000000  tot_hyperedge_weights 107007.000000 
+[COARSEN] [ITER 2] num_vertices = 49431 num_hyperedges = 78190 tot_vertex_weights 111221.000000  tot_hyperedge_weights 86222.000000 
+[COARSEN] [ITER 3] num_vertices = 32953 num_hyperedges = 63306 tot_vertex_weights 111221.000000  tot_hyperedge_weights 71775.000000 
+[COARSEN] [ITER 4] num_vertices = 21968 num_hyperedges = 51808 tot_vertex_weights 111221.000000  tot_hyperedge_weights 61181.000000 
+[COARSEN] [ITER 5] num_vertices = 14645 num_hyperedges = 42008 tot_vertex_weights 111221.000000  tot_hyperedge_weights 52826.000000 
+[COARSEN] [ITER 6] num_vertices = 9763 num_hyperedges = 32895 tot_vertex_weights 111221.000000  tot_hyperedge_weights 45858.000000 
+[COARSEN] [ITER 7] num_vertices = 6508 num_hyperedges = 24304 tot_vertex_weights 111221.000000  tot_hyperedge_weights 39868.000000 
+[COARSEN] [ITER 8] num_vertices = 4338 num_hyperedges = 16790 tot_vertex_weights 111221.000000  tot_hyperedge_weights 34223.000000 
+[COARSEN] [ITER 9] num_vertices = 2891 num_hyperedges = 10839 tot_vertex_weights 111221.000000  tot_hyperedge_weights 29088.000000 
+[COARSEN] [ITER 10] num_vertices = 1927 num_hyperedges = 6708 tot_vertex_weights 111221.000000  tot_hyperedge_weights 24041.000000 
+[COARSEN] [ITER 11] num_vertices = 1284 num_hyperedges = 3876 tot_vertex_weights 111221.000000  tot_hyperedge_weights 19136.000000 
+[COARSEN] [ITER 12] num_vertices = 855 num_hyperedges = 2108 tot_vertex_weights 111221.000000  tot_hyperedge_weights 14569.000000 
+[COARSEN] [ITER 13] num_vertices = 569 num_hyperedges = 1065 tot_vertex_weights 111221.000000  tot_hyperedge_weights 10775.000000 
+[COARSEN] [ITER 14] num_vertices = 379 num_hyperedges = 500 tot_vertex_weights 111221.000000  tot_hyperedge_weights 7360.000000 
+[COARSEN] [ITER 15] num_vertices = 255 num_hyperedges = 203 tot_vertex_weights 111221.000000  tot_hyperedge_weights 4230.000000 
+[COARSEN] [ITER 16] num_vertices = 245 num_hyperedges = 177 tot_vertex_weights 111221.000000  tot_hyperedge_weights 3805.000000 
+[K-PM-FM] Hypergraph (245, 177): Refined cut 868
+[K-PM-FM] Hypergraph (255, 203): Refined cut 868
+[K-PM-FM] Hypergraph (379, 500): Refined cut 868
+[K-PM-FM] Hypergraph (569, 1065): Refined cut 868
+[K-PM-FM] Hypergraph (855, 2108): Refined cut 868
+[K-PM-FM] Hypergraph (1284, 3876): Refined cut 868
+[K-PM-FM] Hypergraph (1927, 6708): Refined cut 868
+[K-PM-FM] Hypergraph (2891, 10839): Refined cut 868
+[K-PM-FM] Hypergraph (4338, 16790): Refined cut 868
+[K-PM-FM] Hypergraph (6508, 24304): Refined cut 868
+[K-PM-FM] Hypergraph (9763, 32895): Refined cut 868
+[K-PM-FM] Hypergraph (14645, 42008): Refined cut 868
+[K-PM-FM] Hypergraph (21968, 51808): Refined cut 868
+[K-PM-FM] Hypergraph (32953, 63306): Refined cut 868
+[K-PM-FM] Hypergraph (49431, 78190): Refined cut 867
+[K-PM-FM] Hypergraph (74147, 98283): Refined cut 866
+[K-PM-FM] Hypergraph (111221, 138266): Refined cut 865
+[INFO PAR-2910] Cutsize (cost): 865.00
+[INFO PAR-2911] Vertex balance of block_0 : 0.15015  ( 16700.00000 )    
+cutsize : 865
+balance : Vertex balance of block_0 : 0.15015  ( 16700.00000 )    
+[INFO PAR-2911] Vertex balance of block_1 : 0.21715  ( 24152.00000 )    
+cutsize : 865
+balance : Vertex balance of block_1 : 0.21715  ( 24152.00000 )    
+[INFO PAR-2911] Vertex balance of block_2 : 0.20993  ( 23349.00000 )    
+cutsize : 865
+balance : Vertex balance of block_2 : 0.20993  ( 23349.00000 )    
+[INFO PAR-2911] Vertex balance of block_3 : 0.21241  ( 23624.00000 )    
+cutsize : 865
+balance : Vertex balance of block_3 : 0.21241  ( 23624.00000 )    
+[INFO PAR-2911] Vertex balance of block_4 : 0.21036  ( 23396.00000 )    
+cutsize : 865
+balance : Vertex balance of block_4 : 0.21036  ( 23396.00000 )    
+[INFO PAR-3939] V-cycle Iteration 4
+
+[COARSEN] [ITER 0] num_vertices = 111221 num_hyperedges = 138266 tot_vertex_weights 111221.000000  tot_hyperedge_weights 138266.000000 
+[COARSEN] [ITER 1] num_vertices = 74147 num_hyperedges = 98318 tot_vertex_weights 111221.000000  tot_hyperedge_weights 107010.000000 
+[COARSEN] [ITER 2] num_vertices = 49431 num_hyperedges = 78283 tot_vertex_weights 111221.000000  tot_hyperedge_weights 85971.000000 
+[COARSEN] [ITER 3] num_vertices = 32953 num_hyperedges = 63353 tot_vertex_weights 111221.000000  tot_hyperedge_weights 71338.000000 
+[COARSEN] [ITER 4] num_vertices = 21968 num_hyperedges = 51662 tot_vertex_weights 111221.000000  tot_hyperedge_weights 60746.000000 
+[COARSEN] [ITER 5] num_vertices = 14645 num_hyperedges = 41727 tot_vertex_weights 111221.000000  tot_hyperedge_weights 52570.000000 
+[COARSEN] [ITER 6] num_vertices = 9763 num_hyperedges = 32518 tot_vertex_weights 111221.000000  tot_hyperedge_weights 45560.000000 
+[COARSEN] [ITER 7] num_vertices = 6508 num_hyperedges = 24133 tot_vertex_weights 111221.000000  tot_hyperedge_weights 39759.000000 
+[COARSEN] [ITER 8] num_vertices = 4338 num_hyperedges = 16893 tot_vertex_weights 111221.000000  tot_hyperedge_weights 34334.000000 
+[COARSEN] [ITER 9] num_vertices = 2891 num_hyperedges = 11173 tot_vertex_weights 111221.000000  tot_hyperedge_weights 29264.000000 
+[COARSEN] [ITER 10] num_vertices = 1927 num_hyperedges = 6798 tot_vertex_weights 111221.000000  tot_hyperedge_weights 24124.000000 
+[COARSEN] [ITER 11] num_vertices = 1284 num_hyperedges = 3911 tot_vertex_weights 111221.000000  tot_hyperedge_weights 19648.000000 
+[COARSEN] [ITER 12] num_vertices = 855 num_hyperedges = 2217 tot_vertex_weights 111221.000000  tot_hyperedge_weights 15222.000000 
+[COARSEN] [ITER 13] num_vertices = 569 num_hyperedges = 1158 tot_vertex_weights 111221.000000  tot_hyperedge_weights 10980.000000 
+[COARSEN] [ITER 14] num_vertices = 379 num_hyperedges = 517 tot_vertex_weights 111221.000000  tot_hyperedge_weights 7033.000000 
+[COARSEN] [ITER 15] num_vertices = 252 num_hyperedges = 207 tot_vertex_weights 111221.000000  tot_hyperedge_weights 4021.000000 
+[COARSEN] [ITER 16] num_vertices = 236 num_hyperedges = 174 tot_vertex_weights 111221.000000  tot_hyperedge_weights 3703.000000 
+[K-PM-FM] Hypergraph (236, 174): Refined cut 865
+[K-PM-FM] Hypergraph (252, 207): Refined cut 865
+[K-PM-FM] Hypergraph (379, 517): Refined cut 865
+[K-PM-FM] Hypergraph (569, 1158): Refined cut 865
+[K-PM-FM] Hypergraph (855, 2217): Refined cut 865
+[K-PM-FM] Hypergraph (1284, 3911): Refined cut 865
+[K-PM-FM] Hypergraph (1927, 6798): Refined cut 865
+[K-PM-FM] Hypergraph (2891, 11173): Refined cut 865
+[K-PM-FM] Hypergraph (4338, 16893): Refined cut 865
+[K-PM-FM] Hypergraph (6508, 24133): Refined cut 865
+[K-PM-FM] Hypergraph (9763, 32518): Refined cut 865
+[K-PM-FM] Hypergraph (14645, 41727): Refined cut 865
+[K-PM-FM] Hypergraph (21968, 51662): Refined cut 865
+[K-PM-FM] Hypergraph (32953, 63353): Refined cut 865
+[K-PM-FM] Hypergraph (49431, 78283): Refined cut 865
+[K-PM-FM] Hypergraph (74147, 98318): Refined cut 865
+[K-PM-FM] Hypergraph (111221, 138266): Refined cut 864
+[INFO PAR-2910] Cutsize (cost): 864.00
+[INFO PAR-2911] Vertex balance of block_0 : 0.14967  ( 16646.00000 )    
+cutsize : 864
+balance : Vertex balance of block_0 : 0.14967  ( 16646.00000 )    
+[INFO PAR-2911] Vertex balance of block_1 : 0.21778  ( 24222.00000 )    
+cutsize : 864
+balance : Vertex balance of block_1 : 0.21778  ( 24222.00000 )    
+[INFO PAR-2911] Vertex balance of block_2 : 0.20980  ( 23334.00000 )    
+cutsize : 864
+balance : Vertex balance of block_2 : 0.20980  ( 23334.00000 )    
+[INFO PAR-2911] Vertex balance of block_3 : 0.21240  ( 23623.00000 )    
+cutsize : 864
+balance : Vertex balance of block_3 : 0.21240  ( 23623.00000 )    
+[INFO PAR-2911] Vertex balance of block_4 : 0.21036  ( 23396.00000 )    
+cutsize : 864
+balance : Vertex balance of block_4 : 0.21036  ( 23396.00000 )    
+[INFO PAR-2910] Cutsize (cost): 1030.00
+[INFO PAR-2911] Vertex balance of block_0 : 0.14967  ( 16646.00000 )    
+cutsize : 1030
+balance : Vertex balance of block_0 : 0.14967  ( 16646.00000 )    
+[INFO PAR-2911] Vertex balance of block_1 : 0.21778  ( 24222.00000 )    
+cutsize : 1030
+balance : Vertex balance of block_1 : 0.21778  ( 24222.00000 )    
+[INFO PAR-2911] Vertex balance of block_2 : 0.20980  ( 23334.00000 )    
+cutsize : 1030
+balance : Vertex balance of block_2 : 0.20980  ( 23334.00000 )    
+[INFO PAR-2911] Vertex balance of block_3 : 0.21240  ( 23623.00000 )    
+cutsize : 1030
+balance : Vertex balance of block_3 : 0.21240  ( 23623.00000 )    
+[INFO PAR-2911] Vertex balance of block_4 : 0.21036  ( 23396.00000 )    
+cutsize : 1030
+balance : Vertex balance of block_4 : 0.21036  ( 23396.00000 )    
+Total runtime 101.030139473
+Exiting TritonPart

@@ -309,6 +309,23 @@ class PartitionMgr
                              const char* port_prefix,
                              const char* module_suffix);
 
+  // The TritonPart Interface
+  // The TritonPart is an open-source version of hMETIS, 
+  // The TritonPart is designed for VLSI CAD, thus it can 
+  // understand all kinds of constraints and timing information.
+  void tritonPartHypergraph(const char* hypergraph_file,
+                            const char* fixed_file,
+                            unsigned int num_parts,
+                            float balance_constraint,
+                            int vertex_dimensions,
+                            int hyperedge_dimensions,
+                            unsigned int seed);
+  // partition netlist
+  void tritonPartDesign(unsigned int num_parts,
+                        float balance_constraint,
+                        unsigned int seed);
+ 
+
  private:
   sta::Instance* buildPartitionedInstance(
       const char* name,

@@ -213,4 +213,22 @@ void write_partition_verilog(int id, const char* portprefix, const char* module_
   getPartitionMgr()->writePartitionVerilog(path, portprefix, module_suffix);
 }
 
+void triton_part_hypergraph(const char* hypergraph_file, const char* fixed_file,
+                             unsigned int num_parts, float balance_constraint,
+                             int vertex_dimension, int hyperedge_dimension,
+                             unsigned int seed)
+{
+  getPartitionMgr()->tritonPartHypergraph(hypergraph_file, fixed_file,
+                                           num_parts, balance_constraint, 
+                                           vertex_dimension, hyperedge_dimension,
+                                           seed);
+}
+
+void triton_part_hypergraph(unsigned int num_parts, float balance_constraint,
+                            unsigned int seed)
+{
+  getPartitionMgr()->tritonPartDesign(num_parts, balance_constraint, seed);
+}
+
+
 %}

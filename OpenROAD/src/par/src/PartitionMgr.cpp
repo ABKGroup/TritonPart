@@ -51,6 +51,7 @@ extern "C" {
 #include <iostream>
 
 #include "HypergraphDecomposition.h"
+#include "TritonPart.h"
 #include "db_sta/dbSta.hh"
 #include "odb/db.h"
 #include "utl/Logger.h"
@@ -1394,5 +1395,31 @@ void PartitionMgr::reportGraph()
   logger_->info(
       PAR, 68, "Number of Hyperedges/Edges: {}", graph_->getNumEdges());
 }
+
+
+void PartitionMgr::tritonPartHypergraph(const char* hypergraph_file,
+                                         const char* fixed_file,
+                                         unsigned int num_parts,
+                                         float balance_constraint,
+                                         int vertex_dimensions,
+                                         int hyperedge_dimensions,
+                                         unsigned int seed)
+{
+  auto triton_part
+    = std::make_unique<TritonPart>(db_network_, db_, _sta, logger_);
+  triton_part->tritonPartHypergraph(
+     hypergraph_file, fixed_file, num_parts, balance_constraint,
+    vertex_dimensions, hyperedge_dimensions, seed);
+}
+
+void PartitionMgr::tritonPartDesign(unsigned int num_parts,
+                                    float balance_constraint,
+                                    unsigned int seed)
+{
+  auto triton_part
+    = std::make_unique<TritonPart>(db_network_, db_, _sta, logger_);
+  triton_part->tritonPartDesign(num_parts, balance_constraint, seed);
+}
+
 
 }  // namespace par

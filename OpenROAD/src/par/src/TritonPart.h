@@ -88,13 +88,6 @@ class TritonPart
                             int hyperedge_dimension,
                             unsigned int seed);
 
-  /*void tritonPartHypergraph(const char* hypergraph_file,
-                            const char* fixed_file,
-                            unsigned int num_parts,
-                            float balance_constraint,
-                            int vertex_dimension,
-                            int hyperedge_dimension,
-                            unsigned int seed);*/
 
   // The API for setting other parameters
   // Pre process the hypergraph by skipping large hyperedges
