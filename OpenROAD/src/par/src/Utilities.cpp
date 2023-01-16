@@ -76,7 +76,7 @@ std::string GetVectorString(std::vector<float> vec)
 {
   std::string line = "";
   for (auto value : vec)
-    line += std::to_string(value) + " ";
+    line += std::to_string(static_cast<int>(value)) + " ";
   return line;
 }
 

@@ -35,7 +35,7 @@
 
 #include "par/PartitionMgr.h"
 
-#include "par/MLPart.h"
+#include "MLPart.h"
 #ifdef PARTITIONERS
 extern "C" {
 #include "main/ChacoWrapper.h"
@@ -52,6 +52,7 @@ extern "C" {
 
 #include "HypergraphDecomposition.h"
 #include "TritonPart.h"
+#include "autocluster.h"
 #include "db_sta/dbSta.hh"
 #include "odb/db.h"
 #include "utl/Logger.h"
@@ -1396,30 +1397,59 @@ void PartitionMgr::reportGraph()
       PAR, 68, "Number of Hyperedges/Edges: {}", graph_->getNumEdges());
 }
 
+void PartitionMgr::partitionDesign(unsigned int max_num_macro,
+                                   unsigned int min_num_macro,
+                                   unsigned int max_num_inst,
+                                   unsigned int min_num_inst,
+                                   unsigned int net_threshold,
+                                   unsigned int ignore_net_threshold,
+                                   unsigned int virtual_weight,
+                                   unsigned int num_hops,
+                                   unsigned int timing_weight,
+                                   bool std_cell_timing_flag,
+                                   const char* report_directory,
+                                   const char* file_name,
+                                   float keepin_lx,
+                                   float keepin_ly,
+                                   float keepin_ux,
+                                   float keepin_uy)
+{
+  auto clusterer
+      = std::make_unique<AutoClusterMgr>(db_network_, db_, _sta, logger_);
+  clusterer->partitionDesign(max_num_macro,
+                             min_num_macro,
+                             max_num_inst,
+                             min_num_inst,
+                             net_threshold,
+                             virtual_weight,
+                             ignore_net_threshold,
+                             num_hops,
+                             timing_weight,
+                             std_cell_timing_flag,
+                             report_directory,
+                             file_name,
+                             keepin_lx,
+                             keepin_ly,
+                             keepin_ux,
+                             keepin_uy);
+}
 
 void PartitionMgr::tritonPartHypergraph(const char* hypergraph_file,
-                                         const char* fixed_file,
-                                         unsigned int num_parts,
-                                         float balance_constraint,
-                                         int vertex_dimensions,
-                                         int hyperedge_dimensions,
-                                         unsigned int seed)
+                                        const char* fixed_file,
+                                        unsigned int num_parts,
+                                        float balance_constraint,
+                                        int vertex_dimensions,
+                                        int hyperedge_dimensions,
+                                        unsigned int seed)
 {
+  // Use TritonPart to partition a hypergraph
+  // In this mode, TritonPart works as hMETIS.
+  // Thus users can use this function to partition the input hypergraph
   auto triton_part
-    = std::make_unique<TritonPart>(db_network_, db_, _sta, logger_);
+      = std::make_unique<TritonPart>(db_network_, db_, _sta, logger_);
   triton_part->tritonPartHypergraph(
-     hypergraph_file, fixed_file, num_parts, balance_constraint,
-    vertex_dimensions, hyperedge_dimensions, seed);
+      hypergraph_file, fixed_file, num_parts, balance_constraint, 
+      vertex_dimensions, hyperedge_dimensions, seed);
 }
-
-void PartitionMgr::tritonPartDesign(unsigned int num_parts,
-                                    float balance_constraint,
-                                    unsigned int seed)
-{
-  auto triton_part
-    = std::make_unique<TritonPart>(db_network_, db_, _sta, logger_);
-  triton_part->tritonPartDesign(num_parts, balance_constraint, seed);
-}
-
 
 }  // namespace par
