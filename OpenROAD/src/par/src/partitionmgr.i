@@ -224,7 +224,7 @@ void triton_part_hypergraph(const char* hypergraph_file, const char* fixed_file,
                                            seed);
 }
 
-void triton_part_hypergraph(unsigned int num_parts, float balance_constraint,
+void triton_part_design(unsigned int num_parts, float balance_constraint,
                             unsigned int seed)
 {
   getPartitionMgr()->tritonPartDesign(num_parts, balance_constraint, seed);
