@@ -282,10 +282,19 @@ class TPHypergraph
   utl::Logger* logger_ = nullptr;
 
   friend class Coarsening;  // define friend class for Coarsening
+  friend class TPcoarsener; // define friend class for TPcoarsening
+  friend class TPmultilevelPartitioner; // define friend class for TPmultilevelPartitioner
+  friend class TPpartitioner; // define friend class for TPpartitioner
+  friend class TPrefiner; // define friend class for TPrefiner
+  friend class TPtwoWayFM; // define friend class for TPtwoWayFM
+  friend class TPgreedyRefine; // define friend class for TPgreedyRefine
+  friend class TPilpRefine; // define friend class for TPilpRefine
+  friend class TPpriorityQueue; // define friend class for TPpriorityQueue
   friend class Partitioners;  // define friend class for Partitioners
   friend class MultiLevelHierarchy; // define friend class for MultiLevelHierarchy
   friend class KPMRefinement; // define friend class for KPMFM
   friend class IlpRefiner; // define friend class for ILP based refinement
+  friend class Obfuscator; // define friend class for netlist obfuscator
 };
 
 // We should use shared_ptr because we enable multi-thread feature during partitioning

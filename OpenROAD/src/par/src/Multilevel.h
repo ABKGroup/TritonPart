@@ -35,8 +35,8 @@
 #pragma once
 
 #include "Coarsening.h"
-#include "KPMRefinement.h"
 #include "ILPbasedRefinement.h"
+#include "KPMRefinement.h"
 #include "Partitioner.h"
 #include "TPHypergraph.h"
 #include "Utilities.h"
@@ -55,62 +55,63 @@ class MultiLevelHierarchy
 {
  public:
   explicit MultiLevelHierarchy() {}
-  MultiLevelHierarchy(CoarseningPtr coarsening,
-                      PartitionersPtr partitioners,
-                      KPMrefinementPtr kpmrefiner,
-                      IlpRefinerPtr ilprefiner,
-                      int num_parts, // number of blocks
-                      bool v_cycle_flag, // vcycle flag
-                      int num_initial_solutions, // number of initial random solutions
-                      int num_best_initial_solutions, // number of best initial solutions
-                      int num_ubfactor_delta, // allowing marginal imbalance to improve QoR
-                      int max_num_vcycle, // maximum number of vcycles
-                      int seed, // random seed
-                      float ub_factor, // ubfactor
-                      RefineType refine_type, // refinement type
-                      utl::Logger* logger)
+  MultiLevelHierarchy(
+      CoarseningPtr coarsening,
+      PartitionersPtr partitioners,
+      KPMrefinementPtr kpmrefiner,
+      IlpRefinerPtr ilprefiner,
+      int num_parts,                   // number of blocks
+      bool v_cycle_flag,               // vcycle flag
+      int num_initial_solutions,       // number of initial random solutions
+      int num_best_initial_solutions,  // number of best initial solutions
+      int num_ubfactor_delta,  // allowing marginal imbalance to improve QoR
+      int max_num_vcycle,      // maximum number of vcycles
+      int seed,                // random seed
+      float ub_factor,         // ubfactor
+      RefineType refine_type,  // refinement type
+      utl::Logger* logger)
   {
     coarsening_ = coarsening;
     partitioners_ = partitioners;
     kpmrefiner_ = kpmrefiner;
     ilprefiner_ = ilprefiner;
     num_parts_ = num_parts;
-    v_cycle_flag_ = v_cycle_flag;          
-    num_initial_solutions_ = num_initial_solutions; 
+    v_cycle_flag_ = v_cycle_flag;
+    num_initial_solutions_ = num_initial_solutions;
     num_best_initial_solutions_ = num_best_initial_solutions;
     num_ubfactor_delta_ = num_ubfactor_delta;
     max_num_vcycle_ = max_num_vcycle;
-    seed_ = seed;                        
+    seed_ = seed;
     ub_factor_ = ub_factor;
     refine_type_ = refine_type;
     logger_ = logger;
   }
 
-
   // New implementation
   std::vector<int> CallFlow(HGraph hgraph,
                             std::vector<std::vector<float>> max_block_balance);
+
  private:
   bool v_cycle_flag_ = true;                // enable v-cycle
   CoarseningPtr coarsening_ = nullptr;      // coarsening operator
   PartitionersPtr partitioners_ = nullptr;  // partitioners operator
   KPMrefinementPtr kpmrefiner_ = nullptr;   // kpmrefiner operator
-  IlpRefinerPtr ilprefiner_ = nullptr;         // ilprefiner operator
+  IlpRefinerPtr ilprefiner_ = nullptr;      // ilprefiner operator
   utl::Logger* logger_ = nullptr;
-  int num_parts_ = 2;          // number of blocks
-  int num_initial_solutions_ = 20; // number of initial random solutions
-  int num_best_initial_solutions_ = 3; // number of best initial solutions
-  int num_ubfactor_delta_ = 5; // allowing marginal imbalance to improve QoR
-  int max_num_vcycle_ = 5; // maximum number of vcycles
-  int seed_ = 0;                        // random seed
-  float ub_factor_ = 1.0;               // ubfactor
-  RefineType refine_type_ = KPMREFINEMENT; // refinement type
-  
+  int num_parts_ = 2;                   // number of blocks
+  int num_initial_solutions_ = 20;      // number of initial random solutions
+  int num_best_initial_solutions_ = 3;  // number of best initial solutions
+  int num_ubfactor_delta_ = 5;  // allowing marginal imbalance to improve QoR
+  int max_num_vcycle_ = 5;      // maximum number of vcycles
+  int seed_ = 0;                // random seed
+  float ub_factor_ = 1.0;       // ubfactor
+  RefineType refine_type_ = KPMREFINEMENT;  // refinement type
+
   // The main function
   void RunFlow(HGraph hgraph,
                std::vector<std::vector<float>> max_vertex_balance,
                std::vector<int>& solution);
- 
+
   void SingleCycle(std::vector<HGraph> hgraph_vec,
                    std::vector<int>* solution,
                    std::vector<std::vector<float>> max_block_balance,

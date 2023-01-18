@@ -62,6 +62,8 @@ namespace par {
 //          Each signal net is modeled as a hyperedge.
 // Type 2:  Take the input hypergraph as an argument in the same manner as
 // hMetis
+template<typename T> 
+using matrix = std::vector<std::vector<T>>;
 
 class TritonPart
 {
@@ -78,7 +80,27 @@ class TritonPart
   void tritonPartDesign(unsigned int num_parts,
                         float balance_constraint,
                         unsigned int seed);
-
+  void TritonPart_PartTwoWay(const char* hypergraph_file,
+                             const char* fixed_file,
+                             unsigned int num_parts,
+                             float balance_constraint,
+                             int vertex_dimension,
+                             int hyperedge_dimension,
+                             unsigned int seed);
+  void TritonPart_PartKWay(const char* hypergraph_file,
+                           const char* fixed_file,
+                           unsigned int num_parts,
+                           float balance_constraint,
+                           int vertex_dimension,
+                           int hyperedge_dimension,
+                           unsigned int seed);
+  void TritonPart_PartRecursive(const char* hypergraph_file,
+                                const char* fixed_file,
+                                unsigned int num_parts,
+                                float balance_constraint,
+                                int vertex_dimension,
+                                int hyperedge_dimension,
+                                unsigned int seed);
   // This is only used for replacing hMETIS
   void tritonPartHypergraph(const char* hypergraph_file,
                             const char* fixed_file,
@@ -88,6 +110,13 @@ class TritonPart
                             int hyperedge_dimension,
                             unsigned int seed);
 
+  /*void tritonPartHypergraph(const char* hypergraph_file,
+                            const char* fixed_file,
+                            unsigned int num_parts,
+                            float balance_constraint,
+                            int vertex_dimension,
+                            int hyperedge_dimension,
+                            unsigned int seed);*/
 
   // The API for setting other parameters
   // Pre process the hypergraph by skipping large hyperedges

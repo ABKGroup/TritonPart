@@ -33,46 +33,45 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-
 #include "Multilevel.h"
- 
- #include <unistd.h>
- 
- #include <cstdlib>
- #include <string>
- 
- #include "Partitioner.h"
- #include "TPHypergraph.h"
- #include "utl/Logger.h"
 
+#include <julia.h>
+#include <unistd.h>
+
+#include <cstdlib>
+#include <string>
+
+#include "Partitioner.h"
+#include "TPHypergraph.h"
+#include "utl/Logger.h"
 
 using utl::PAR;
 
 namespace par {
 
 std::vector<int> MultiLevelHierarchy::CallFlow(
-     HGraph hgraph, // input hypergraph
-     std::vector<std::vector<float>> max_block_balance)
+    HGraph hgraph,  // input hypergraph
+    std::vector<std::vector<float>> max_block_balance)
 {
   std::vector<int> solution;
-  // run the multilevel partitioner 
+  // run the multilevel partitioner
   RunFlow(hgraph, max_block_balance, solution);
   return solution;
 }
 
 // The main function for solution
-void MultiLevelHierarchy::RunFlow(HGraph hgraph, // hypergraph
-     std::vector<std::vector<float>> max_block_balance,
-     // solution vector
-     std::vector<int>& solution)
+void MultiLevelHierarchy::RunFlow(
+    HGraph hgraph,  // hypergraph
+    std::vector<std::vector<float>> max_block_balance,
+    // solution vector
+    std::vector<int>& solution)
 {
-  // multilevel coarsening 
+  // multilevel coarsening
   std::vector<HGraph> hgraphs = coarsening_->LazyFirstChoice(hgraph);
-  // initial partitioning 
-  HGraph hgraph_c = hgraphs.back(); // get the coarsest hypergraph
-  hgraph_c->WriteHypergraph(std::string("coarse"));
+  // initial partitioning
+  HGraph hgraph_c = hgraphs.back();  // get the coarsest hypergraph
   hgraphs.pop_back();
-  // generate multiple random initial solutions 
+  // generate multiple random initial solutions
   // set the random seed
   std::mt19937 gen;
   gen.seed(seed_);
@@ -86,23 +85,24 @@ void MultiLevelHierarchy::RunFlow(HGraph hgraph, // hypergraph
   for (int i = 0; i < num_initial_solutions_; ++i) {
     const int seed = std::numeric_limits<int>::max() * dist(gen);
     partitioners_->SetPartitionerSeed(seed);
-    // random partitioning 
+    // random partitioning
     partitioners_->RandomPartition(hgraph_c, max_block_balance, solution);
     partitioners_->DirectKWayFM(hgraph_c, max_block_balance, solution);
-    const float cutsize = 
-        partitioners_->GoldenEvaluator(hgraph_c, solution, false).first;
+    const float cutsize
+        = partitioners_->GoldenEvaluator(hgraph_c, solution, false).first;
     // push solution
     cutsize_vec.push_back(cutsize);
     solution_set.push_back(solution);
-    logger_->report("[INIT PART]  solution id :  {}  Init cutsize : {}",
-                    i, cutsize);
+    logger_->report(
+        "[INIT PART]  solution id :  {}  Init cutsize : {}", i, cutsize);
     if (cutsize < best_cutsize) {
       best_cutsize = cutsize;
       best_solution_id = i;
     }
   }
-  logger_->report("[INIT PART] Best cutsize of random solutions : {}", best_cutsize);
-  // run ILP-based initial partitioning 
+  logger_->report("[INIT PART] Best cutsize of random solutions : {}",
+                  best_cutsize);
+  // run ILP-based initial partitioning
   // Running ILP with guidance from best random solution
   ilprefiner_->SetMaxBalance(max_block_balance);
   std::vector<int> ilp_warm_start = solution_set[best_solution_id];
@@ -121,21 +121,22 @@ void MultiLevelHierarchy::RunFlow(HGraph hgraph, // hypergraph
   // sort the solution based on cutsize
   std::vector<int> partition_ids(solution_set.size());
   std::iota(partition_ids.begin(), partition_ids.end(), 0);
-  std::sort(partition_ids.begin(), partition_ids.end(),
+  std::sort(partition_ids.begin(),
+            partition_ids.end(),
             [&](const int x, const int y) {
-                return cutsize_vec[x] < cutsize_vec[y];
+              return cutsize_vec[x] < cutsize_vec[y];
             });
   logger_->report("[INIT PART] Best init cutsize : {}", best_cutsize);
   // running multilevel refinement
   // Refining top num_best_initial_solutions_ solutions across different threads
-  logger_->report("[REFINE] Refining {} initial solutions in parallel", 
-                   num_best_initial_solutions_);
+  logger_->report("[REFINE] Refining {} initial solutions in parallel",
+                  num_best_initial_solutions_);
   std::vector<std::thread> threads;
-  std::vector<std::vector<HGraph> > hgraphs_vec(num_best_initial_solutions_);
+  std::vector<std::vector<HGraph>> hgraphs_vec(num_best_initial_solutions_);
   for (int i = 0; i < num_best_initial_solutions_; i++) {
     for (auto& hgraph_new : hgraphs) {
       std::shared_ptr<TPHypergraph> hgraph_temp(new TPHypergraph(*hgraph_new));
-      hgraphs_vec[i].push_back(hgraph_temp);      
+      hgraphs_vec[i].push_back(hgraph_temp);
     }
   }
   for (int i = 0; i < num_best_initial_solutions_; ++i) {
@@ -150,14 +151,18 @@ void MultiLevelHierarchy::RunFlow(HGraph hgraph, // hypergraph
     th.join();
   }
   threads.clear();
-  
+
   best_cutsize = std::numeric_limits<float>::max();
   best_solution_id = -1;
   for (int i = 0; i < num_best_initial_solutions_; ++i) {
     const float refined_cutsize
-        = partitioners_->GoldenEvaluator(hgraph, solution_set[partition_ids[i]], false).first;
-    logger_->report("[PARTITION] Refined solution id : {}, refined cutsize : {}",
-                     i, refined_cutsize);
+        = partitioners_
+              ->GoldenEvaluator(hgraph, solution_set[partition_ids[i]], false)
+              .first;
+    logger_->report(
+        "[PARTITION] Refined solution id : {}, refined cutsize : {}",
+        i,
+        refined_cutsize);
     if (refined_cutsize < best_cutsize) {
       best_cutsize = refined_cutsize;
       best_solution_id = partition_ids[i];
@@ -166,26 +171,31 @@ void MultiLevelHierarchy::RunFlow(HGraph hgraph, // hypergraph
   solution = solution_set[best_solution_id];
   logger_->report("[BEST CUT] Best partition has cutsize : {}", best_cutsize);
   if (v_cycle_flag_ == false)
-    return; // if there is no v_cycle, return
- 
+    return;  // if there is no v_cycle, return
+
   // *************************************************************
   // Vcycle Refinement starts here
   // *************************************************************
   // allowing marginal imbalance to prevent FM from getting stuck
   std::vector<float> ubfactor_delta;
   for (int i = 1; i <= num_ubfactor_delta_; i++)
-    ubfactor_delta.push_back(
-      -1 * ub_factor_ / 2.0 + i * (ub_factor_ / 2.0 / num_ubfactor_delta_));
+    ubfactor_delta.push_back(-1 * ub_factor_ / 2.0
+                             + i * (ub_factor_ / 2.0 / num_ubfactor_delta_));
   // vcycle starts
   int v_cycle_iter = 0;
-  float pre_cost = partitioners_->GoldenEvaluator(hgraph, solution, false).first;
+  float pre_cost
+      = partitioners_->GoldenEvaluator(hgraph, solution, false).first;
   float delta_cost = std::numeric_limits<float>::max();
-  bool last_run_flag = false; // stops if there is no improvement
-  while ((v_cycle_iter < max_num_vcycle_ && delta_cost > 0.0) || last_run_flag == true) {
-    const float ub_factor = (last_run_flag == true) ? ub_factor_
-                            : ub_factor_ + ubfactor_delta[v_cycle_iter % num_ubfactor_delta_];
-    const std::vector<std::vector<float>> temp_block_balance = hgraph->GetVertexBalance(num_parts_, ub_factor);
-    logger_->info(PAR, 3939, "V-cycle Iteration {}\n", v_cycle_iter++);
+  bool last_run_flag = false;  // stops if there is no improvement
+  while ((v_cycle_iter < max_num_vcycle_ && delta_cost > 0.0)
+         || last_run_flag == true) {
+    const float ub_factor
+        = (last_run_flag == true)
+              ? ub_factor_
+              : ub_factor_ + ubfactor_delta[v_cycle_iter % num_ubfactor_delta_];
+    const std::vector<std::vector<float>> temp_block_balance
+        = hgraph->GetVertexBalance(num_parts_, ub_factor);
+    logger_->info(PAR, 3940, "V-cycle Iteration {}\n", v_cycle_iter++);
     hgraph->community_attr_ = solution;
     hgraph->community_flag_ = true;
     // coarse the hgraph with initial_solution as community constraints
@@ -196,15 +206,19 @@ void MultiLevelHierarchy::RunFlow(HGraph hgraph, // hypergraph
       solution.push_back(value % num_parts_);
     // initial partitioning
     if (refine_type_ == KFMREFINEMENT) {
-      partitioners_->DirectKWayFM(hgraphs_c.back(), max_block_balance, solution);
+      partitioners_->DirectKWayFM(
+          hgraphs_c.back(), max_block_balance, solution);
     } else if (refine_type_ == KPMREFINEMENT) {
       kpmrefiner_->KPMrefinement(hgraphs_c.back(), max_block_balance, solution);
-      partitioners_->DirectKWayFM(hgraphs_c.back(), max_block_balance, solution);
+      partitioners_->DirectKWayFM(
+          hgraphs_c.back(), max_block_balance, solution);
     } else {
       ilprefiner_->SetCurrBalance(
-          partitioners_->GoldenEvaluator(hgraphs_c.back(), solution, true).second);
+          partitioners_->GoldenEvaluator(hgraphs_c.back(), solution, true)
+              .second);
       ilprefiner_->Refine(hgraphs_c.back(), solution);
-      partitioners_->DirectKWayFM(hgraphs_c.back(), max_block_balance, solution); 
+      partitioners_->DirectKWayFM(
+          hgraphs_c.back(), max_block_balance, solution);
     }
     hgraphs_c.pop_back();
     // run single-cycle refinement
@@ -216,7 +230,7 @@ void MultiLevelHierarchy::RunFlow(HGraph hgraph, // hypergraph
     if (last_run_flag == true)
       break;
     if (delta_cost <= 0.0)
-      last_run_flag = true; // if there i no improvement
+      last_run_flag = true;  // if there i no improvement
   }
 }
 
@@ -229,7 +243,7 @@ void MultiLevelHierarchy::SingleCycle(
     std::vector<std::vector<float>> max_block_balance,
     bool v_cycle)
 {
-  std::vector<int>& pre_solution = *pre_solution_ptr; 
+  std::vector<int>& pre_solution = *pre_solution_ptr;
   std::vector<int> solution;
   int refine_iter = 0;
   for (auto it = hgraph_vec.crbegin(); it != hgraph_vec.crend(); ++it) {
@@ -248,7 +262,7 @@ void MultiLevelHierarchy::SingleCycle(
     } else {
       std::cout << "ILP Prefiner" << std::endl;
       ilprefiner_->SetCurrBalance(
-        partitioners_->GoldenEvaluator(hgraph_c, solution, false).second);
+          partitioners_->GoldenEvaluator(hgraph_c, solution, false).second);
       ilprefiner_->Refine(hgraph_c, solution);
       partitioners_->DirectKWayFM(hgraph_c, max_block_balance, solution);
     }
