@@ -31,8 +31,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef __REPLACE_INIT_PLACE__
-#define __REPLACE_INIT_PLACE__
+#pragma once
 
 #include <Eigen/SparseCore>
 #include <memory>
@@ -46,6 +45,7 @@ class Logger;
 
 namespace gpl {
 
+class PlacerBaseCommon;
 class PlacerBase;
 class Graphics;
 
@@ -64,22 +64,22 @@ class InitialPlaceVars
   void reset();
 };
 
-typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SMatrix;
+using SMatrix = Eigen::SparseMatrix<float, Eigen::RowMajor>;
 
 class InitialPlace
 {
  public:
-  InitialPlace();
   InitialPlace(InitialPlaceVars ipVars,
-               std::shared_ptr<PlacerBase> pb,
+               std::shared_ptr<PlacerBaseCommon> pbc,
+               std::vector<std::shared_ptr<PlacerBase>>& pbVec,
                utl::Logger* logger);
-  ~InitialPlace();
   void doBicgstabPlace();
 
  private:
   InitialPlaceVars ipVars_;
-  std::shared_ptr<PlacerBase> pb_;
-  utl::Logger* log_;
+  std::shared_ptr<PlacerBaseCommon> pbc_;
+  std::vector<std::shared_ptr<PlacerBase>> pbVec_;
+  utl::Logger* log_ = nullptr;
 
   // Solve two SparseMatrix equations here;
   //
@@ -116,8 +116,6 @@ class InitialPlace
   void updatePinInfo();
   void createSparseMatrix();
   void updateCoordi();
-  void reset();
 };
 
 }  // namespace gpl
-#endif

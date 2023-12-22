@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
 #include "Units.hh"
 
 #include <cmath> // abs
-#include <limits>
 
 #include "StringUtil.hh"
 #include "MinMax.hh"  // INF
@@ -31,8 +30,10 @@ using std::abs;
 Unit::Unit(const char *suffix) :
   scale_(1.0),
   suffix_(stringCopy(suffix)),
+  scaled_suffix_(nullptr),
   digits_(3)
 {
+  setScaledSuffix();
 }
 
 Unit::Unit(float scale,
@@ -40,13 +41,23 @@ Unit::Unit(float scale,
 	   int digits) :
   scale_(scale),
   suffix_(stringCopy(suffix)),
+  scaled_suffix_(nullptr),
   digits_(digits)
 {
+  setScaledSuffix();
+}
+
+void
+Unit::setScaledSuffix()
+{
+  stringDelete(scaled_suffix_);
+  scaled_suffix_ = stringPrint("%s%s", scaleAbbreviation(), suffix_);
 }
 
 Unit::~Unit()
 {
   stringDelete(suffix_);
+  stringDelete(scaled_suffix_);
 }
 
 void
@@ -55,6 +66,8 @@ Unit::operator=(const Unit &unit)
   scale_ = unit.scale_;
   stringDelete(suffix_);
   suffix_ = stringCopy(unit.suffix_);
+  stringDelete(scaled_suffix_);
+  scaled_suffix_ = stringCopy(unit.scaled_suffix_);
   digits_ = unit.digits_;
 }
 
@@ -74,10 +87,11 @@ void
 Unit::setScale(float scale)
 {
   scale_ = scale;
+  setScaledSuffix();
 }
 
 const char *
-Unit::scaleAbreviation() const
+Unit::scaleAbbreviation() const
 {
   if (fuzzyEqual(scale_, 1E+6))
     return "M";
@@ -104,6 +118,7 @@ Unit::setSuffix(const char *suffix)
 {
   stringDelete(suffix_);
   suffix_ = stringCopy(suffix);
+  setScaledSuffix();
 }
 
 void
@@ -150,10 +165,9 @@ Unit::asString(float value,
 
 Units::Units() :
   time_unit_("s"),
+  resistance_unit_("ohm"),
   capacitance_unit_("F"),
   voltage_unit_("v"),
-  resistance_unit_("ohm"),
-  pulling_resistance_unit_("ohm"),
   current_unit_("A"),
   power_unit_("W"),
   distance_unit_("m"),
@@ -166,10 +180,10 @@ Units::find(const char *unit_name)
 {
   if (stringEq(unit_name, "time"))
     return &time_unit_;
-  else if (stringEq(unit_name, "capacitance"))
-    return &capacitance_unit_;
   else if (stringEq(unit_name, "resistance"))
     return &resistance_unit_;
+  else if (stringEq(unit_name, "capacitance"))
+    return &capacitance_unit_;
   else if (stringEq(unit_name, "voltage"))
     return &voltage_unit_;
   else if (stringEq(unit_name, "current"))
@@ -186,8 +200,8 @@ void
 Units::operator=(const Units &units)
 {
   time_unit_ = *units.timeUnit();
-  capacitance_unit_ = *units.capacitanceUnit();
   resistance_unit_ = *units.resistanceUnit();
+  capacitance_unit_ = *units.capacitanceUnit();
   voltage_unit_ = *units.voltageUnit();
   current_unit_ = *units.currentUnit();
   power_unit_ = *units.powerUnit();

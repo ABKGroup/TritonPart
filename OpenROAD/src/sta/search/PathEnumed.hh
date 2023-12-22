@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ protected:
   TimingArc *prev_arc_;
   Arrival arrival_;
   VertexId vertex_id_;
-  unsigned int tag_index_:tag_index_bits;
+  TagIndex tag_index_;
 };
 
 void deletePathEnumed(PathEnumed *path);

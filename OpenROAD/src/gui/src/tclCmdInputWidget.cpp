@@ -68,17 +68,17 @@ TclCmdInputWidget::TclCmdInputWidget(QWidget* parent)
   enable_highlighting_->setChecked(true);
   context_menu_->addAction(enable_highlighting_.get());
   connect(enable_highlighting_.get(),
-          SIGNAL(triggered()),
+          &QAction::triggered,
           this,
-          SLOT(updateHighlighting()));
+          &TclCmdInputWidget::updateHighlighting);
   enable_completion_ = std::make_unique<QAction>("Command completion", this);
   enable_completion_->setCheckable(true);
   enable_completion_->setChecked(true);
   context_menu_->addAction(enable_completion_.get());
   connect(enable_completion_.get(),
-          SIGNAL(triggered()),
+          &QAction::triggered,
           this,
-          SLOT(updateCompletion()));
+          &TclCmdInputWidget::updateCompletion);
 }
 
 TclCmdInputWidget::~TclCmdInputWidget()
@@ -108,10 +108,10 @@ void TclCmdInputWidget::setTclInterp(
     // OpenRoad is not initialized
     emit commandAboutToExecute();
     QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-    const int setup_tcl_result = ord::tclAppInit(interp_);
+    const bool setup_tcl_result = ord::tclAppInit(interp_) == TCL_OK;
     post_or_init();
     processTclResult(setup_tcl_result);
-    emit commandFinishedExecuting(setup_tcl_result == TCL_OK);
+    emit commandFinishedExecuting(setup_tcl_result);
   } else {
     post_or_init();
   }
@@ -332,7 +332,7 @@ void TclCmdInputWidget::updateCompletion()
     setCompleterCommands();
 
     connect(completer_.get(),
-            QOverload<const QString&>::of(&QCompleter::activated),
+            qOverload<const QString&>(&QCompleter::activated),
             this,
             &TclCmdInputWidget::insertCompletion);
   } else {
@@ -699,27 +699,31 @@ void TclCmdInputWidget::executeCommand(const QString& cmd,
 
   const std::string command = cmd.toStdString();
 
-  int return_code = Tcl_Eval(interp_, command.c_str());
+  const int return_code = Tcl_Eval(interp_, command.c_str());
+  const bool is_ok = return_code == TCL_OK;
 
   if (!silent) {
     // Show its output
-    processTclResult(return_code);
+    processTclResult(is_ok);
 
-    if (return_code == TCL_OK && echo) {
+    if (is_ok) {
       // record the successful command to tcl history command
       Tcl_RecordAndEval(interp_, command.c_str(), TCL_NO_EVAL);
+      addCommandToHistory(QString::fromStdString(command));
     }
-
-    addCommandToHistory(QString::fromStdString(command));
+  } else {
+    if (!is_ok) {
+      // Show output on error despite silent
+      processTclResult(is_ok);
+    }
   }
 
-  emit commandFinishedExecuting(return_code == TCL_OK);
+  emit commandFinishedExecuting(is_ok);
 }
 
-void TclCmdInputWidget::processTclResult(int return_code)
+void TclCmdInputWidget::processTclResult(bool is_ok)
 {
-  emit addResultToOutput(Tcl_GetString(Tcl_GetObjResult(interp_)),
-                         return_code == TCL_OK);
+  emit addResultToOutput(Tcl_GetString(Tcl_GetObjResult(interp_)), is_ok);
 }
 
 }  // namespace gui

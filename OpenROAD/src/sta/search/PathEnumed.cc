@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -90,7 +90,7 @@ PathEnumed::transition(const StaState *sta) const
 int
 PathEnumed::trIndex(const StaState *sta) const
 {
-  return tag(sta)->trIndex();
+  return tag(sta)->rfIndex();
 }
 
 PathAnalysisPt *

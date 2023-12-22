@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -108,7 +108,7 @@ public:
   PathAnalysisPt *findPathAnalysisPt(const MinMax *min_max) const;
   void addLiberty(LibertyLibrary *lib,
 		  const MinMax *min_max);
-  LibertySeq *libertyLibraries(const MinMax *min_max);
+  const LibertySeq &libertyLibraries(const MinMax *min_max) const;
   int libertyIndex(const MinMax *min_max) const;
 
 protected:

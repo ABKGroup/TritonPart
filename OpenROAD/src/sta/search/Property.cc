@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -47,6 +47,11 @@ pinSlewProperty(const Pin *pin,
 		const RiseFall *rf,
 		const MinMax *min_max,
 		Sta *sta);
+static PropertyValue
+pinArrivalProperty(const Pin *pin,
+                   const RiseFall *rf,
+                   const MinMax *min_max,
+                   Sta *sta);
 static PropertyValue
 pinSlackProperty(const Pin *pin,
 		 const MinMax *min_max,
@@ -156,56 +161,56 @@ PropertyValue::PropertyValue(bool value) :
 {
 }
 
-PropertyValue::PropertyValue(LibertyLibrary *value) :
+PropertyValue::PropertyValue(const LibertyLibrary *value) :
   type_(type_liberty_library),
   liberty_library_(value),
   unit_(nullptr)
 {
 }
 
-PropertyValue::PropertyValue(LibertyCell *value) :
+PropertyValue::PropertyValue(const LibertyCell *value) :
   type_(type_liberty_cell),
   liberty_cell_(value),
   unit_(nullptr)
 {
 }
 
-PropertyValue::PropertyValue(LibertyPort *value) :
+PropertyValue::PropertyValue(const LibertyPort *value) :
   type_(type_liberty_port),
   liberty_port_(value),
   unit_(nullptr)
 {
 }
 
-PropertyValue::PropertyValue(Library *value) :
+PropertyValue::PropertyValue(const Library *value) :
   type_(type_library),
   library_(value),
   unit_(nullptr)
 {
 }
 
-PropertyValue::PropertyValue(Cell *value) :
+PropertyValue::PropertyValue(const Cell *value) :
   type_(type_cell),
   cell_(value),
   unit_(nullptr)
 {
 }
 
-PropertyValue::PropertyValue(Port *value) :
+PropertyValue::PropertyValue(const Port *value) :
   type_(type_port),
   port_(value),
   unit_(nullptr)
 {
 }
 
-PropertyValue::PropertyValue(Instance *value) :
+PropertyValue::PropertyValue(const Instance *value) :
   type_(type_instance),
   inst_(value),
   unit_(nullptr)
 {
 }
 
-PropertyValue::PropertyValue(Pin *value) :
+PropertyValue::PropertyValue(const Pin *value) :
   type_(type_pin),
   pin_(value),
   unit_(nullptr)
@@ -226,19 +231,31 @@ PropertyValue::PropertyValue(PinSet *value) :
 {
   PinSet::Iterator pin_iter(value);
   while (pin_iter.hasNext()) {
-    Pin *pin = pin_iter.next();
+    const Pin *pin = pin_iter.next();
     pins_->push_back( pin);
   }
 }
 
-PropertyValue::PropertyValue(Net *value) :
+PropertyValue::PropertyValue(const PinSet &value) :
+  type_(type_pins),
+  pins_(new PinSeq),
+  unit_(nullptr)
+{
+  PinSet::ConstIterator pin_iter(value);
+  while (pin_iter.hasNext()) {
+    const Pin *pin = pin_iter.next();
+    pins_->push_back( pin);
+  }
+}
+
+PropertyValue::PropertyValue(const Net *value) :
   type_(type_net),
   net_(value),
   unit_(nullptr)
 {
 }
 
-PropertyValue::PropertyValue(Clock *value) :
+PropertyValue::PropertyValue(const Clock *value) :
   type_(type_clk),
   clk_(value),
   unit_(nullptr)
@@ -862,14 +879,26 @@ getProperty(const Pin *pin,
     return PropertyValue(port && port->isRegClk());
   }
   else if (stringEqual(property, "clocks")) {
-    ClockSet clks;
-    sta->clocks(pin, clks);
+    ClockSet clks = sta->clocks(pin);
+    return PropertyValue(&clks);
+  }
+  else if (stringEqual(property, "clock_domains")) {
+    ClockSet clks = sta->clockDomains(pin);
     return PropertyValue(&clks);
   }
   else if (stringEqual(property, "activity")) {
     PwrActivity activity = sta->findClkedActivity(pin);
     return PropertyValue(&activity);
   }
+
+  else if (stringEqual(property, "arrival_max_rise"))
+    return pinArrivalProperty(pin, RiseFall::rise(), MinMax::max(), sta);
+  else if (stringEqual(property, "arrival_max_fall"))
+    return pinArrivalProperty(pin, RiseFall::fall(), MinMax::max(), sta);
+  else if (stringEqual(property, "arrival_min_rise"))
+    return pinArrivalProperty(pin, RiseFall::rise(), MinMax::min(), sta);
+  else if (stringEqual(property, "arrival_min_fall"))
+    return pinArrivalProperty(pin, RiseFall::fall(), MinMax::min(), sta);
 
   else if (stringEqual(property, "slack_max"))
     return pinSlackProperty(pin, MinMax::max(), sta);
@@ -899,6 +928,16 @@ getProperty(const Pin *pin,
 
   else
     throw PropertyUnknown("pin", property);
+}
+
+static PropertyValue
+pinArrivalProperty(const Pin *pin,
+                   const RiseFall *rf,
+                   const MinMax *min_max,
+                   Sta *sta)
+{
+  Arrival arrival = sta->pinArrival(pin, rf, min_max);;
+  return PropertyValue(delayPropertyValue(arrival, sta));
 }
 
 static PropertyValue
@@ -993,7 +1032,9 @@ getProperty(Edge *edge,
     auto graph = sta->graph();
     const char *from = edge->from(graph)->name(network);
     const char *to = edge->to(graph)->name(network);
-    return PropertyValue(stringPrintTmp("%s -> %s", from, to));
+    string full_name;
+    stringPrint(full_name, "%s -> %s", from, to);
+    return PropertyValue(full_name);
   }
   if (stringEqual(property, "delay_min_fall"))
     return edgeDelayProperty(edge, RiseFall::fall(), MinMax::min(), sta);
@@ -1077,7 +1118,7 @@ getProperty(Clock *clk,
   else if (stringEqual(property, "period"))
     return PropertyValue(clk->period(), sta->units()->timeUnit());
   else if (stringEqual(property, "sources"))
-    return PropertyValue(&clk->pins());
+    return PropertyValue(clk->pins());
   else if (stringEqual(property, "propagated"))
     return PropertyValue(clk->isPropagated());
   else if (stringEqual(property, "is_generated"))

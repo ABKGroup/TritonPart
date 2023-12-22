@@ -32,13 +32,18 @@
 
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "utl/Logger.h"
+
 namespace odb {
 class dbNet;
 }
+
+using int64 = std::int64_t;
 
 namespace grt {
 
@@ -83,6 +88,7 @@ struct FrNet  // A Net is a set of connected MazePoints
 {
   bool isClock() const { return is_clock_; }
   bool isRouted() const { return is_routed_; }
+  bool isCritical() { return is_critical_; }
   float getSlack() const { return slack_; }
   odb::dbNet* getDbNet() const { return db_net_; }
   int getDriverIdx() const { return driver_idx_; }
@@ -111,6 +117,8 @@ struct FrNet  // A Net is a set of connected MazePoints
   void setIsRouted(bool is_routed) { is_routed_ = is_routed; }
   void setMaxLayer(int max_layer) { max_layer_ = max_layer; }
   void setMinLayer(int min_layer) { min_layer_ = min_layer; }
+  void setSlack(float slack) { slack_ = slack; }
+  void setIsCritical(bool is_critical) { is_critical_ = is_critical; }
 
  private:
   odb::dbNet* db_net_;
@@ -118,6 +126,7 @@ struct FrNet  // A Net is a set of connected MazePoints
   std::vector<int> pin_y_;  // y coordinates of pins
   std::vector<int> pin_l_;  // l coordinates of pins
   bool is_clock_;           // flag that indicates if net is a clock net
+  bool is_critical_;
   int driver_idx_;
   int edge_cost_;
   int min_layer_;
@@ -146,7 +155,7 @@ struct Edge3D
 {
   unsigned short cap;    // the capacity of the edge
   unsigned short usage;  // the usage of the edge
-  unsigned short red;
+  unsigned short red;    // the reduction of capacity of the edge
 };
 
 struct TreeNode
@@ -162,7 +171,8 @@ struct TreeNode
   short heights[max_connections];
   int eID[max_connections];
 
-  short x, y;   // position in the grid graph
+  int16_t x, y;  // position in the grid graph
+  int nbr_count = 0;
   int nbr[3];   // three neighbors
   int edge[3];  // three adjacent edges
   int hID;
@@ -197,6 +207,8 @@ struct Route
 
   // valid for MazeRoute: the number of edges in the route
   int routelen;
+
+  int last_routelen = 0;  // the last routelen before overflow itter
 };
 
 struct TreeEdge
@@ -214,8 +226,8 @@ struct StTree
   int num_nodes = 0;
   int num_terminals = 0;
   // The nodes (pin and Steiner nodes) in the tree.
-  std::unique_ptr<TreeNode[]> nodes;
-  std::unique_ptr<TreeEdge[]> edges;
+  std::vector<TreeNode> nodes;
+  std::vector<TreeEdge> edges;
 
   int num_edges() const { return num_nodes - 1; }
 };
@@ -239,5 +251,7 @@ struct OrderNetEdge
   int length;
   int edgeID;
 };
+
+using utl::format_as;
 
 }  // namespace grt

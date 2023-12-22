@@ -25,8 +25,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_MTERM_H_
-#define _FR_MTERM_H_
+#pragma once
 
 #include <memory>
 
@@ -77,6 +76,7 @@ class frMTerm : public frTerm
           bbox_.merge(static_cast<frRect*>(pinFig)->getBBox());
       }
     }
+    in->setId(pins_.size());
     pins_.push_back(std::move(in));
   }
   // others
@@ -120,5 +120,3 @@ class frMTerm : public frTerm
 };
 
 }  // namespace fr
-
-#endif

@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,6 +16,8 @@
 
 #include "ReadVcdActivities.hh"
 
+#include <inttypes.h>
+
 #include "VcdReader.hh"
 #include "Debug.hh"
 #include "Network.hh"
@@ -30,6 +32,8 @@ namespace sta {
 using std::min;
 using std::to_string;
 
+typedef Set<const Pin*> ConstPinSet;
+
 class ReadVcdActivities : public StaState
 {
 public:
@@ -40,6 +44,9 @@ public:
 
 private:
   void setActivities();
+  void setVarActivity(VcdVar *var,
+                      string &var_name,
+                      const VcdValues &var_value);
   void setVarActivity(const char *pin_name,
                       const VcdValues &var_values,
                       int value_bit);
@@ -58,6 +65,7 @@ private:
   double clk_period_;
   Sta *sta_;
   Power *power_;
+  ConstPinSet annotated_pins_;
 
   static constexpr double sim_clk_period_tolerance_ = .1;
 };
@@ -93,7 +101,11 @@ ReadVcdActivities::readActivities()
   for (Clock *clk : *sta_->sdc()->clocks())
     clk_period_ = min(static_cast<double>(clk->period()), clk_period_);
 
-  setActivities();
+  if (vcd_.timeMax() > 0)
+    setActivities();
+  else
+    report_->warn(808, "VCD max time is zero.");
+  report_->reportLine("Annotated %lu pin activities.", annotated_pins_.size());
 }
 
 void
@@ -107,44 +119,59 @@ ReadVcdActivities::setActivities()
             || var->type() == VcdVarType::reg)) {
       string var_name = var->name();
       // string::starts_with in c++20
-      if (scope_length
-          && var_name.substr(0, scope_length) == scope_)
-        var_name = var_name.substr(scope_length + 1);
-      if (var_name[0] == '\\')
-        var_name += ' ';
-      const char *sta_name = verilogToSta(var_name.c_str());
+      if (scope_length) {
+        if (var_name.substr(0, scope_length) == scope_) {
+          var_name = var_name.substr(scope_length + 1);
+          setVarActivity(var, var_name, var_values);
+        }
+      }
+      else
+        setVarActivity(var, var_name, var_values);
+    }
+  }
+}
 
-      if (var->width() == 1)
-        setVarActivity(sta_name, var_values, 0);
+void
+ReadVcdActivities::setVarActivity(VcdVar *var,
+                                  string &var_name,
+                                  const VcdValues &var_values)
+{
+  if (var->width() == 1) {
+    string sta_name = netVerilogToSta(var_name.c_str());
+    setVarActivity(sta_name.c_str(), var_values, 0);
+  }
+  else {
+    bool is_bus, is_range, subscript_wild;
+    string bus_name;
+    int from, to;
+    parseBusName(var_name.c_str(), '[', ']', '\\',
+                 is_bus, is_range, bus_name, from, to, subscript_wild);
+    if (is_bus) {
+      string sta_bus_name = netVerilogToSta(bus_name.c_str());
+      int value_bit = 0;
+      if (to < from) {
+        for (int bus_bit = to; bus_bit <= from; bus_bit++) {
+          string pin_name = sta_bus_name;
+          pin_name += '[';
+          pin_name += to_string(bus_bit);
+          pin_name += ']';
+          setVarActivity(pin_name.c_str(), var_values, value_bit);
+          value_bit++;
+        }
+      }
       else {
-        char *bus_name;
-        int from, to;
-        parseBusRange(sta_name, '[', ']', '\\',
-                      bus_name, from, to);
-        int value_bit = 0;
-        if (to < from) {
-          for (int bus_bit = to; bus_bit <= from; bus_bit++) {
-            string pin_name = bus_name;
-            pin_name += '[';
-            pin_name += to_string(bus_bit);
-            pin_name += ']';
-            setVarActivity(pin_name.c_str(), var_values, value_bit);
-            value_bit++;
-          }
+        for (int bus_bit = to; bus_bit >= from; bus_bit--) {
+          string pin_name = sta_bus_name;
+          pin_name += '[';
+          pin_name += to_string(bus_bit);
+          pin_name += ']';
+          setVarActivity(pin_name.c_str(), var_values, value_bit);
+          value_bit++;
         }
-        else {
-          for (int bus_bit = to; bus_bit >= from; bus_bit--) {
-            string pin_name = bus_name;
-            pin_name += '[';
-            pin_name += to_string(bus_bit);
-            pin_name += ']';
-            setVarActivity(pin_name.c_str(), var_values, value_bit);
-            value_bit++;
-          }
-        }
-        stringDelete(bus_name);
       }
     }
+    else
+      report_->warn(809, "problem parsing bus %s.", var_name.c_str());
   }
 }
 
@@ -153,8 +180,9 @@ ReadVcdActivities::setVarActivity(const char *pin_name,
                                   const VcdValues &var_values,
                                   int value_bit)
 {
-  const Pin *pin = network_->findPin(pin_name);
+  const Pin *pin = sdc_network_->findPin(pin_name);
   if (pin) {
+    debugPrint(debug_, "read_vcd_activities", 3, "%s values", pin_name);
     double transition_count, activity, duty;
     findVarActivity(var_values, value_bit,
                     transition_count, activity, duty);
@@ -166,9 +194,8 @@ ReadVcdActivities::setVarActivity(const char *pin_name,
                duty);
     if (sdc_->isLeafPinClock(pin))
       checkClkPeriod(pin, transition_count);
-    else
-      power_->setUserActivity(pin, activity, duty,
-                              PwrActivityOrigin::user);
+    power_->setUserActivity(pin, activity, duty, PwrActivityOrigin::vcd);
+    annotated_pins_.insert(pin);
   }
 }
 
@@ -181,16 +208,13 @@ ReadVcdActivities::findVarActivity(const VcdValues &var_values,
                                    double &duty)
 {
   transition_count = 0.0;
-  char prev_value = var_values[0].value();
+  char prev_value = var_values[0].value(value_bit);
   VcdTime prev_time = var_values[0].time();
   VcdTime high_time = 0;
   for (const VcdValue &var_value : var_values) {
     VcdTime time = var_value.time();
-    char value = var_value.value();
-    if (value == '\0') {
-      uint64_t bus_value = var_value.busValue();
-      value = ((bus_value >> value_bit) & 0x1) ? '1' : '0';
-    }
+    char value = var_value.value(value_bit);
+    debugPrint(debug_, "read_vcd_activities", 3, " %" PRId64 " %c", time, value);
     if (prev_value == '1')
       high_time += time - prev_time;
     if (value != prev_value)

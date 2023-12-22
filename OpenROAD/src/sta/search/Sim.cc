@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ namespace sta {
 
 static LogicValue
 logicNot(LogicValue value);
-static Pin *
+static const Pin *
 findDrvrPin(const Pin *pin,
 	    Network *network);
 
@@ -53,16 +53,21 @@ Sim::Sim(StaState *sta) :
   observer_(nullptr),
   valid_(false),
   incremental_(false),
+  const_func_pins_(network_),
   const_func_pins_valid_(false),
-  // cacheSize = 2^15
-  cudd_manager_(Cudd_Init(0, 0, CUDD_UNIQUE_SLOTS, 32768, 0))
+  invalid_insts_(network_),
+  invalid_drvr_pins_(network_),
+  invalid_load_pins_(network_),
+  instances_with_const_pins_(network_),
+  instances_to_annotate_(network_),
+  cudd_mgr_(Cudd_Init(0, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0))
 {
 }
 
 Sim::~Sim()
 {
   delete observer_;
-  Cudd_Quit(cudd_manager_);
+  Cudd_Quit(cudd_mgr_);
 }
 
 #if CUDD
@@ -82,11 +87,11 @@ Sim::functionSense(const FuncExpr *expr,
     LibertyPort *input_port = network_->libertyPort(input_pin);
     DdNode *input_node = ensureNode(input_port);
     unsigned int input_index = Cudd_NodeReadIndex(input_node);
-    increasing = (Cudd_Increasing(cudd_manager_, bdd, input_index)
-		  == Cudd_ReadOne(cudd_manager_));
-    decreasing = (Cudd_Decreasing(cudd_manager_, bdd, input_index)
-		  == Cudd_ReadOne(cudd_manager_));
-    Cudd_RecursiveDeref(cudd_manager_, bdd);
+    increasing = (Cudd_Increasing(cudd_mgr_, bdd, input_index)
+		  == Cudd_ReadOne(cudd_mgr_));
+    decreasing = (Cudd_Decreasing(cudd_mgr_, bdd, input_index)
+		  == Cudd_ReadOne(cudd_mgr_));
+    Cudd_RecursiveDeref(cudd_mgr_, bdd);
     clearSymtab();
   }
   TimingSense sense;
@@ -105,10 +110,9 @@ Sim::functionSense(const FuncExpr *expr,
 void
 Sim::clearSymtab() const
 {
-  BddSymbolTable::Iterator sym_iter(symtab_);
-  while (sym_iter.hasNext()) {
-    DdNode *sym_node = sym_iter.next();
-    Cudd_RecursiveDeref(cudd_manager_, sym_node);
+  for (auto name_node : symtab_) {
+    DdNode *sym_node = name_node.second;
+    Cudd_RecursiveDeref(cudd_mgr_, sym_node);
   }
   symtab_.clear();
 }
@@ -120,12 +124,12 @@ Sim::evalExpr(const FuncExpr *expr,
   UniqueLock lock(cudd_lock_);
   DdNode *bdd = funcBdd(expr, inst);
   LogicValue value = LogicValue::unknown;
-  if (bdd == Cudd_ReadLogicZero(cudd_manager_))
+  if (bdd == Cudd_ReadLogicZero(cudd_mgr_))
     value = LogicValue::zero;
-  else if (bdd == Cudd_ReadOne(cudd_manager_))
+  else if (bdd == Cudd_ReadOne(cudd_mgr_))
     value = LogicValue::one;
   if (bdd) {
-    Cudd_RecursiveDeref(cudd_manager_, bdd);
+    Cudd_RecursiveDeref(cudd_mgr_, bdd);
     clearSymtab();
   }
   return value;
@@ -148,10 +152,10 @@ Sim::funcBdd(const FuncExpr *expr,
       LogicValue value = logicValue(pin);
       switch (value) {
       case LogicValue::zero:
-	result = Cudd_ReadLogicZero(cudd_manager_);
+	result = Cudd_ReadLogicZero(cudd_mgr_);
 	break;
       case LogicValue::one:
-	result = Cudd_ReadOne(cudd_manager_);
+	result = Cudd_ReadOne(cudd_mgr_);
 	break;
       default:
 	result = ensureNode(port);
@@ -169,7 +173,7 @@ Sim::funcBdd(const FuncExpr *expr,
     left = funcBdd(expr->left(), inst);
     right = funcBdd(expr->right(), inst);
     if (left && right)
-      result = Cudd_bddOr(cudd_manager_, left, right);
+      result = Cudd_bddOr(cudd_mgr_, left, right);
     else if (left)
       result = left;
     else if (right)
@@ -179,7 +183,7 @@ Sim::funcBdd(const FuncExpr *expr,
     left = funcBdd(expr->left(), inst);
     right = funcBdd(expr->right(), inst);
     if (left && right)
-      result = Cudd_bddAnd(cudd_manager_, left, right);
+      result = Cudd_bddAnd(cudd_mgr_, left, right);
     else if (left)
       result = left;
     else if (right)
@@ -189,17 +193,17 @@ Sim::funcBdd(const FuncExpr *expr,
     left = funcBdd(expr->left(), inst);
     right = funcBdd(expr->right(), inst);
     if (left && right)
-      result = Cudd_bddXor(cudd_manager_, left, right);
+      result = Cudd_bddXor(cudd_mgr_, left, right);
     else if (left)
       result = left;
     else if (right)
       result = right;
     break;
   case FuncExpr::op_one:
-    result = Cudd_ReadOne(cudd_manager_);
+    result = Cudd_ReadOne(cudd_mgr_);
     break;
   case FuncExpr::op_zero:
-    result = Cudd_ReadLogicZero(cudd_manager_);
+    result = Cudd_ReadLogicZero(cudd_mgr_);
     break;
   default:
     report_->critical(596, "unknown function operator");
@@ -207,9 +211,9 @@ Sim::funcBdd(const FuncExpr *expr,
   if (result)
     Cudd_Ref(result);
   if (left)
-    Cudd_RecursiveDeref(cudd_manager_, left);
+    Cudd_RecursiveDeref(cudd_mgr_, left);
   if (right)
-    Cudd_RecursiveDeref(cudd_manager_, right);
+    Cudd_RecursiveDeref(cudd_mgr_, right);
   return result;
 }
 
@@ -219,7 +223,7 @@ Sim::ensureNode(LibertyPort *port) const
   const char *port_name = port->name();
   DdNode *node = symtab_.findKey(port_name);
   if (node == nullptr) {
-    node = Cudd_bddNewVar(cudd_manager_);
+    node = Cudd_bddNewVar(cudd_mgr_);
     symtab_[port_name] = node;
     Cudd_Ref(node);
   }
@@ -569,26 +573,21 @@ Sim::findLogicConstants()
 void
 Sim::seedInvalidConstants()
 {
-  InstanceSet::Iterator inst_iter(invalid_insts_);
-  while (inst_iter.hasNext()) {
-    Instance *inst = inst_iter.next();
+  for (const Instance *inst : invalid_insts_)
     eval_queue_.push(inst);
-  }
 }
 
 void
 Sim::propagateToInvalidLoads()
 {
-  PinSet::Iterator load_iter(invalid_load_pins_);
-  while (load_iter.hasNext()) {
-    Pin *load_pin = load_iter.next();
-    Net *net = network_->net(load_pin);
+  for (const Pin *load_pin : invalid_load_pins_) {
+    const Net *net = network_->net(load_pin);
     if (net && network_->isGround(net))
       setPinValue(load_pin, LogicValue::zero);
     else if (net && network_->isPower(net))
       setPinValue(load_pin, LogicValue::one);
     else {
-      Pin *drvr_pin = findDrvrPin(load_pin, network_);
+      const Pin *drvr_pin = findDrvrPin(load_pin, network_);
       if (drvr_pin)
 	propagateDrvrToLoad(drvr_pin, load_pin);
     }
@@ -599,15 +598,13 @@ Sim::propagateToInvalidLoads()
 void
 Sim::propagateFromInvalidDrvrsToLoads()
 {
-  PinSet::Iterator drvr_iter(invalid_drvr_pins_);
-  while (drvr_iter.hasNext()) {
-    Pin *drvr_pin = drvr_iter.next();
+  for (const Pin *drvr_pin : invalid_drvr_pins_) {
     LogicValue value = const_func_pins_.hasKey(drvr_pin)
       ? pinConstFuncValue(drvr_pin)
       : logicValue(drvr_pin);
     PinConnectedPinIterator *load_iter=network_->connectedPinIterator(drvr_pin);
     while (load_iter->hasNext()) {
-      Pin *load_pin = load_iter->next();
+      const Pin *load_pin = load_iter->next();
       if (load_pin != drvr_pin
 	  && network_->isLoad(load_pin))
 	setPinValue(load_pin, value);
@@ -618,8 +615,8 @@ Sim::propagateFromInvalidDrvrsToLoads()
 }
 
 void
-Sim::propagateDrvrToLoad(Pin *drvr_pin,
-			 Pin *load_pin)
+Sim::propagateDrvrToLoad(const Pin *drvr_pin,
+			 const Pin *load_pin)
 {
   LogicValue value = logicValue(drvr_pin);
   setPinValue(load_pin, value);
@@ -641,7 +638,7 @@ Sim::ensureConstantFuncPins()
       Instance *inst = inst_iter->next();
       InstancePinIterator *pin_iter = network_->pinIterator(inst);
       while (pin_iter->hasNext()) {
-	Pin *pin = pin_iter->next();
+	const Pin *pin = pin_iter->next();
 	recordConstPinFunc(pin);
       }
       delete pin_iter;
@@ -652,7 +649,7 @@ Sim::ensureConstantFuncPins()
 }
 
 void
-Sim::recordConstPinFunc(Pin *pin)
+Sim::recordConstPinFunc(const Pin *pin)
 {
   LibertyPort *port = network_->libertyPort(pin);
   if (port) {
@@ -667,21 +664,21 @@ Sim::recordConstPinFunc(Pin *pin)
 }
 
 void
-Sim::deleteInstanceBefore(Instance *inst)
+Sim::deleteInstanceBefore(const Instance *inst)
 {
   instances_with_const_pins_.erase(inst);
   invalid_insts_.erase(inst);
 }
 
 void
-Sim::makePinAfter(Pin *pin)
+Sim::makePinAfter(const Pin *pin)
 {
   // Incrementally update const_func_pins_.
   recordConstPinFunc(pin);
 }
 
 void
-Sim::deletePinBefore(Pin *pin)
+Sim::deletePinBefore(const Pin *pin)
 {
   // Incrementally update const_func_pins_.
   const_func_pins_.erase(pin);
@@ -691,7 +688,7 @@ Sim::deletePinBefore(Pin *pin)
 }
 
 void
-Sim::connectPinAfter(Pin *pin)
+Sim::connectPinAfter(const Pin *pin)
 {
   if (incremental_) {
     recordConstPinFunc(pin);
@@ -704,7 +701,7 @@ Sim::connectPinAfter(Pin *pin)
 }
 
 void
-Sim::disconnectPinBefore(Pin *pin)
+Sim::disconnectPinBefore(const Pin *pin)
 {
   if (incremental_) {
     if (network_->isLoad(pin)) {
@@ -717,7 +714,7 @@ Sim::disconnectPinBefore(Pin *pin)
 }
 
 void
-Sim::pinSetFuncAfter(Pin *pin)
+Sim::pinSetFuncAfter(const Pin *pin)
 {
   if (incremental_) {
     Instance *inst = network_->instance(pin);
@@ -754,13 +751,11 @@ Sim::propagateConstants(bool thru_sequentials)
 }
 
 void
-Sim::setConstraintConstPins(LogicValueMap *value_map)
+Sim::setConstraintConstPins(LogicValueMap &value_map)
 {
-  LogicValueMap::ConstIterator value_iter(value_map);
-  while (value_iter.hasNext()) {
-    LogicValue value;
-    const Pin *pin;
-    value_iter.next(pin, value);
+  for (auto pin_value : value_map) {
+    const Pin *pin = pin_value.first;
+    LogicValue value = pin_value.second;
     debugPrint(debug_, "sim", 2, "case pin %s = %c",
                network_->pathName(pin),
                logicValueString(value));
@@ -769,7 +764,7 @@ Sim::setConstraintConstPins(LogicValueMap *value_map)
       bool pin_is_output = network_->direction(pin)->isAnyOutput();
       PinConnectedPinIterator *pin_iter=network_->connectedPinIterator(pin);
       while (pin_iter->hasNext()) {
-	Pin *pin1 = pin_iter->next();
+	const Pin *pin1 = pin_iter->next();
 	if (network_->isLeaf(pin1)
 	    && network_->direction(pin1)->isAnyInput()
 	    && ((pin_is_output && !network_->isInside(pin1, pin))
@@ -788,9 +783,7 @@ Sim::setConstraintConstPins(LogicValueMap *value_map)
 void
 Sim::setConstFuncPins()
 {
-  PinSet::Iterator const_pin_iter(const_func_pins_);
-  while (const_pin_iter.hasNext()) {
-    Pin *pin = const_pin_iter.next();
+  for (const Pin *pin : const_func_pins_) {
     LogicValue value = pinConstFuncValue(pin);
     setPinValue(pin, value);
     debugPrint(debug_, "sim", 2, "func pin %s = %c",
@@ -800,7 +793,7 @@ Sim::setConstFuncPins()
 }
 
 LogicValue
-Sim::pinConstFuncValue(Pin *pin)
+Sim::pinConstFuncValue(const Pin *pin)
 {
   LibertyPort *port = network_->libertyPort(pin);
   if (port) {
@@ -819,7 +812,7 @@ Sim::enqueueConstantPinInputs()
   ConstantPinIterator *const_iter = network_->constantPinIterator();
   while (const_iter->hasNext()) {
     LogicValue value;
-    Pin *pin;
+    const Pin *pin;
     const_iter->next(pin, value);
     debugPrint(debug_, "sim", 2, "network constant pin %s = %c",
                network_->pathName(pin),
@@ -899,7 +892,7 @@ Sim::setPinValue(const Pin *pin,
       // Enqueue instances with input pins connected to net.
       PinConnectedPinIterator *pin_iter=network_->connectedPinIterator(pin);
       while (pin_iter->hasNext()) {
-        Pin *pin1 = pin_iter->next();
+        const Pin *pin1 = pin_iter->next();
         if (pin1 != pin
             && network_->isLoad(pin1))
           setPinValue(pin1, value);
@@ -1056,7 +1049,7 @@ Sim::logicValue(const Pin *pin) const
     return vertex->simValue();
   else {
     if (network_->isHierarchical(pin)) {
-      Pin *drvr_pin = findDrvrPin(pin, network_);
+      const Pin *drvr_pin = findDrvrPin(pin, network_);
       if (drvr_pin)
 	return logicValue(drvr_pin);
     }
@@ -1064,7 +1057,7 @@ Sim::logicValue(const Pin *pin) const
   }
 }
 
-static Pin *
+static const Pin *
 findDrvrPin(const Pin *pin,
 	    Network *network)
 {
@@ -1098,9 +1091,7 @@ Sim::logicZeroOne(const Vertex *vertex) const
 void
 Sim::clearSimValues()
 {
-  InstanceSet::Iterator inst_iter(instances_with_const_pins_);
-  while (inst_iter.hasNext()) {
-    const Instance *inst = inst_iter.next();
+  for (const Instance *inst : instances_with_const_pins_) {
     // Clear sim values on all pins before evaling functions.
     clearInstSimValues(inst);
     annotateVertexEdges(inst, false);
@@ -1130,11 +1121,8 @@ Sim::clearInstSimValues(const Instance *inst)
 void
 Sim::annotateGraphEdges()
 {
-  InstanceSet::Iterator inst_iter(instances_to_annotate_);
-  while (inst_iter.hasNext()) {
-    const Instance *inst = inst_iter.next();
+  for (const Instance *inst : instances_to_annotate_)
     annotateVertexEdges(inst, true);
-  }
 }
 
 void
@@ -1295,9 +1283,8 @@ isModeDisabled(Edge *edge,
 	  if (cond_value == LogicValue::zero) {
 	    // For a mode value to be disabled by having a value of
 	    // logic zero one mode value must logic one.
-	    ModeValueMap::Iterator iter(mode_def->values());
-	    while (iter.hasNext()) {
-	      ModeValueDef *value_def1 = iter.next();
+	    for (auto name_mode : *mode_def->values()) {
+	      ModeValueDef *value_def1 = name_mode.second;
 	      if (value_def1) {
 		FuncExpr *cond1 = value_def1->cond();
 		if (cond1) {

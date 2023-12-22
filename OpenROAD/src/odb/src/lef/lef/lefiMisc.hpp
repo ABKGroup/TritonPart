@@ -22,7 +22,7 @@
 //
 //  $Author: dell $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2020/09/29 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -31,6 +31,9 @@
 #define lefiMisc_h
 
 #include <stdio.h>
+
+#include <string>
+#include <vector>
 
 #include "lefiKRDefs.hpp"
 
@@ -86,8 +89,6 @@ struct lefiGeomPolygon
   double* x;
   double* y;
   int colorMask;
-  lefiGeomPolygon();
-  LEF_COPY_CONSTRUCTOR_H(lefiGeomPolygon);
 };
 
 struct lefiGeomPolygonIter
@@ -152,7 +153,6 @@ class lefiGeometries
   lefiGeometries();
   void Init();
 
-  LEF_COPY_CONSTRUCTOR_H(lefiGeometries);
   void Destroy();
   ~lefiGeometries();
 
@@ -307,9 +307,6 @@ class lefiSite
   lefiSite();
   void Init();
 
-  LEF_COPY_CONSTRUCTOR_H(lefiSite);
-  LEF_ASSIGN_OPERATOR_H(lefiSite);
-
   void Destroy();
   ~lefiSite();
 
@@ -320,6 +317,7 @@ class lefiSite
   void setYSymmetry();
   void set90Symmetry();
   void addRowPattern(const char* name, int orient);
+  std::vector<std::pair<std::string, std::string>> getRowPatterns() const;
 
   const char* name() const;
   int hasClass() const;
@@ -361,7 +359,6 @@ class lefiSitePattern
   lefiSitePattern();
   void Init();
 
-  LEF_COPY_CONSTRUCTOR_H(lefiSitePattern);
   void Destroy();
   ~lefiSitePattern();
 

@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,19 +26,23 @@ namespace sta {
 class TimingArcAttrs;
 class InternalPowerAttrs;
 class LeakagePowerAttrs;
+class Debug;
+class Report;
 
 class LibertyBuilder
 {
 public:
   LibertyBuilder() {}
   virtual ~LibertyBuilder() {}
+  void init(Debug *debug,
+            Report *report);
   virtual LibertyCell *makeCell(LibertyLibrary *library,
 				const char *name,
 				const char *filename);
   virtual LibertyPort *makePort(LibertyCell *cell,
 				const char *name);
   virtual LibertyPort *makeBusPort(LibertyCell *cell,
-				   const char *name,
+				   const char *bus_name,
 				   int from_index,
 				   int to_index,
                                    BusDcl *bus_dcl);
@@ -52,7 +56,8 @@ public:
 			       LibertyPort *from_port,
 			       LibertyPort *to_port,
 			       LibertyPort *related_out,
-			       TimingArcAttrsPtr attrs);
+			       TimingArcAttrsPtr attrs,
+                               int line);
   InternalPower *makeInternalPower(LibertyCell *cell,
 				   LibertyPort *port,
 				   LibertyPort *related_port,
@@ -74,6 +79,11 @@ public:
 				      bool to_rise,
 				      bool to_fall,
 				      TimingArcAttrsPtr attrs);
+  TimingArcSet *makeClockTreePathArcs(LibertyCell *cell,
+                                      LibertyPort *to_port,
+                                      LibertyPort *related_out,
+                                      TimingRole *role,
+                                      TimingArcAttrsPtr attrs);
 
 protected:
   ConcretePort *makeBusPort(const char *name,
@@ -83,7 +93,7 @@ protected:
   void makeBusPortBits(ConcreteLibrary *library,
 		       LibertyCell *cell,
 		       ConcretePort *bus_port,
-		       const char *name,
+		       const char *bus_name,
 		       int from_index,
 		       int to_index);
   // Bus port bit (internal to makeBusPortBits).
@@ -93,7 +103,7 @@ protected:
   void makeBusPortBit(ConcreteLibrary *library,
 		      LibertyCell *cell,
 		      ConcretePort *bus_port,
-		      const char *name,
+		      const char *bus_name,
 		      int index);
   virtual TimingArcSet *makeTimingArcSet(LibertyCell *cell,
 					 LibertyPort *from,
@@ -112,6 +122,7 @@ protected:
   TimingArcSet *makeLatchDtoQArcs(LibertyCell *cell,
 				  LibertyPort *from_port,
 				  LibertyPort *to_port,
+                                  TimingSense sense,
 				  LibertyPort *related_out,
 				  TimingArcAttrsPtr attrs);
   TimingArcSet *makeRegLatchArcs(LibertyCell *cell,
@@ -140,6 +151,9 @@ protected:
 					bool to_rise,
 					bool to_fall,
 					TimingArcAttrsPtr attrs);
+
+  Debug *debug_;
+  Report *report_;
 };
 
 } // namespace

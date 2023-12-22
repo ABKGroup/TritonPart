@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
 
 #include "ParseBus.hh"
 
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 #include <string>
 
 #include "StringUtil.hh"
@@ -51,12 +51,14 @@ parseBusName(const char *name,
 	     const char brkt_right,
 	     const char escape,
 	     // Return values.
-	     char *&bus_name,
+	     bool &is_bus,
+	     string &bus_name,
 	     int &index)
 {
   const char brkts_left[2] = {brkt_left, '\0'};
   const char brkts_right[2] = {brkt_right, '\0'};
-  parseBusName(name, brkts_left, brkts_right, escape, bus_name, index);
+  parseBusName(name, brkts_left, brkts_right, escape,
+               is_bus, bus_name, index);
 }
 
 void
@@ -65,10 +67,11 @@ parseBusName(const char *name,
 	     const char *brkts_right,
 	     char escape,
 	     // Return values.
-	     char *&bus_name,
+	     bool &is_bus,
+	     string &bus_name,
 	     int &index)
 {
-  bus_name = nullptr;
+  is_bus = false;
   size_t len = strlen(name);
   // Shortest bus name is a[0].
   if (len >= 4
@@ -81,10 +84,9 @@ parseBusName(const char *name,
       char brkt_left = brkts_left[brkt_index];
       const char *left = strrchr(name, brkt_left);
       if (left) {
+        is_bus = true;
 	size_t bus_name_len = left - name;
-	bus_name = new char[bus_name_len + 1];
-	strncpy(bus_name, name, bus_name_len);
-	bus_name[bus_name_len] = '\0';
+	bus_name.append(name, bus_name_len);
 	// Simple bus subscript.
 	index = atoi(left + 1);
       }
@@ -93,34 +95,43 @@ parseBusName(const char *name,
 }
 
 void
-parseBusRange(const char *name,
-	      const char brkt_left,
-	      const char brkt_right,
-	      char escape,
-	      // Return values.
-	      char *&bus_name,
-	      int &from,
-	      int &to)
+parseBusName(const char *name,
+             const char brkt_left,
+             const char brkt_right,
+             char escape,
+             // Return values.
+             bool &is_bus,
+             bool &is_range,
+             string &bus_name,
+             int &from,
+             int &to,
+             bool &subscript_wild)
 {
   const char brkts_left[2] = {brkt_left, '\0'};
   const char brkts_right[2] = {brkt_right, '\0'};
-  parseBusRange(name, brkts_left, brkts_right, escape, bus_name, from, to);
+  parseBusName(name, brkts_left, brkts_right, escape,
+               is_bus, is_range, bus_name, from, to, subscript_wild);
 }
 
 void
-parseBusRange(const char *name,
-	      const char *brkts_left,
-	      const char *brkts_right,
-	      char escape,
-	      // Return values.
-	      char *&bus_name,
-	      int &from,
-	      int &to)
+parseBusName(const char *name,
+             const char *brkts_left,
+             const char *brkts_right,
+             char escape,
+             // Return values.
+             bool &is_bus,
+             bool &is_range,
+             string &bus_name,
+             int &from,
+             int &to,
+             bool &subscript_wild)
 {
-  bus_name = nullptr;
+  is_bus = false;
+  is_range = false;
+  subscript_wild = false;
   size_t len = strlen(name);
-  // Shortest bus range is a[1:0].
-  if (len >= 6
+  // Shortest bus is a[0].
+  if (len >= 4
       // Escaped bus brackets are not buses.
       && name[len - 2] != escape) {
     char last_ch = name[len - 1];
@@ -130,72 +141,56 @@ parseBusRange(const char *name,
       char brkt_left = brkts_left[brkt_index];
       const char *left = strrchr(name, brkt_left);
       if (left) {
+        is_bus = true;
 	// Check for bus range.
 	const char range_sep = ':';
 	const char *range = strchr(name, range_sep);
 	if (range) {
-	  size_t bus_name_len = left - name;
-	  bus_name = new char[bus_name_len + 1];
-	  strncpy(bus_name, name, bus_name_len);
-	  bus_name[bus_name_len] = '\0';
+          is_range = true;
+          bus_name.append(name, left - name);
 	  // No need to terminate bus subscript because atoi stops
 	  // scanning at first non-digit character.
 	  from = atoi(left + 1);
 	  to = atoi(range + 1);
 	}
+        else {
+          bus_name.append(name, left - name);
+	  if (left[1] == '*')
+            subscript_wild = true;
+          else
+            from = to = atoi(left + 1);
+        }
       }
     }
   }
 }
 
-const char *
+string
 escapeChars(const char *token,
 	    const char ch1,
 	    const char ch2,
 	    const char escape)
 {
-  int result_length = 0;
-  bool need_escapes = false;
+  string escaped;
   for (const char *s = token; *s; s++) {
     char ch = *s;
     if (ch == escape) {
       char next_ch = s[1];
       // Make sure we don't skip the null if escape is the last char.
-      if (next_ch != '\0')
-	result_length++;
+      if (next_ch != '\0') {
+        escaped += ch;
+        escaped += next_ch;
+        s++;
+      }
     }
     else if (ch == ch1 || ch == ch2) {
-      result_length++;
-      need_escapes = true;
+      escaped += escape;
+      escaped += ch;
     }
-    result_length++;
+    else
+      escaped += ch;
   }
-  if (need_escapes) {
-    char *result = makeTmpString(result_length + 1);
-    char *r = result;
-    for (const char *s = token; *s; s++) {
-      char ch = *s;
-      if (ch == escape) {
-	char next_ch = s[1];
-	// Make sure we don't skip the null if escape is the last char.
-	if (next_ch != '\0') {
-	  *r++ = ch;
-	  *r++ = next_ch;
-	  s++;
-	}
-      }
-      else if (ch == ch1 || ch == ch2) {
-	*r++ = escape;
-	*r++ = ch;
-      }
-      else
-	*r++ = ch;
-    }
-    *r++ = '\0';
-    return result;
-  }
-  else
-    return token;
+  return escaped;
 }
 
 } // namespace

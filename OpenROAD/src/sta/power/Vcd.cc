@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -153,7 +153,7 @@ Vcd::varAppendValue(string &id,
                     char value)
 {
   VcdValues &values = id_values_map_[id];
-  values.push_back(VcdValue(time, value, 0));
+  values.emplace_back(time, value, 0);
 }
 
 void
@@ -162,7 +162,7 @@ Vcd::varAppendBusValue(string &id,
                        int64_t bus_value)
 {
   VcdValues &values = id_values_map_[id];
-  values.push_back(VcdValue(time, '\0', bus_value));
+  values.emplace_back(time, '\0', bus_value);
 }
 
 VcdValues &
@@ -199,6 +199,15 @@ VcdValue::VcdValue(VcdTime time,
   value_(value),
   bus_value_(bus_value)
 {
+}
+
+char
+VcdValue::value(int value_bit) const
+{
+  if (value_ == '\0')
+    return ((bus_value_ >> value_bit) & 0x1) ? '1' : '0';
+  else
+    return value_;
 }
 
 }

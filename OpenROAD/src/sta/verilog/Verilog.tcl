@@ -1,5 +1,5 @@
 # OpenSTA, Static Timing Analyzer
-# Copyright (c) 2022, Parallax Software, Inc.
+# Copyright (c) 2023, Parallax Software, Inc.
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ proc write_verilog { args } {
 
   set remove_cells {}
   if { [info exists keys(-remove_cells)] } {
-    set remove_cells [sta::parse_libcell_arg $keys(-remove_cells)]
+    set remove_cells [parse_cell_arg $keys(-remove_cells)]
   }
   set sort [info exists flags(-sort)]
   set include_pwr_gnd [info exists flags(-include_pwr_gnd)]

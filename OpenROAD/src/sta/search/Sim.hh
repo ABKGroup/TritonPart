@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -62,22 +62,22 @@ public:
   void findLogicConstants();
 
   // Network edits.
-  void deleteInstanceBefore(Instance *inst);
-  void makePinAfter(Pin *pin);
-  void deletePinBefore(Pin *pin);
-  void connectPinAfter(Pin *pin);
-  void disconnectPinBefore(Pin *pin);
-  void pinSetFuncAfter(Pin *pin);
+  void deleteInstanceBefore(const Instance *inst);
+  void makePinAfter(const Pin *pin);
+  void deletePinBefore(const Pin *pin);
+  void connectPinAfter(const Pin *pin);
+  void disconnectPinBefore(const Pin *pin);
+  void pinSetFuncAfter(const Pin *pin);
 
 protected:
   void ensureConstantFuncPins();
-  void recordConstPinFunc(Pin *pin);
+  void recordConstPinFunc(const Pin *pin);
   virtual void seedConstants();
   void seedInvalidConstants();
   void propagateConstants(bool thru_sequentials);
-  void setConstraintConstPins(LogicValueMap *pin_value_map);
+  void setConstraintConstPins(LogicValueMap &pin_value_map);
   void setConstFuncPins();
-  LogicValue pinConstFuncValue(Pin *pin);
+  LogicValue pinConstFuncValue(const Pin *pin);
   void enqueueConstantPinInputs();
   virtual void setPinValue(const Pin *pin,
 			   LogicValue value);
@@ -106,8 +106,8 @@ protected:
   void removePropagatedValue(const Pin *pin);
   void propagateFromInvalidDrvrsToLoads();
   void propagateToInvalidLoads();
-  void propagateDrvrToLoad(Pin *drvr_pin,
-			   Pin *load_pin);
+  void propagateDrvrToLoad(const Pin *drvr_pin,
+			   const Pin *load_pin);
   void setSimValue(Vertex *vertex,
 		   LogicValue value);
 
@@ -129,16 +129,14 @@ protected:
   InstanceSet instances_with_const_pins_;
   InstanceSet instances_to_annotate_;
 
-#ifdef CUDD
   DdNode *funcBdd(const FuncExpr *expr,
 		  const Instance *inst) const;
   DdNode *ensureNode(LibertyPort *port) const;
   void clearSymtab() const;
 
-  DdManager *cudd_manager_;
+  DdManager *cudd_mgr_;
   mutable BddSymbolTable symtab_;
   mutable std::mutex cudd_lock_;
-#endif // CUDD
 };
 
 // Abstract base class for Sim value change observer.

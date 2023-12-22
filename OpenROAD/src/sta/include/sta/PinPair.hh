@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,28 +22,41 @@
 
 namespace sta {
 
-typedef std::pair<Pin*, Pin*> PinPair;
+typedef std::pair<const Pin*, const Pin*> PinPair;
 
 class PinPairLess
 {
 public:
-  bool operator()(const PinPair *pair1,
-		  const PinPair *pair2) const;
+  PinPairLess(const Network *network);
+  bool operator()(const PinPair &pair1,
+		  const PinPair &pair2) const;
+
+private:
+  const Network *network_;
 };
 
-typedef Set<PinPair*, PinPairLess> PinPairSet;
+
+class PinPairSet : public Set<PinPair, PinPairLess>
+{
+public:
+  PinPairSet(const Network *network);
+};
 
 class PinPairHash
 {
 public:
-  size_t operator()(const PinPair *pair) const;
+  PinPairHash(const Network *network);
+  size_t operator()(const PinPair &pair) const;
+
+private:
+  const Network *network_;
 };
 
 class PinPairEqual
 {
 public:
-  bool operator()(const PinPair *pair1,
-		  const PinPair *pair2) const;
+  bool operator()(const PinPair &pair1,
+		  const PinPair &pair2) const;
 };
 
 } // namespace

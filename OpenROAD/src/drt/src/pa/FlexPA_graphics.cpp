@@ -72,7 +72,7 @@ FlexPAGraphics::FlexPAGraphics(frDebugSettings* settings,
     size_t pos = settings_->pinName.rfind(':');
     if (pos == std::string::npos) {
       logger_->error(
-          DRT, 293, "pin name {} has no ':' delimeter", settings_->pinName);
+          DRT, 293, "pin name {} has no ':' delimiter", settings_->pinName);
     }
     term_name_ = settings_->pinName.substr(pos + 1);
     auto inst_name = settings_->pinName.substr(0, pos);
@@ -164,7 +164,7 @@ void FlexPAGraphics::drawLayer(odb::dbTechLayer* layer, gui::Painter& painter)
 
 void FlexPAGraphics::startPin(frMPin* pin,
                               frInstTerm* inst_term,
-                              set<frInst*, frBlockObjectComp>* instClass)
+                              std::set<frInst*, frBlockObjectComp>* instClass)
 {
   pin_ = nullptr;
 
@@ -190,7 +190,7 @@ void FlexPAGraphics::startPin(frMPin* pin,
 
 void FlexPAGraphics::startPin(frBPin* pin,
                               frInstTerm* inst_term,
-                              set<frInst*, frBlockObjectComp>* instClass)
+                              std::set<frInst*, frBlockObjectComp>* instClass)
 {
   pin_ = nullptr;
 
@@ -322,7 +322,7 @@ void FlexPAGraphics::setPlanarAP(
 }
 
 void FlexPAGraphics::setObjsAndMakers(
-    const vector<pair<frConnFig*, frBlockObject*>>& objs,
+    const std::vector<std::pair<frConnFig*, frBlockObject*>>& objs,
     const std::vector<std::unique_ptr<frMarker>>& markers,
     const FlexPA::PatternType type)
 {

@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 namespace sta {
 
-VertexPinCollector::VertexPinCollector(PinSet *pins) :
+VertexPinCollector::VertexPinCollector(PinSet &pins) :
   pins_(pins)
 {
 }
@@ -36,7 +36,7 @@ VertexPinCollector::copy() const
 void
 VertexPinCollector::visit(Vertex *vertex)
 {
-  pins_->insert(vertex->pin());
+  pins_.insert(vertex->pin());
 }
 
 } // namespace

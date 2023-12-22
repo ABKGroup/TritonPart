@@ -42,6 +42,7 @@ sta::define_cmd_args "rtl_macro_placer" { -max_num_macro  max_num_macro \
                                           -large_net_threshold large_net_threshold \
                                           -signature_net_threshold signature_net_threshold \
                                           -halo_width halo_width \
+                                          -halo_height halo_height \
                                           -fence_lx   fence_lx \
                                           -fence_ly   fence_ly \
                                           -fence_ux   fence_ux \
@@ -59,38 +60,43 @@ sta::define_cmd_args "rtl_macro_placer" { -max_num_macro  max_num_macro \
                                           -target_dead_space target_dead_space \
                                           -min_ar  min_ar \
                                           -snap_layer snap_layer \
+                                          -bus_planning \
                                           -report_directory report_directory \
+                                          -write_macro_placement file_name \
                                         }
 proc rtl_macro_placer { args } {
-    sta::parse_key_args "rtl_macro_placer" args keys { 
-        -max_num_macro  -min_num_macro -max_num_inst  -min_num_inst  -tolerance   \
-        -max_num_level  -coarsening_ratio  -num_bundled_ios  -large_net_threshold \
-        -signature_net_threshold -halo_width \
-        -fence_lx   -fence_ly  -fence_ux   -fence_uy  \
-        -area_weight  -outline_weight -wirelength_weight -guidance_weight -fence_weight \
-        -boundary_weight -notch_weight macro_blockage_weight \
-        -pin_access_th -target_util \
-        -target_dead_space -min_ar -snap_layer -report_directory \
-    } flag {  }
-
+    sta::parse_key_args "rtl_macro_placer" args \
+    keys {-max_num_macro  -min_num_macro -max_num_inst  -min_num_inst  -tolerance   \
+         -max_num_level  -coarsening_ratio  -num_bundled_ios  -large_net_threshold \
+         -signature_net_threshold -halo_width -halo_height \
+         -fence_lx   -fence_ly  -fence_ux   -fence_uy  \
+         -area_weight  -outline_weight -wirelength_weight -guidance_weight -fence_weight \
+         -boundary_weight -notch_weight -macro_blockage_weight  \
+         -pin_access_th -target_util \
+         -target_dead_space -min_ar -snap_layer \
+         -report_directory \
+         -write_macro_placement } \
+    flags {-bus_planning}
+#
 # Check for valid design
-
     if {  [ord::get_db_block] == "NULL" } {
-      utl::error MPL 9998 "No block found for Macro Placement."
+      utl::error MPL 1 "No block found for Macro Placement."
     }
-# Set the default parameters for the macro_placer
 
-    set max_num_macro 12
-    set min_num_macro 4 
-    set max_num_inst  30000
-    set min_num_inst  5000
+# Set the default parameters for the macro_placer
+# Set auto defaults for min/max std cells and macros based on design
+    set max_num_macro 0 
+    set min_num_macro 0
+    set max_num_inst  0
+    set min_num_inst  0
     set tolerance     0.1
     set max_num_level 2
     set coarsening_ratio  10.0
     set num_bundled_ios   3
     set large_net_threshold 50
     set signature_net_threshold 50
-    set halo_width   5.0
+    set halo_width   0.0
+    set halo_height  0.0
     set fence_lx     0.0
     set fence_ly     0.0
     set fence_ux     100000000.0
@@ -98,17 +104,17 @@ proc rtl_macro_placer { args } {
 
     set area_weight  0.1
     set outline_weight 100.0
-    set wirelength_weight 50.0
-    set guidance_weight 150.0
-    set fence_weight   150.0
-    set boundary_weight 5.0
-    set notch_weight    150.0
-    set macro_blockage_weight 100.0
-    set pin_access_th   0.05
+    set wirelength_weight 100.0
+    set guidance_weight 10.0
+    set fence_weight   10.0
+    set boundary_weight 50.0
+    set notch_weight    10.0
+    set macro_blockage_weight 10.0
+    set pin_access_th   0.00
     set target_util 0.25
-    set target_dead_space 0.25
+    set target_dead_space 0.05
     set min_ar  0.33
-    set snap_layer 4
+    set snap_layer -1
     set report_directory "hier_rtlmp"
       
     if { [info exists keys(-max_num_macro)] } {
@@ -143,9 +149,18 @@ proc rtl_macro_placer { args } {
     if { [info exists keys(-signature_net_threshold)] } {
       set signature_net_threshold  $keys(-signature_net_threshold) 
     }
-    if { [info exists keys(-halo_width)] } {
+    
+    if { [info exists keys(-halo_width)] && [info exists keys(-halo_height)] } {
       set halo_width  $keys(-halo_width) 
+      set halo_height  $keys(-halo_height) 
+    } elseif {[info exists keys(-halo_width)]} {
+      set halo_width  $keys(-halo_width) 
+      set halo_height  $keys(-halo_width) 
+    } elseif {[info exists keys(-halo_height)]} {
+      set halo_width  $keys(-halo_height) 
+      set halo_height  $keys(-halo_height) 
     }
+
     if { [info exists keys(-fence_lx)] } {
       set fence_lx    $keys(-fence_lx) 
     }
@@ -198,11 +213,14 @@ proc rtl_macro_placer { args } {
       set snap_layer $keys(-snap_layer)
     }
     if { [info exists keys(-report_directory)] } {
-        set report_directory $keys(-report_directory)
+      set report_directory $keys(-report_directory)
     }
-
         
     file mkdir $report_directory
+
+    if { [info exists keys(-write_macro_placement)] } {
+      mpl2::set_macro_placement_file $keys(-write_macro_placement)
+    }
 
     if {![mpl2::rtl_macro_placer_cmd  $max_num_macro  \
                                       $min_num_macro  \
@@ -215,6 +233,7 @@ proc rtl_macro_placer { args } {
                                       $large_net_threshold \
                                       $signature_net_threshold \
                                       $halo_width \
+                                      $halo_height \
                                       $fence_lx   $fence_ly  $fence_ux  $fence_uy  \
                                       $area_weight $outline_weight $wirelength_weight \
                                       $guidance_weight $fence_weight $boundary_weight \
@@ -224,6 +243,7 @@ proc rtl_macro_placer { args } {
                                       $target_dead_space \
                                       $min_ar \
                                       $snap_layer \
+                                      [info exists flags(-bus_planning)] \
                                       $report_directory \
                                       ]} {
 
@@ -233,8 +253,81 @@ proc rtl_macro_placer { args } {
     return true
 }
 
-namespace eval mpl2 {
-proc mpl_debug { args } {
-  mpl2::set_debug_cmd
+sta::define_cmd_args "place_macro" {-macro_name macro_name \
+                                    -location location \
+                                    [-orientation orientation] \
 }
+
+proc place_macro { args } {
+  sta::parse_key_args "place_macro" args \
+  keys {-macro_name -location -orientation} \
+
+  if [info exists keys(-macro_name)] {
+    set macro_name $keys(-macro_name)
+  } else {
+    utl::error MPL 19 "-macro_name is required."
+  }
+
+  set macro [mpl2::parse_macro_name "place_macro" $macro_name]
+
+  if [info exists keys(-location)] {
+    set location $keys(-location)
+  } else {
+    utl::error MPL 22 "-location is required."
+  }
+
+  if { [llength $location] != 2 } {
+    utl::error MPL 12 "-location is not a list of 2 values."
+  }
+  lassign $location x_origin y_origin
+  set x_origin $x_origin
+  set y_origin $y_origin
+
+  set orientation R0
+  if [info exists keys(-orientation)] {
+    set orientation $keys(-orientation)
+  } else {
+    utl::warn MPL 18 "No orientation specified for [$macro getName], defaulting to R0."
+  }
+
+  mpl2::place_macro $macro $x_origin $y_origin $orientation
+}
+
+sta::define_cmd_args "write_macro_placement" { file_name }
+
+proc write_macro_placement { args } {
+  set file_name $args
+  mpl2::write_macro_placement $file_name
+}
+
+namespace eval mpl2 {
+
+proc parse_macro_name {cmd macro_name} {
+  set block [ord::get_db_block]
+  set inst [$block findInst "$macro_name"]
+
+  if { $inst == "NULL" } {
+    utl::error MPL 20 "Couldn't find a macro named $macro_name."
+  } elseif { ![$inst isBlock] } {
+    utl::error MPL 21 "[$inst getName] is not a macro."
+  }
+
+  return $inst
+}
+
+proc mpl_debug { args } {
+  sta::parse_key_args "mpl_debug" args \
+      keys {} \
+      flags {-coarse -fine}
+
+  set coarse [info exists flags(-coarse)]
+  set fine [info exists flags(-fine)]
+  if { [expr !$coarse && !$fine] } {
+    set coarse true
+    set fine true
+  }
+
+  mpl2::set_debug_cmd $coarse $fine
+}
+
 }

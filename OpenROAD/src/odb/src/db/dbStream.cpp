@@ -40,56 +40,55 @@ namespace odb {
 
 dbOStream& operator<<(dbOStream& stream, const Rect& r)
 {
-  stream << r._xlo;
-  stream << r._ylo;
-  stream << r._xhi;
-  stream << r._yhi;
+  stream << r.xlo_;
+  stream << r.ylo_;
+  stream << r.xhi_;
+  stream << r.yhi_;
   return stream;
 }
 
 dbIStream& operator>>(dbIStream& stream, Rect& r)
 {
-  stream >> r._xlo;
-  stream >> r._ylo;
-  stream >> r._xhi;
-  stream >> r._yhi;
+  stream >> r.xlo_;
+  stream >> r.ylo_;
+  stream >> r.xhi_;
+  stream >> r.yhi_;
   return stream;
 }
 
 dbOStream& operator<<(dbOStream& stream, const Point& p)
 {
-  stream << p._x;
-  stream << p._y;
+  stream << p.x_;
+  stream << p.y_;
   return stream;
 }
 
 dbIStream& operator>>(dbIStream& stream, Point& p)
 {
-  stream >> p._x;
-  stream >> p._y;
+  stream >> p.x_;
+  stream >> p.y_;
   return stream;
 }
 
 dbOStream& operator<<(dbOStream& stream, const Oct& o)
 {
-  stream << o.center_high;
-  stream << o.center_low;
-  stream << o.A;
+  stream << o.center_high_;
+  stream << o.center_low_;
+  stream << o.A_;
   return stream;
 }
 
 dbIStream& operator>>(dbIStream& stream, Oct& o)
 {
-  stream >> o.center_high;
-  stream >> o.center_low;
-  stream >> o.A;
+  stream >> o.center_high_;
+  stream >> o.center_low_;
+  stream >> o.A_;
   return stream;
 }
 
-dbOStream::dbOStream(_dbDatabase* db, FILE* f)
+dbOStream::dbOStream(_dbDatabase* db, std::ostream& f) : _f(f)
 {
   _db = db;
-  _f = f;
   _lef_dist_factor = 0.001;
   _lef_area_factor = 0.000001;
 
@@ -101,10 +100,9 @@ dbOStream::dbOStream(_dbDatabase* db, FILE* f)
   }
 }
 
-dbIStream::dbIStream(_dbDatabase* db, FILE* f)
+dbIStream::dbIStream(_dbDatabase* db, std::istream& f) : _f(f)
 {
   _db = db;
-  _f = f;
 
   _lef_dist_factor = 0.001;
   _lef_area_factor = 0.000001;

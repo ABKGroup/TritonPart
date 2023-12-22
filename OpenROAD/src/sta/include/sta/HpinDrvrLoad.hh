@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -36,8 +36,6 @@ public:
 		  const HpinDrvrLoad *drvr_load2) const;
 };
 
-typedef Set<HpinDrvrLoad*, HpinDrvrLoadLess> HpinDrvrLoads;
-
 // Abstract base class for visitDrvrLoadsThruHierPin visitor.
 class HpinDrvrLoadVisitor
 {
@@ -50,23 +48,23 @@ public:
 class HpinDrvrLoad
 {
 public:
-  HpinDrvrLoad(Pin *drvr,
-	       Pin *load,
+  HpinDrvrLoad(const Pin *drvr,
+	       const Pin *load,
 	       PinSet *hpins_from_drvr,
 	       PinSet *hpins_to_load);
   ~HpinDrvrLoad();
   void report(const Network *network);
-  HpinDrvrLoad(Pin *drvr,
-	       Pin *load);
-  Pin *drvr() const { return drvr_; }
-  Pin *load() const { return load_; }
+  HpinDrvrLoad(const Pin *drvr,
+	       const Pin *load);
+  const Pin *drvr() const { return drvr_; }
+  const Pin *load() const { return load_; }
   PinSet *hpinsFromDrvr() { return hpins_from_drvr_; }
   PinSet *hpinsToLoad() { return hpins_to_load_; }
-  void setDrvr(Pin *drvr);
+  void setDrvr(const Pin *drvr);
  
 private:
-  Pin *drvr_;
-  Pin *load_;
+  const Pin *drvr_;
+  const Pin *load_;
   PinSet *hpins_from_drvr_;
   PinSet *hpins_to_load_;
 };

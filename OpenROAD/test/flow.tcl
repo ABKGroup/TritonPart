@@ -95,7 +95,6 @@ write_db $global_place_db
 
 ################################################################
 # Repair max slew/cap/fanout violations and normalize slews
-
 source $layer_rc_file
 set_wire_rc -signal -layer $wire_rc_layer
 set_wire_rc -clock  -layer $wire_rc_layer_clk
@@ -160,7 +159,7 @@ if { $repair_timing_use_grt_parasitics } {
   estimate_parasitics -placement
 }
 
-repair_timing
+repair_timing -skip_gate_cloning
 
 # Post timing repair.
 report_worst_slack -min -digits 3
@@ -205,7 +204,7 @@ write_verilog -remove_cells $filler_cells $verilog_file
 ################################################################
 # Antenna repair
 
-# repair_antennas -iterations 3
+repair_antennas -iterations 5
 
 check_antennas
 utl::metric "GRT::ANT::errors" [ant::antenna_violation_count]
@@ -283,7 +282,8 @@ report_design_area
 utl::metric "DRT::worst_slack_min" [sta::worst_slack -min]
 utl::metric "DRT::worst_slack_max" [sta::worst_slack -max]
 utl::metric "DRT::tns_max" [sta::total_negative_slack -max]
-utl::metric "DRT::clock_skew" [sta::worst_clock_skew -setup]
+utl::metric "DRT::clock_skew" [expr abs([sta::worst_clock_skew -setup])]
+
 # slew/cap/fanout slack/limit
 utl::metric "DRT::max_slew_slack" [expr [sta::max_slew_check_slack_limit] * 100]
 utl::metric "DRT::max_fanout_slack" [expr [sta::max_fanout_check_slack_limit] * 100]

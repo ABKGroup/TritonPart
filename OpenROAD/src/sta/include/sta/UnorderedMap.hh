@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,6 +28,11 @@ class UnorderedMap : public std::unordered_map<KEY, VALUE, HASH, EQUAL>
 public:
   UnorderedMap() :
     std::unordered_map<KEY, VALUE, HASH, EQUAL>()
+  {
+  }
+
+  explicit UnorderedMap(const HASH &hash) :
+    std::unordered_map<KEY, VALUE, HASH, EQUAL>(0, hash, std::equal_to<KEY>())
   {
   }
 
@@ -99,6 +104,19 @@ public:
     Iterator iter(this);
     while (iter.hasNext())
       delete iter.next();
+  }
+
+  void
+  deleteKeysContents()
+  {
+    Iterator iter(this);
+    while (iter.hasNext()) {
+      KEY key;
+      VALUE value;
+      iter.next(key, value);
+      delete key;
+      delete value;
+    }
   }
 
   void

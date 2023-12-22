@@ -1,5 +1,5 @@
 # OpenSTA, Static Timing Analyzer
-# Copyright (c) 2022, Parallax Software, Inc.
+# Copyright (c) 2023, Parallax Software, Inc.
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -290,58 +290,6 @@ proc check_unit_scale { unit scale } {
 }
 
 ################################################################
-
-define_cmd_args "set_cmd_units" \
-  {[-capacitance cap_unit] [-resistance res_unit] [-time time_unit]\
-     [-voltage voltage_unit] [-current current_unit] [-power power_unit]\
-     [-distance distance_unit]}
-
-proc set_cmd_units { args } {
-  parse_key_args "set_cmd_units" args \
-    keys {-capacitance -resistance -time -voltage -current -power \
-	    -distance -digits -suffix} \
-    flags {}
-
-  check_argc_eq0 "set_cmd_units" $args
-  set_unit_values "capacitance" -capacitance "f" keys
-  set_unit_values "time" -time "s" keys
-  set_unit_values "voltage" -voltage "v" keys
-  set_unit_values "current" -current "A" keys
-  set_unit_values "resistance" -resistance "ohm" keys
-  set_unit_values "distance" -distance "m" keys
-}
-
-proc set_unit_values { unit key unit_name key_var } {
-  upvar 1 $key_var keys
-  if { [info exists keys($key)] } {
-    set value $keys($key)
-    if { [string equal -nocase $value $unit_name] } {
-      set_cmd_unit_scale $unit 1.0
-    } else {
-      set prefix [string index $value 0]
-      set suffix [string range $value 1 end]
-      # unit includes "1" prefix
-      if { [string is digit $prefix] } {
-	set prefix [string index $value 1]
-	set suffix [string range $value 2 end]
-      }
-      if { [string equal -nocase $suffix $unit_name] } {
-	set scale [unit_prefix_scale $unit $prefix]
-	set_cmd_unit_scale $unit $scale
-      } else {
-	sta_error 515 "unknown $unit unit '$suffix'."
-      }
-    }
-    if [info exists keys(-digits)] {
-      set_cmd_unit_digits $unit $keys(-digits)
-    }
-    if [info exists keys(-suffix)] {
-      set_cmd_unit_suffix $unit $keys(-suffix)
-    }
-  }
-}
-
-################################################################
 #
 # Object Access Commands
 #
@@ -350,14 +298,7 @@ proc set_unit_values { unit key unit_name key_var } {
 define_cmd_args "all_clocks" {}
 
 proc all_clocks { } {
-  set clks {}
-  set clk_iter [clock_iterator]
-  while {[$clk_iter has_next]} {
-    set clk [$clk_iter next]
-    lappend clks $clk
-  }
-  $clk_iter finish
-  return $clks
+  return [get_clocks -quiet *]
 }
 
 ################################################################
@@ -513,7 +454,6 @@ proc get_cells { args } {
 
   parse_key_args "get_cells" args keys {-hsc -filter -of_objects} \
     flags {-hierarchical -regexp -nocase -quiet}
-  check_argc_eq0or1 "get_cells" $args
   check_nocase_flag flags
 
   set regexp [info exists flags(-regexp)]
@@ -552,23 +492,20 @@ proc get_cells { args } {
       $pin_iter finish
     }
   } else {
-    if { $args == {} } {
-      set insts [network_leaf_instances]
-    } else {
-      foreach pattern $patterns {
-	if { $divider != $hierarchy_separator } {
-	  regsub $divider $pattern $hierarchy_separator pattern
-	}
-	if { $hierarchical } {
-	  set matches [find_instances_hier_matching $pattern $regexp $nocase]
-	} else {
-	  set matches [find_instances_matching $pattern $regexp $nocase]
-	}
-	if { $matches == {} && !$quiet} {
-	  sta_warn 322 "instance '$pattern' not found."
-	}
-	set insts [concat $insts $matches]
+    check_argc_eq1 "get_cells" $args
+    foreach pattern $patterns {
+      if { $divider != $hierarchy_separator } {
+        regsub $divider $pattern $hierarchy_separator pattern
       }
+      if { $hierarchical } {
+        set matches [find_instances_hier_matching $pattern $regexp $nocase]
+      } else {
+        set matches [find_instances_matching $pattern $regexp $nocase]
+      }
+      if { $matches == {} && !$quiet} {
+        sta_warn 322 "instance '$pattern' not found."
+      }
+      set insts [concat $insts $matches]
     }
   }
   if [info exists keys(-filter)] {
@@ -645,7 +582,6 @@ proc get_lib_cells { args } {
   global hierarchy_separator
   parse_key_args "get_lib_cells" args keys {-hsc -of_objects} \
     flags {-regexp -nocase -quiet}
-  check_argc_eq0or1 "get_lib_cells" $args
   check_nocase_flag flags
 
   set regexp [info exists flags(-regexp)]
@@ -660,6 +596,7 @@ proc get_lib_cells { args } {
       lappend cells [$inst liberty_cell]
     }
   } else {
+    check_argc_eq1 "get_lib_cells" $args
     # Copy backslashes that will be removed by foreach.
     set patterns [string map {\\ \\\\} [lindex $args 0]]
     # Parse library_name/pattern.
@@ -897,7 +834,7 @@ proc get_nets { args } {
 
 define_cmd_args "get_pins" \
   {[-hierarchical] [-hsc separator] [-quiet] [-filter expr]\
-     [-regexp] [-nocase] [-of_objects objects] patterns}
+     [-regexp] [-nocase] [-of_objects objects] [patterns]}
 
 define_cmd_alias "get_pin" "get_pins"
 
@@ -1011,7 +948,7 @@ proc get_ports { args } {
     if { $args != {} } {
       sta_warn 336 "patterns argument not supported with -of_objects."
     }
-    set nets [get_nets_warn "objects" $keys(-of_objects)]
+    set nets [get_nets_arg "objects" $keys(-of_objects)]
     foreach net $nets {
       set ports [concat $ports [$net ports]]
     }
@@ -1034,7 +971,7 @@ proc get_ports { args } {
   return $ports
 }
 
-variable filter_regexp1 {@?([a-zA-Z_]+) *(==|=~) *([0-9a-zA-Z_\*]+)}
+variable filter_regexp1 {@?([a-zA-Z_]+) *(==|!=|=~) *([0-9a-zA-Z_\*]+)}
 variable filter_or_regexp "($filter_regexp1) +\\|\\| +($filter_regexp1)"
 variable filter_and_regexp "($filter_regexp1) +&& +($filter_regexp1)"
 
@@ -1137,6 +1074,24 @@ proc create_clock { args } {
   set comment [parse_comment_key keys]
   
   make_clock $name $pins $add $period $waveform $comment
+}
+
+################################################################
+
+define_cmd_args "delete_clock" {[-all] clocks}
+
+proc delete_clock { args } {
+  parse_key_args "delete_clock" args keys {} flags {-all}
+  if { [info exists flags(-all)] } {
+    check_argc_eq0 "delete_clock" $args
+    set clks [all_clocks]
+  } else {
+    check_argc_eq1 "delete_clock" $args
+    set clks [get_clocks_warn "clocks" [lindex $args 0]]
+  }
+  foreach clk $clks {
+    remove_clock_cmd $clk
+  }
 }
 
 ################################################################
@@ -1273,6 +1228,30 @@ proc create_generated_clock { args } {
   make_generated_clock $name $pins $add $source_pin $master_clk \
     $divide_by $multiply_by $duty_cycle $invert $combinational \
     $edges $edge_shifts $comment
+}
+
+################################################################
+
+define_cmd_args "delete_generated_clock" {[-all] clocks}
+
+proc delete_generated_clock { args } {
+  remove_gclk_cmd "delete_generated_clock" $args
+}
+
+proc remove_gclk_cmd { cmd cmd_args } {
+  parse_key_args $cmd cmd_args keys {} flags {-all}
+  if { [info exists flags(-all)] } {
+    check_argc_eq0 $cmd $cmd_args
+    set clks [all_clocks]
+  } else {
+    check_argc_eq1 $cmd $cmd_args
+    set clks [get_clocks_warn "clocks" [lindex $cmd_args 0]]
+  }
+  foreach clk $clks {
+    if { [$clk is_generated] } {
+      remove_clock_cmd $clk
+    }
+  }
 }
 
 ################################################################
@@ -1466,6 +1445,66 @@ proc set_clock_groups { args } {
 
 ################################################################
 
+define_cmd_args "unset_clock_groups" \
+  {[-logically_exclusive] [-physically_exclusive]\
+     [-asynchronous] [-name names] [-all]}
+				
+proc unset_clock_groups { args } {
+  unset_clk_groups_cmd "unset_clock_groups" $args
+}
+
+proc unset_clk_groups_cmd { cmd cmd_args } {
+  parse_key_args $cmd cmd_args \
+    keys {-name} \
+    flags {-logically_exclusive -physically_exclusive -asynchronous -all}
+
+  set all [info exists flags(-all)]
+  set names {}
+  if {[info exists keys(-name)]} {
+    set names $keys(-name)
+  }
+
+  if { $all && $names != {} } {
+    sta_error 454 "the -all and -name options are mutually exclusive."
+  }
+  if { !$all && $names == {} } {
+    sta_error 455 "either -all or -name options must be specified."
+  }
+
+  set logically_exclusive [info exists flags(-logically_exclusive)]
+  set physically_exclusive [info exists flags(-physically_exclusive)]
+  set asynchronous [info exists flags(-asynchronous)]
+
+  if { ($logically_exclusive+$physically_exclusive+$asynchronous) == 0 } {
+    sta_error 456 "one of -logically_exclusive, -physically_exclusive or -asynchronous is required."
+  }
+  if { ($logically_exclusive+$physically_exclusive+$asynchronous) > 1 } {
+    sta_error 457 "the keywords -logically_exclusive, -physically_exclusive and -asynchronous are mutually exclusive."
+  }
+
+  if { $all } {
+    if { $logically_exclusive } {
+      unset_clock_groups_logically_exclusive "NULL"
+    } elseif { $physically_exclusive } {
+      unset_clock_groups_physically_exclusive "NULL"
+    } elseif { $asynchronous } {
+      unset_clock_groups_asynchronous "NULL"
+    }
+  } else {
+    foreach name $names {
+      if { $logically_exclusive } {
+	unset_clock_groups_logically_exclusive $name
+      } elseif { $physically_exclusive } {
+	unset_clock_groups_physically_exclusive $name
+      } elseif { $asynchronous } {
+	unset_clock_groups_asynchronous $name
+      }
+    }
+  }
+}
+
+################################################################
+
 define_cmd_args "set_clock_latency" \
   {[-source] [-clock clock] [-rise] [-fall] [-min] [-max]\
      [-early] [-late] delay objects}
@@ -1519,6 +1558,50 @@ proc set_clock_latency { args } {
     }
     foreach pin $pins {
       set_clock_latency_cmd $pin_clk $pin $tr $min_max $delay
+    }
+  }
+}
+
+################################################################
+
+define_cmd_args "unset_clock_latency" {[-source] [-clock clock] objects}
+
+proc unset_clock_latency { args } {
+  unset_clk_latency_cmd "unset_clock_latency" $args
+}
+
+proc unset_clk_latency_cmd { cmd cmd_args } {
+  parse_key_args $cmd cmd_args keys {-clock} flags {-source}
+  check_argc_eq1 $cmd $cmd_args
+  set objects [lindex $cmd_args 0]
+  parse_clk_port_pin_arg $objects clks pins
+  set pin_clk "NULL"
+  if { [info exists keys(-clock)] } {
+    set pin_clk [get_clock_warn "clock" $keys(-clock)]
+    if { $clks != {} } {
+      sta_warn 303 "-clock ignored for clock objects."
+    }
+  }
+
+  if {[info exists flags(-source)]} {
+    # Source latency.
+    foreach clk $clks {
+      unset_clock_insertion_cmd $clk "NULL"
+    }
+    foreach pin $pins {
+      # Source only allowed on clocks and clock pins.
+      if { ![is_clock_pin $pin] } {
+	sta_error 458 "-source '[$pin path_name]' is not a clock pin."
+      }
+      unset_clock_insertion_cmd $pin_clk $pin
+    }
+  } else {
+    # Latency.
+    foreach clk $clks {
+      unset_clock_latency_cmd $clk "NULL"
+    }
+    foreach pin $pins {
+      unset_clock_latency_cmd $pin_clk $pin
     }
   }
 }
@@ -1613,6 +1696,18 @@ proc set_clock_transition { args } {
     } else {
       set_clock_slew_cmd $clk $tr $min_max [time_ui_sta $slew]
     }
+  }
+}
+
+################################################################
+
+define_cmd_args "unset_clock_transition" {clocks}
+
+proc unset_clock_transition { args } {
+  check_argc_eq1 "unset_clock_transition" $args
+  set clks [get_clocks_warn "clocks" [lindex $args 0]]
+  foreach clk $clks {
+    unset_clock_slew_cmd $clk
   }
 }
 
@@ -1714,6 +1809,92 @@ proc set_clock_uncertainty { args } {
 
 ################################################################
 
+define_cmd_args "unset_clock_uncertainty" \
+  {[-from|-rise_from|-fall_from from_clock]\
+     [-to|-rise_to|-fall_to to_clock] [-rise] [-fall]\
+     [-setup] [-hold] [objects]}
+
+proc unset_clock_uncertainty { args } {
+  unset_clk_uncertainty_cmd "unset_clock_uncertainty" $args
+}
+
+proc unset_clk_uncertainty_cmd { cmd cmd_args } {
+  parse_key_args $cmd cmd_args \
+    keys {-from -rise_from -fall_from -to -rise_to -fall_to} \
+    flags {-rise -fall -setup -hold}
+
+  set min_max "min_max"
+  if { [info exists flags(-setup)] && ![info exists flags(-hold)] } {
+    set min_max "max"
+  }
+  if { [info exists flags(-hold)] && ![info exists flags(-setup)] } {
+    set min_max "min"
+  }
+
+  if { [info exists keys(-from)] } {
+    set from_key "-from"
+    set from_rf "rise_fall"
+  } elseif { [info exists keys(-rise_from)] } {
+    set from_key "-rise_from"
+    set from_rf "rise"
+  } elseif { [info exists keys(-fall_from)] } {
+    set from_key "-fall_from"
+    set from_rf "fall"
+  } else {
+    set from_key "none"
+  }
+
+  if { [info exists keys(-to)] } {
+    set to_key "-to"
+    set to_rf "rise_fall"
+  } elseif { [info exists keys(-rise_to)] } {
+    set to_key "-rise_to"
+    set to_rf "rise"
+  } elseif { [info exists keys(-fall_to)] } {
+    set to_key "-fall_to"
+    set to_rf "fall"
+  } else {
+    set to_key "none"
+  }
+
+  if { $from_key != "none" && $to_key == "none" \
+	 || $from_key == "none" && $to_key != "none" } {
+    sta_error 459 "-from/-to must be used together."
+  } elseif { $from_key != "none" && $to_key != "none" } {
+    # Inter-clock uncertainty.
+    check_argc_eq0 "unset_clock_uncertainty" $cmd_args
+
+    # -from/-to can be lists.
+    set from_clks [get_clocks_warn "from_clocks" $keys($from_key)]
+    set to_clks [get_clocks_warn "to_clocks" $keys($to_key)]
+
+    foreach from_clk $from_clks {
+      foreach to_clk $to_clks {
+	unset_inter_clock_uncertainty $from_clk $from_rf \
+	  $to_clk $to_rf $min_max
+      }
+    }
+  } else {
+    # Single clock uncertainty.
+    check_argc_eq1 $cmd $cmd_args
+    if { [info exists keys(-rise)] \
+	   || [info exists keys(-fall)] } {
+      sta_error 460 "-rise, -fall options not allowed for single clock uncertainty."
+    }
+    set objects [lindex $cmd_args 0]
+    parse_clk_port_pin_arg $objects clks pins
+
+    foreach clk $clks {
+      unset_clock_uncertainty_clk $clk $min_max
+    }
+    foreach pin $pins {
+      unset_clock_uncertainty_pin $pin $min_max
+    }
+  }
+}
+
+################################################################
+
 define_cmd_args "set_data_check" \
   {[-from from_pin] [-rise_from from_pin] [-fall_from from_pin]\
      [-to to_pin] [-rise_to to_pin] [-fall_to to_pin]\
@@ -1767,6 +1948,66 @@ proc set_data_check { args } {
   }
   
   set_data_check_cmd $from $from_rf $to $to_rf $clk $setup_hold $margin
+}
+
+################################################################
+
+define_cmd_args "unset_data_check" \
+  {[-from from_pin] [-rise_from from_pin] [-fall_from from_pin]\
+     [-to to_pin] [-rise_to to_pin] [-fall_to to_pin]\
+     [-setup | -hold] [-clock clock]}
+
+proc unset_data_check { args } {
+  unset_data_checks_cmd "unset_data_check" $args
+}
+
+proc unset_data_checks_cmd { cmd cmd_args } {
+  parse_key_args cmd cmd_args \
+    keys {-from -rise_from -fall_from -to -rise_to -fall_to -clock} \
+    flags {-setup -hold}
+  check_argc_eq0 $cmd $cmd_args
+
+  set from_rf "rise_fall"
+  set to_rf "rise_fall"
+  set clk "NULL"
+  set setup_hold "max"
+  if [info exists keys(-from)] {
+    set from [get_port_pin_error "from_pin" $keys(-from)]
+  } elseif [info exists keys(-rise_from)] {
+    set from [get_port_pin_error "from_pin" $keys(-rise_from)]
+    set from_rf "rise"
+  } elseif [info exists keys(-fall_from)] {
+    set from [get_port_pin_error "from_pin" $keys(-fall_from)]
+    set from_rf "fall"
+  } else {
+    sta_error 461 "missing -from, -rise_from or -fall_from argument."
+  }
+
+  if [info exists keys(-to)] {
+    set to [get_port_pin_error "to_pin" $keys(-to)]
+  } elseif [info exists keys(-rise_to)] {
+    set to [get_port_pin_error "to_pin" $keys(-rise_to)]
+    set to_rf "rise"
+  } elseif [info exists keys(-fall_to)] {
+    set to [get_port_pin_error "to_pin" $keys(-fall_to)]
+    set to_rf "fall"
+  } else {
+    sta_error 462 "missing -to, -rise_to or -fall_to argument."
+  }
+
+  if [info exists keys(-clock)] {
+    set clk [get_clock_warn "clock" $keys(-clock)]
+  }
+
+  if { [info exists flags(-setup)] && ![info exists flags(-hold)] } {
+    set setup_hold "setup"
+  } elseif { [info exists flags(-hold)] && ![info exists flags(-setup)] } {
+    set setup_hold "hold"
+  } else {
+    set setup_hold "setup_hold"
+  }
+
+  unset_data_check_cmd $from $from_rf $to $to_rf $clk $setup_hold
 }
 
 ################################################################
@@ -1902,6 +2143,105 @@ proc parse_disable_cell_ports { cell port_name } {
     }
   }
   return $ports
+}
+
+################################################################
+
+define_cmd_args "unset_disable_timing" \
+  {[-from from_port] [-to to_port] objects}
+
+proc unset_disable_timing { args } {
+  unset_disable_cmd "unset_disable_timing" $args
+}
+
+proc unset_disable_cmd { cmd cmd_args } {
+  parse_key_args $cmd cmd_args keys {-from -to} flags {}
+  check_argc_eq1 $cmd $cmd_args
+
+  set from ""
+  if { [info exists keys(-from)] } {
+    set from $keys(-from)
+  }
+  set to ""
+  if { [info exists keys(-to)] } {
+    set to $keys(-to)
+  }
+  parse_libcell_libport_inst_port_pin_edge_timing_arc_set_arg $cmd_args \
+    libcells libports insts ports pins edges timing_arc_sets
+
+  if { ([info exists keys(-from)] || [info exists keys(-to)]) \
+	 && ($libports != {} || $pins != {} || $ports != {}) } {
+    sta_warn 304 "-from/-to keywords ignored for lib_pin, port and pin arguments."
+  }
+
+  foreach libcell $libcells {
+    unset_disable_timing_cell $libcell $from $to
+  }
+  foreach libport $libports {
+    unset_disable_lib_port $libport
+  }
+  foreach inst $insts {
+    unset_disable_timing_instance $inst $from $to
+  }
+  foreach pin $pins {
+    unset_disable_pin $pin
+  }
+  foreach port $ports {
+    unset_disable_port $port
+  }
+  foreach edge $edges {
+    unset_disable_edge $edge
+  }
+  foreach timing_arc_set $timing_arc_sets {
+    unset_disable_timing_arc_set $timing_arc_set
+  }
+}
+
+proc unset_disable_timing_cell { cell from to } {
+  set from_ports [parse_disable_cell_ports $cell $from]
+  set to_ports [parse_disable_cell_ports $cell $to]
+  if { $from_ports == "NULL" && $to_ports == "NULL" } {
+    unset_disable_cell $cell "NULL" "NULL"
+  } elseif { $from_ports == "NULL" } {
+    foreach to_port $to_ports {
+      unset_disable_cell $cell "NULL" $to_port
+    }
+  } elseif { $to_ports == "NULL" } {
+    foreach from_port $from_ports {
+      unset_disable_cell $cell $from_port "NULL"
+    }
+  } else {
+    foreach from_port $from_ports {
+      foreach to_port $to_ports {
+	unset_disable_cell $cell $from_port $to_port
+      }
+    }
+  }
+}
+
+proc unset_disable_timing_instance { inst from to } {
+  set from_ports [parse_disable_inst_ports $inst $from]
+  set to_ports [parse_disable_inst_ports $inst $to]
+  if { ![$inst is_leaf] } {
+    sta_error 463 "-from/-to hierarchical instance not supported."
+  }
+  if { $from_ports == "NULL" && $to_ports == "NULL" } {
+    unset_disable_instance $inst "NULL" "NULL"
+  } elseif { $from_ports == "NULL" } {
+    foreach to_port $to_ports {
+      unset_disable_instance $inst "NULL" $to_port
+    }
+  } elseif { $to_ports == "NULL" } {
+    foreach from_port $from_ports {
+      unset_disable_instance $inst $from_port "NULL"
+    }
+  } else {
+    foreach from_port $from_ports {
+      foreach to_port $to_ports {
+	unset_disable_instance $inst $from_port $to_port
+      }
+    }
+  }
 }
 
 ################################################################
@@ -2051,6 +2391,17 @@ proc set_port_delay { cmd sta_cmd cmd_args port_dirs } {
 	$min_max $add $delay
     }
   }
+}
+
+################################################################
+
+define_cmd_args "unset_input_delay" \
+  {[-rise] [-fall] [-max] [-min]\
+     [-clock clock] [-clock_fall]\
+     port_pin_list}
+
+proc unset_input_delay { args } {
+  unset_port_delay "unset_input_delay" "unset_input_delay_cmd" $args
 }
 
 ################################################################
@@ -2244,6 +2595,56 @@ proc set_multicycle_path { args } {
 
 ################################################################
 
+define_cmd_args "unset_path_exceptions" \
+  {[-setup] [-hold] [-rise] [-fall] [-from from_list]\
+     [-rise_from from_list] [-fall_from from_list]\
+     [-through through_list] [-rise_through through_list]\
+     [-fall_through through_list] [-to to_list] [-rise_to to_list]\
+     [-fall_to to_list]}
+
+proc unset_path_exceptions { args } {
+  unset_path_exceptions_cmd "unset_path_exceptions" $args
+}
+
+proc unset_path_exceptions_cmd { cmd cmd_args } {
+  parse_key_args $cmd cmd_args \
+    keys {-from -rise_from -fall_from -to -rise_to -fall_to} \
+    flags {-setup -hold -rise -fall} 0
+
+  set min_max "min_max"
+  if { [info exists flags(-setup)] && ![info exists flags(-hold)] } {
+    set min_max "max"
+  }
+  if { [info exists flags(-hold)] && ![info exists flags(-setup)] } {
+    set min_max "min"
+  }
+
+  set arg_error 0
+  set from [parse_from_arg keys arg_error]
+  set thrus [parse_thrus_arg cmd_args arg_error]
+  set to [parse_to_arg keys flags arg_error]
+  if { $arg_error } {
+    delete_from_thrus_to $from $thrus $to
+    sta_error 464 "$cmd command failed."
+    return 0
+  }
+
+  check_for_key_args $cmd cmd_args
+  if { $cmd_args != {} } {
+    delete_from_thrus_to $from $thrus $to
+    sta_error 465 "positional arguments not supported."
+  }
+  if { ($from == "NULL" && $thrus == "" && $to == "NULL") } {
+    delete_from_thrus_to $from $thrus $to
+    sta_error 466 "-from, -through or -to required."
+  }
+
+  reset_path_cmd $from $thrus $to $min_max
+  delete_from_thrus_to $from $thrus $to
+}
+
+################################################################
+
 define_cmd_args "set_output_delay" \
   {[-rise] [-fall] [-max] [-min]\
      [-clock clock] [-clock_fall]\
@@ -2254,6 +2655,44 @@ define_cmd_args "set_output_delay" \
 proc set_output_delay { args } {
   set_port_delay "set_output_delay" "set_output_delay_cmd" $args \
     {"output" "tristate" "bidirect"}
+}
+
+################################################################
+
+define_cmd_args "unset_output_delay" \
+  {[-rise] [-fall] [-max] [-min]\
+     [-clock clock] [-clock_fall]\
+     port_pin_list}
+
+proc unset_output_delay { args } {
+  unset_port_delay "unset_output_delay" "unset_output_delay_cmd" $args
+}
+
+proc unset_port_delay { cmd swig_cmd cmd_args } {
+  parse_key_args $cmd cmd_args \
+    keys {-clock -reference_pin} \
+    flags {-rise -fall -max -min -clock_fall }
+  check_argc_eq1 $cmd $cmd_args
+  
+  set pins [get_port_pins_error "pins" [lindex $cmd_args 0]]
+  
+  set clk "NULL"
+  if [info exists keys(-clock)] {
+    set clk [get_clock_warn "clock" $keys(-clock)]
+  }
+  
+  if [info exists flags(-clock_fall)] {
+    set clk_rf "fall"
+  } else {
+    set clk_rf "rise"
+  }
+  
+  set tr [parse_rise_fall_flags flags]
+  set min_max [parse_min_max_all_flags flags]
+
+  foreach pin $pins {
+    $swig_cmd $pin $tr $clk $clk_rf $min_max
+  }
 }
 
 ################################################################
@@ -2271,6 +2710,20 @@ proc set_propagated_clock { objects } {
   }
   foreach pin $pins {
     set_propagated_clock_pin_cmd $pin
+  }
+}
+
+################################################################
+
+define_cmd_args "unset_propagated_clock" {objects}
+
+proc unset_propagated_clock { objects } {
+  parse_clk_port_pin_arg $objects clks pins
+  foreach clk $clks {
+    unset_propagated_clock_cmd $clk
+  }
+  foreach pin $pins {
+    unset_propagated_clock_pin_cmd $pin
   }
 }
 
@@ -2297,6 +2750,17 @@ proc set_case_analysis { value pins } {
   set pins1 [get_port_pins_error "pins" $pins]
   foreach pin $pins1 {
     set_case_analysis_cmd $pin $value
+  }
+}
+
+################################################################
+
+define_cmd_args "unset_case_analysis" {pins}
+
+proc unset_case_analysis { pins } {
+  set pins1 [get_port_pins_error "pins" $pins]
+  foreach pin $pins1 {
+    unset_case_analysis_cmd $pin
   }
 }
 
@@ -2431,6 +2895,12 @@ proc set_driving_cell { args } {
   }
 }
 
+proc port_direction_any_output { dir } {
+  return [expr { $dir == "output" \
+		   || $dir == "bidirect" \
+		   || $dir == "tristate" } ]
+}
+
 ################################################################
 
 define_cmd_args "set_fanout_load" {fanout ports}
@@ -2474,7 +2944,7 @@ proc set_input_transition { args } {
 ################################################################
 
 define_cmd_args "set_load" \
-  {[-rise] [-fall] [-max] [-min] [-subtract_pin_load]\
+  {[-corner corner] [-rise] [-fall] [-max] [-min] [-subtract_pin_load]\
      [-pin_load] [-wire_load] capacitance objects}
 
 proc set_load { args } {
@@ -2499,11 +2969,11 @@ proc set_load { args } {
     # -pin_load is the default.
     if { $pin_load || (!$pin_load && !$wire_load) } {
       foreach port $ports {
-	set_port_pin_cap $port $tr $min_max $cap
+	set_port_ext_pin_cap $port $tr $corner $min_max $cap
       }
     } elseif { $wire_load } {
       foreach port $ports {
-	set_port_wire_cap $port $subtract_pin_load $tr $min_max $cap
+	set_port_ext_wire_cap $port $subtract_pin_load $tr $corner $min_max $cap
       }
     }
   }
@@ -2668,10 +3138,10 @@ proc set_max_transition { args } {
 ################################################################
 
 define_cmd_args "set_port_fanout_number" \
-  {[-max] [-min] fanout ports}
+  {[-corner corner] [-max] [-min] fanout ports}
 
 proc set_port_fanout_number { args } {
-  parse_key_args "set_port_fanout_number" args keys {} flags {-max -min}
+  parse_key_args "set_port_fanout_number" args keys {-corner} flags {-max -min}
   set min_max [parse_min_max_all_check_flags flags]
   
   check_argc_eq2 "set_port_fanout_number" $args
@@ -2679,8 +3149,9 @@ proc set_port_fanout_number { args } {
   set fanout [lindex $args 0]
   check_positive_integer "fanout" $fanout
   set ports [get_ports_error "ports" [lindex $args 1]]
+  set corner [parse_corner_or_all keys]
   foreach port $ports {
-    set_port_ext_fanout_cmd $port $fanout $min_max
+    set_port_ext_fanout_cmd $port $fanout $corner $min_max
   }
 }
 
@@ -2697,7 +3168,7 @@ proc set_resistance { args } {
   set res [lindex $args 0]
   check_positive_float "resistance" $res
   set res [resistance_ui_sta $res]
-  set nets [get_nets_error "nets" [lindex $args 1]]
+  set nets [get_nets_arg "nets" [lindex $args 1]]
   foreach net $nets {
     set_net_resistance $net $min_max $res
   }
@@ -2794,6 +3265,17 @@ proc set_timing_derate { args } {
     }
   }
 }
+
+################################################################
+
+define_cmd_args "unset_timing_derate" {}
+
+proc unset_timing_derate { args } {
+  check_argc_eq0 "unset_timing_derate" $args
+  unset_timing_derate_cmd
+}
+
+################################################################
 
 proc parse_from_arg { keys_var arg_error_var } {
   upvar 1 $keys_var keys
@@ -3107,6 +3589,33 @@ proc set_wire_load_selection_group { args } {
 # Multivoltage and Power Optimization Commands
 #
 ################################################################
+
+define_cmd_args "set_voltage" \
+  {[-min min_case_value] [-object_list list_of_power_nets] max_case_voltage}
+
+proc set_voltage { args } {
+  parse_key_args "set_voltage" args keys {-min -object_list} flags {}
+  check_argc_eq1 "set_voltage" $args
+  set max_case_voltage [lindex $args 0]
+  check_float "max_case_voltage" $max_case_voltage
+
+  set nets {}
+  if { [info exists keys(-object_list)] } {
+    set nets [get_nets_arg "-object_list" $keys(-object_list)]
+  }
+  set_voltage_global "max" $max_case_voltage
+  foreach net $nets {
+    set_voltage_net $net "max" $max_case_voltage
+  }
+  if { [info exists keys(-min)] } {
+    set min_case_voltage $keys(-min)
+    check_float "-min" $min_case_voltage
+    set_voltage_global "min" $min_case_voltage
+    foreach net $nets {
+      set_voltage_net $net "min" $min_case_voltage
+    }
+  }
+}
 
 define_cmd_args "create_voltage_area" \
   {[-name name] [-coordinate coordinates] [-guard_band_x guard_x]\

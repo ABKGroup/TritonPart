@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_SHAPE_H_
-#define _FR_SHAPE_H_
+#pragma once
 
 #include "db/infra/frSegStyle.h"
 #include "db/obj/frFig.h"
@@ -111,20 +110,20 @@ class frRect : public frShape
   // others
   bool isHor() const
   {
-    frCoord xSpan = box_.xMax() - box_.xMin();
-    frCoord ySpan = box_.yMax() - box_.yMin();
+    frCoord xSpan = box_.dx();
+    frCoord ySpan = box_.dy();
     return (xSpan >= ySpan) ? true : false;
   }
   frCoord width() const
   {
-    frCoord xSpan = box_.xMax() - box_.xMin();
-    frCoord ySpan = box_.yMax() - box_.yMin();
+    frCoord xSpan = box_.dx();
+    frCoord ySpan = box_.dy();
     return (xSpan > ySpan) ? ySpan : xSpan;
   }
   frCoord length() const
   {
-    frCoord xSpan = box_.xMax() - box_.xMin();
-    frCoord ySpan = box_.yMax() - box_.yMin();
+    frCoord xSpan = box_.dx();
+    frCoord ySpan = box_.dy();
     return (xSpan < ySpan) ? ySpan : xSpan;
   }
   frBlockObjectEnum typeId() const override { return frcRect; }
@@ -654,5 +653,3 @@ class frPathSeg : public frShape
   friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

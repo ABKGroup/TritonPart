@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -158,11 +158,11 @@ PathGroup::prune()
 }
 
 void
-PathGroup::pushEnds(PathEndSeq *path_ends)
+PathGroup::pushEnds(PathEndSeq &path_ends)
 {
   ensureSortedMaxPaths();
   for (PathEnd *path_end : path_ends_)
-    path_ends->push_back(path_end);
+    path_ends.push_back(path_end);
 }
 
 PathGroupIterator *
@@ -197,10 +197,10 @@ PathGroup::clear()
 
 ////////////////////////////////////////////////////////////////
 
-const char *PathGroups::path_delay_group_name_ = "**default**";
-const char *PathGroups::gated_clk_group_name_ = "**clock_gating_default**";
-const char *PathGroups::async_group_name_ = "**async_default**";
-const char *PathGroups::unconstrained_group_name_ = "(none)";
+const char *PathGroups::path_delay_group_name_ = "path delay";
+const char *PathGroups::gated_clk_group_name_ = "gated clock";
+const char *PathGroups::async_group_name_ = "asynchronous";
+const char *PathGroups::unconstrained_group_name_ = "unconstrained";
 
 bool
 PathGroups::isGroupPathName(const char *group_name)
@@ -255,11 +255,8 @@ PathGroups::makeGroups(int group_count,
 {
   int mm_index = min_max->index();
   if (setup_hold) {
-    GroupPathIterator group_path_iter(sdc_);
-    while (group_path_iter.hasNext()) {
-      const char *name;
-      GroupPathSet *groups;
-      group_path_iter.next(name, groups);
+    for (auto name_group : sdc_->groupPaths()) {
+      const char *name = name_group.first;
       if (reportGroup(name, group_names)) {
 	PathGroup *group = PathGroup::makePathGroupSlack(name, group_count,
 							 endpoint_count, unique_pins,
@@ -389,7 +386,7 @@ PathGroups::pathGroup(const PathEnd *path_end) const
     // Path delays that end at timing checks are part of the target clk group
     // unless -ignore_clock_latency is true.
     PathDelay *path_delay = path_end->pathDelay();
-    Clock *tgt_clk = path_end->targetClk(this);
+    const Clock *tgt_clk = path_end->targetClk(this);
     if (tgt_clk
 	&& !path_delay->ignoreClkLatency())
       return findPathGroup(tgt_clk, min_max);
@@ -418,15 +415,12 @@ PathGroups::groupPathTo(const PathEnd *path_end) const
 }
 
 void
-PathGroups::pushGroupPathEnds(PathEndSeq *path_ends)
+PathGroups::pushGroupPathEnds(PathEndSeq &path_ends)
 {
   for (auto min_max : MinMax::range()) {
     int mm_index =  min_max->index();
-    GroupPathIterator group_path_iter(sdc_);
-    while (group_path_iter.hasNext()) {
-      const char *name;
-      GroupPathSet *groups;
-      group_path_iter.next(name, groups);
+    for (auto name_group : sdc_->groupPaths()) {
+      const char *name = name_group.first;
       PathGroup *path_group = findPathGroup(name, min_max);
       if (path_group)
 	path_group->pushEnds(path_ends);
@@ -454,7 +448,7 @@ PathGroups::pushGroupPathEnds(PathEndSeq *path_ends)
 }
 
 void
-PathGroups::pushUnconstrainedPathEnds(PathEndSeq *path_ends,
+PathGroups::pushUnconstrainedPathEnds(PathEndSeq &path_ends,
 				      const MinMaxAll *min_max)
 {
   Set<PathGroup *> groups;
@@ -483,7 +477,7 @@ typedef Set<PathEnd*, PathEndNoCrprLess> PathEndNoCrprSet;
 static bool
 exceptionToEmpty(ExceptionTo *to);
 
-PathEndSeq *
+PathEndSeq
 PathGroups::makePathEnds(ExceptionTo *to,
 			 bool unconstrained_paths,
 			 const Corner *corner,
@@ -494,16 +488,16 @@ PathGroups::makePathEnds(ExceptionTo *to,
   makeGroupPathEnds(to, group_count_, endpoint_count_, unique_pins_,
 		    corner, min_max);
 
-  PathEndSeq *path_ends = new PathEndSeq;
+  PathEndSeq path_ends;
   pushGroupPathEnds(path_ends);
   if (sort_by_slack) {
     sort(path_ends, PathEndLess(this));
-    if (static_cast<int>(path_ends->size()) > group_count_)
-      path_ends->resize(group_count_);
+    if (static_cast<int>(path_ends.size()) > group_count_)
+      path_ends.resize(group_count_);
   }
 
   if (unconstrained_paths
-      && path_ends->empty())
+      && path_ends.empty())
     // No constrained paths, so report unconstrained paths.
     pushUnconstrainedPathEnds(path_ends, min_max);
 
@@ -737,14 +731,11 @@ PathGroups::makeGroupPathEnds(ExceptionTo *to,
 
     for (auto path_min_max : MinMax::range()) {
       int mm_index =  path_min_max->index();
-      GroupPathIterator group_path_iter(sdc_);
-      while (group_path_iter.hasNext()) {
-	const char *name;
-	GroupPathSet *groups;
-	group_path_iter.next(name, groups);
-	PathGroup *group = findPathGroup(name, path_min_max);
-	if (group)
-	  enumPathEnds(group, group_count, endpoint_count, unique_pins, true);
+      for (auto name_group : sdc_->groupPaths()) {
+        const char *name = name_group.first;
+        PathGroup *group = findPathGroup(name, path_min_max);
+        if (group)
+          enumPathEnds(group, group_count, endpoint_count, unique_pins, true);
       }
 
       for (auto clk : sdc_->clks()) {
@@ -809,8 +800,7 @@ PathGroups::makeGroupPathEnds(ExceptionTo *to,
   else {
     // Only visit -to filter pins.
     VertexSet endpoints(graph_);
-    PinSet pins;
-    to->allPins(network, &pins);
+    PinSet pins = to->allPins(network);
     PinSet::Iterator pin_iter(pins);
     while (pin_iter.hasNext()) {
       const Pin *pin = pin_iter.next();

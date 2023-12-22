@@ -1,5 +1,5 @@
 # OpenSTA, Static Timing Analyzer
-# Copyright (c) 2022, Parallax Software, Inc.
+# Copyright (c) 2023, Parallax Software, Inc.
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -175,78 +175,6 @@ proc define_cmd_args { cmd arglist } {
 # shown by the "help" command.
 proc define_hidden_cmd_args { cmd arglist } {
   namespace export $cmd
-}
-
-# This is used in lieu of command completion to make sdc commands
-# like get_ports be abbreviated get_port.
-proc define_cmd_alias { alias cmd } {
-  eval "proc $alias { args } { eval [concat $cmd \$args] }"
-  namespace export $alias
-}
-
-proc cmd_usage_error { cmd } {
-  variable cmd_args
-
-  if [info exists cmd_args($cmd)] {
-    sta_error 404 "Usage: $cmd $cmd_args($cmd)"
-  } else {
-    sta_error 405 "Usage: $cmd argument error"
-  }
-}
-
-################################################################
-
-define_cmd_args "help" {[pattern]}
-
-proc_redirect help {
-  variable cmd_args
-
-  set arg_count [llength $args]
-  if { $arg_count == 0 } {
-    set pattern "*"
-  } elseif { $arg_count == 1 } {
-    set pattern [lindex $args 0]
-  } else {
-    cmd_usage_error "help"
-  }
-  set matches [array names cmd_args $pattern]
-  if { $matches != {} } {
-    foreach cmd [lsort $matches] {
-      show_cmd_args $cmd
-    }
-  } else {
-    sta_warn 300 "no commands match '$pattern'."
-  }
-}
-
-proc show_cmd_args { cmd } {
-  variable cmd_args
-
-  set max_col 80
-  set indent 2
-  set indent_str "  "
-  set line $cmd
-  set col [string length $cmd]
-  set arglist $cmd_args($cmd)
-  # Break the arglist up into max_col length lines.
-  while {1} {
-    if {[regexp {(^[\n ]*)([a-zA-Z0-9_\\\|\-]+|\[[^\[]+\])(.*)} \
-	   $arglist ignore space arg rest]} {
-      set arg_length [string length $arg]
-      if { $col + $arg_length < $max_col } {
-	set line "$line $arg"
-	set col [expr $col + $arg_length + 1]
-      } else {
-        report_line $line
-	set line "$indent_str $arg"
-	set col [expr $indent + $arg_length + 1]
-      }
-      set arglist $rest
-    } else {
-      report_line $line
-      break
-    }
-  }
 }
 
 ################################################################

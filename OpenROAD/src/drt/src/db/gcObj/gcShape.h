@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _GC_SHAPE_H_
-#define _GC_SHAPE_H_
+#pragma once
 
 #include <boost/polygon/polygon.hpp>
 
@@ -209,6 +208,12 @@ class gcSegment : public gtl::segment_data<frCoord>, public gcShape
       default:
         return frDirEnum::UNKNOWN;
     }
+  }
+  gtl::orientation_2d getOrientation() const
+  {
+    const frDirEnum dir = getDir();
+    return (dir == frDirEnum::W || dir == frDirEnum::E) ? gtl::HORIZONTAL
+                                                        : gtl::VERTICAL;
   }
   // setters
   void setSegment(const gtl::segment_data<frCoord>& in)
@@ -508,5 +513,3 @@ class gcPolygon : public gtl::polygon_90_with_holes_data<frCoord>,
 };
 
 }  // namespace fr
-
-#endif

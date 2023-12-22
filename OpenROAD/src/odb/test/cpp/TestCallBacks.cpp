@@ -6,7 +6,7 @@
 #include "db.h"
 #include "helper.cpp"
 using namespace odb;
-using namespace std;
+
 BOOST_AUTO_TEST_SUITE(test_suite)
 dbDatabase* db;
 dbLib* lib;
@@ -228,14 +228,6 @@ BOOST_AUTO_TEST_CASE(test_wire)
   BOOST_TEST(cb->events.size() == 2);
   BOOST_TEST(cb->events[0] == "PreAppend wire");
   BOOST_TEST(cb->events[1] == "PostAppend wire");
-  cb->clearEvents();
-  cb->pause();
-  dbWire* wire3 = dbWire::create(block);
-  cb->unpause();
-  dbWire::copy(wire1, wire3);
-  BOOST_TEST(cb->events.size() == 2);
-  BOOST_TEST(cb->events[0] == "PreCopy wire");
-  BOOST_TEST(cb->events[1] == "PostCopy wire");
   cb->clearEvents();
 
   dbWire::destroy(wire2);

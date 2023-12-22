@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 #pragma once
 
 #include <string>
+
 #include "Error.hh"
 
 // Don't require all of tcl.h.
@@ -44,7 +45,10 @@ public:
   PatternMatch(const char *pattern);
   PatternMatch(const char *pattern,
 	       const PatternMatch *inherit_from);
+  PatternMatch(const string &pattern,
+	       const PatternMatch *inherit_from);
   bool match(const char *str) const;
+  bool match(const string &str) const;
   bool matchNoCase(const char *str) const;
   const char *pattern() const { return pattern_; }
   bool isRegexp() const { return is_regexp_; }

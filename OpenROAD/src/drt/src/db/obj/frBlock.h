@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_BLOCK_H_
-#define _FR_BLOCK_H_
+#pragma once
 
 #include <algorithm>
 #include <type_traits>
@@ -207,16 +206,16 @@ class frBlock : public frBlockObject
     auto& xgp = gp[0];
     auto& ygp = gp[1];
     if (idx.x() <= 0) {
-      idx.set(0, idx.y());
+      idx = {0, idx.y()};
     }
     if (idx.y() <= 0) {
-      idx.set(idx.x(), 0);
+      idx = {idx.x(), 0};
     }
     if (idx.x() >= (int) xgp.getCount() - 1) {
-      idx.set((int) xgp.getCount() - 1, idx.y());
+      idx = {(int) xgp.getCount() - 1, idx.y()};
     }
     if (idx.y() >= (int) ygp.getCount() - 1) {
-      idx.set(idx.x(), (int) ygp.getCount() - 1);
+      idx = {idx.x(), (int) ygp.getCount() - 1};
     }
     frCoord xl = (frCoord) xgp.getSpacing() * idx.x() + xgp.getStartCoord();
     frCoord yl = (frCoord) ygp.getSpacing() * idx.y() + ygp.getStartCoord();
@@ -299,7 +298,6 @@ class frBlock : public frBlockObject
   void addTerm(std::unique_ptr<frBTerm> in)
   {
     in->setIndexInOwner(terms_.size());
-    in->setBlock(this);
     name2term_[in->getName()] = in.get();
     terms_.push_back(std::move(in));
   }
@@ -428,5 +426,3 @@ class frBlock : public frBlockObject
 };
 
 }  // namespace fr
-
-#endif

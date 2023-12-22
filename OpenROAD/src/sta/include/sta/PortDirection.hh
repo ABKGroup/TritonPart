@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ public:
   static PortDirection *ground() { return ground_; }
   static PortDirection *power() { return power_; }
   static PortDirection *unknown() { return unknown_; }
+  static PortDirection *find(const char *dir_name);
   const char *name() const { return name_; }
   int index() const { return index_; }
   bool isInput() const { return this == input_; }

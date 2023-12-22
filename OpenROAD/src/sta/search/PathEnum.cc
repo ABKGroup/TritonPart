@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -497,25 +497,24 @@ PathEnum::makeDiversions(PathEnd *path_end,
 			 Path *before)
 {
   PathRef path(before);
+  PathRef prev_path;
   TimingArc *prev_arc;
+  path.prevPath(this, prev_path, prev_arc);
   PathEnumFaninVisitor fanin_visitor(path_end, path, unique_pins_, this);
-  do {
+  while (prev_arc
+         // Do not enumerate beyond latch D to Q edges.
+         // This breaks latch loop paths.
+         && prev_arc->role() != TimingRole::latchDtoQ()
+         // Do not enumerate paths in the clk network.
+         && !path.isClock(this)) {
     // Fanin visitor does all the work.
     // While visiting the fanins the fanin_visitor finds the
     // previous path and arc as well as diversions.
-    PathRef prev_path;
+    fanin_visitor.visitFaninPathsThru(path.vertex(this),
+                                      prev_path.vertex(this), prev_arc);
+    path.init(prev_path);
     path.prevPath(this, prev_path, prev_arc);
-    if (prev_arc) {
-      fanin_visitor.visitFaninPathsThru(path.vertex(this),
-					prev_path.vertex(this), prev_arc);
-      path.init(prev_path);
-    }
-  } while (prev_arc
-	   // Do not enumerate beyond latch D to Q edges.
-	   // This breaks latch loop paths.
-	   && prev_arc->role() != TimingRole::latchDtoQ()
-	   // Do not enumerate paths in the clk network.
-	   && !path.isClock(this));
+  }
 }
 
 void
@@ -532,9 +531,12 @@ PathEnum::makeDivertedPath(Path *path,
   PathEnumedSeq copies;
   PathRef p(path);
   bool first = true;
-  bool is_latch_data = false;
   PathEnumed *prev_copy = nullptr;
-  while (!p.isNull()) {
+  VertexSet visited(graph_);
+  while (!p.isNull()
+         // Break latch loops.
+         && !visited.hasKey(p.vertex(this))) {
+    visited.insert(p.vertex(this));
     PathRef prev;
     TimingArc *prev_arc;
     p.prevPath(this, prev, prev_arc);
@@ -551,10 +553,6 @@ PathEnum::makeDivertedPath(Path *path,
       div_path = copy;
     if (Path::equal(&p, after_div, this))
       after_div_copy = copy;
-    // Include latch D input in the diverted path but do not enumerate
-    // beyond it.
-    if (is_latch_data)
-      break;
     if (Path::equal(&p, before_div, this)) {
       copy->setPrevArc(div_arc);
       // Update the delays forward from before_div to the end of the path.
@@ -566,9 +564,6 @@ PathEnum::makeDivertedPath(Path *path,
       p.init(prev);
     prev_copy = copy;
     first = false;
-    if (prev_arc
-	&& prev_arc->role() == TimingRole::latchDtoQ())
-      is_latch_data = true;
   }
   if (!found_div)
     criticalError(250, "diversion path not found");

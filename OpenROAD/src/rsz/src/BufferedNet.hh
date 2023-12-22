@@ -72,12 +72,12 @@ using sta::Corner;
 class Resizer;
 
 class BufferedNet;
-typedef std::shared_ptr<BufferedNet> BufferedNetPtr;
-typedef array<Required, RiseFall::index_count> Requireds;
+using BufferedNetPtr = std::shared_ptr<BufferedNet> ;
+using Requireds = array<Required, RiseFall::index_count>;
 
 enum class BufferedNetType { load, junction, wire, buffer };
 
-// The routing tree is represented a binary tree with the sinks being the leaves
+// The routing tree is represented as a binary tree with the sinks being the leaves
 // of the tree, the junctions being the Steiner nodes and the root being the
 // source of the net.
 class BufferedNet
@@ -85,28 +85,28 @@ class BufferedNet
 public:
   // load
   BufferedNet(BufferedNetType type,
-              Point location,
-              Pin *load_pin,
+              const Point& location,
+              const Pin *load_pin,
               const Corner *corner,
               const Resizer *resizer);
   // wire
   BufferedNet(BufferedNetType type,
-              Point location,
+              const Point& location,
               int layer,
-              BufferedNetPtr ref,
+              const BufferedNetPtr& ref,
               const Corner *corner,
               const Resizer *resizer);
   // junc
   BufferedNet(BufferedNetType type,
-              Point location,
-              BufferedNetPtr ref,
-              BufferedNetPtr ref2,
+              const Point& location,
+              const BufferedNetPtr& ref,
+              const BufferedNetPtr& ref2,
               const Resizer *resizer);
   // buffer
   BufferedNet(BufferedNetType type,
-              Point location,
+              const Point& location,
               LibertyCell *buffer_cell,
-              BufferedNetPtr ref,
+              const BufferedNetPtr& ref,
               const Corner *corner,
               const Resizer *resizer);
   string to_string(const Resizer *resizer) const;
@@ -126,7 +126,7 @@ public:
   float maxLoadSlew() const { return max_load_slew_; }
   void setMaxLoadSlew(float max_slew);
   // load
-  Pin *loadPin() const { return load_pin_; }
+  const Pin *loadPin() const { return load_pin_; }
   // wire
   int length() const;
   // routing level
@@ -134,8 +134,8 @@ public:
   void wireRC(const Corner *corner,
               const Resizer *resizer,
               // Return values.
-              double &cap,
-              double &res);
+              double &res,
+              double &cap);
   // buffer
   LibertyCell *bufferCell() const { return buffer_cell_; }
   // junction  left
@@ -162,15 +162,15 @@ public:
 private:
   BufferedNetType type_;
   Point location_;
-  // load
-  Pin *load_pin_;
-  // buffer
+  // only used by load type
+  const Pin *load_pin_;
+  // only used by buffer type
   LibertyCell *buffer_cell_;
-  // wire
+  // only used by wire type
   int layer_;
-  // load wire junc
+  // only used by buffer, wire, and junc types
   BufferedNetPtr ref_;
-  // junc
+  // only used by junc type
   BufferedNetPtr ref2_;
 
   // Capacitance looking downstream from here.
@@ -185,4 +185,4 @@ private:
   Delay required_delay_;
 };
 
-} // namespace
+} // namespace rsz

@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ enum class PwrActivityOrigin
  global,
  input,
  user,
+ vcd,
  propagated,
  clock,
  constant,
@@ -42,6 +43,7 @@ public:
   float duty() const { return duty_; }
   void setDuty(float duty);
   PwrActivityOrigin origin() { return origin_; }
+  void setOrigin(PwrActivityOrigin origin);
   const char *originName() const;
   void set(float activity,
 	   float duty,

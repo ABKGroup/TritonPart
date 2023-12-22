@@ -35,6 +35,7 @@
 
 #include "DesignCallBack.h"
 #include "db/tech/frTechObject.h"
+#include "distributed/PinAccessJobDescription.h"
 #include "distributed/RoutingCallBack.h"
 #include "distributed/drUpdate.h"
 #include "distributed/frArchive.h"
@@ -56,7 +57,6 @@
 #include "sta/StaMain.hh"
 #include "stt/SteinerTreeBuilder.h"
 #include "ta/FlexTA.h"
-using namespace std;
 using namespace fr;
 using namespace triton_route;
 
@@ -121,6 +121,16 @@ void TritonRoute::setDistributed(bool on)
   distributed_ = on;
 }
 
+void TritonRoute::setDebugWriteNetTracks(bool on)
+{
+  debug_->writeNetTracks = on;
+}
+
+void TritonRoute::setDumpLastWorker(bool on)
+{
+  debug_->dumpLastWorker = on;
+}
+
 void TritonRoute::setWorkerIpPort(const char* ip, unsigned short port)
 {
   dist_ip_ = ip;
@@ -145,10 +155,9 @@ void TritonRoute::setDebugPinName(const char* name)
   debug_->pinName = name;
 }
 
-void TritonRoute::setDebugWorker(int x, int y)
+void TritonRoute::setDebugBox(int x1, int y1, int x2, int y2)
 {
-  debug_->x = x;
-  debug_->y = y;
+  debug_->box.init(x1, y1, x2, y2);
 }
 
 void TritonRoute::setDebugIter(int iter)
@@ -171,15 +180,31 @@ void TritonRoute::setDebugPaCommit(bool on)
   debug_->paCommit = on;
 }
 
+RipUpMode getMode(int ripupMode)
+{
+  switch (ripupMode) {
+    case 0:
+      return RipUpMode::DRC;
+    case 1:
+      return RipUpMode::ALL;
+    default:
+      return RipUpMode::NEARDRC;
+  }
+}
+
 void TritonRoute::setDebugWorkerParams(int mazeEndIter,
                                        int drcCost,
                                        int markerCost,
+                                       int fixedShapeCost,
+                                       float markerDecay,
                                        int ripupMode,
                                        int followGuide)
 {
   debug_->mazeEndIter = mazeEndIter;
   debug_->drcCost = drcCost;
   debug_->markerCost = markerCost;
+  debug_->fixedShapeCost = fixedShapeCost;
+  debug_->markerDecay = markerDecay;
   debug_->ripupMode = ripupMode;
   debug_->followGuide = followGuide;
 }
@@ -214,6 +239,10 @@ std::string TritonRoute::runDRWorker(const std::string& workerStr,
 void TritonRoute::debugSingleWorker(const std::string& dumpDir,
                                     const std::string& drcRpt)
 {
+  {
+    io::Writer writer(design_.get(), logger_);
+    writer.updateTrackAssignment(db_->getChip()->getBlock());
+  }
   bool on = debug_->debugDR;
   FlexDRViaData viaData;
   std::ifstream viaDataFile(fmt::format("{}/viadata.bin", dumpDir),
@@ -238,8 +267,13 @@ void TritonRoute::debugSingleWorker(const std::string& dumpDir,
     worker->setMarkerCost(debug_->markerCost);
   if (debug_->drcCost != -1)
     worker->setDrcCost(debug_->drcCost);
-  if (debug_->ripupMode != -1)
-    worker->setRipupMode(debug_->ripupMode);
+  if (debug_->fixedShapeCost != -1)
+    worker->setFixedShapeCost(debug_->fixedShapeCost);
+  if (debug_->markerDecay != -1)
+    worker->setMarkerDecay(debug_->markerDecay);
+  if (debug_->ripupMode != -1) {
+    worker->setRipupMode(getMode(debug_->ripupMode));
+  }
   if (debug_->followGuide != -1)
     worker->setFollowGuide((debug_->followGuide == 1));
   worker->setSharedVolume(shared_volume_);
@@ -256,7 +290,7 @@ void TritonRoute::debugSingleWorker(const std::string& dumpDir,
              "End number of markers {}. Updated={}",
              worker->getBestNumMarkers(),
              updated);
-  if (updated)
+  if (updated && !drcRpt.empty())
     reportDRC(
         drcRpt, design_->getTopBlock()->getMarkers(), worker->getDrcBox());
 }
@@ -277,9 +311,11 @@ void TritonRoute::resetDb(const char* file_name)
   design_ = std::make_unique<frDesign>(logger_);
   ord::OpenRoad::openRoad()->readDb(file_name);
   initDesign();
-  initGuide();
-  prep();
-  design_->getRegionQuery()->initDRObj();
+  if (!db_->getChip()->getBlock()->getAccessPoints().empty()) {
+    initGuide();
+    prep();
+    design_->getRegionQuery()->initDRObj();
+  }
 }
 
 void TritonRoute::clearDesign()
@@ -434,7 +470,7 @@ void TritonRoute::applyUpdates(
           std::unique_ptr<frPathSeg> uSeg = std::make_unique<frPathSeg>(seg);
           auto net = update.getNet();
           uSeg->addToNet(net);
-          vector<unique_ptr<frConnFig>> tmp;
+          std::vector<std::unique_ptr<frConnFig>> tmp;
           tmp.push_back(std::move(uSeg));
           auto idx = update.getIndexInOwner();
           if (idx < 0 || idx >= net->getGuides().size())
@@ -482,7 +518,7 @@ void TritonRoute::init(Tcl_Interp* tcl_interp,
   dist_ = dist;
   stt_builder_ = stt_builder;
   design_ = std::make_unique<frDesign>(logger_);
-  dist->addCallBack(new fr::RoutingCallBack(this, dist, logger));
+  dist->addCallBack(new RoutingCallBack(this, dist, logger));
   // Define swig TCL commands.
   Drt_Init(tcl_interp);
   sta::evalTclInit(tcl_interp, sta::drt_tcl_inits);
@@ -491,8 +527,6 @@ void TritonRoute::init(Tcl_Interp* tcl_interp,
 
 bool TritonRoute::initGuide()
 {
-  if (DBPROCESSNODE == "GF14_13M_3Mx_2Cx_4Kx_2Hx_2Gx_LB")
-    USENONPREFTRACKS = false;
   io::Parser parser(db_, getDesign(), logger_);
   bool guideOk = parser.readGuide();
   parser.postProcessGuide();
@@ -506,31 +540,10 @@ void TritonRoute::initDesign()
     return;
   }
   io::Parser parser(db_, getDesign(), logger_);
-  parser.readDb();
+  parser.readTechAndLibs(db_);
+  processBTermsAboveTopLayer();
+  parser.readDesign(db_);
   auto tech = getDesign()->getTech();
-  if (!BOTTOM_ROUTING_LAYER_NAME.empty()) {
-    frLayer* layer = tech->getLayer(BOTTOM_ROUTING_LAYER_NAME);
-    if (layer) {
-      BOTTOM_ROUTING_LAYER = layer->getLayerNum();
-    } else {
-      logger_->warn(utl::DRT,
-                    272,
-                    "bottomRoutingLayer {} not found.",
-                    BOTTOM_ROUTING_LAYER_NAME);
-    }
-  }
-
-  if (!TOP_ROUTING_LAYER_NAME.empty()) {
-    frLayer* layer = tech->getLayer(TOP_ROUTING_LAYER_NAME);
-    if (layer) {
-      TOP_ROUTING_LAYER = layer->getLayerNum();
-    } else {
-      logger_->warn(utl::DRT,
-                    273,
-                    "topRoutingLayer {} not found.",
-                    TOP_ROUTING_LAYER_NAME);
-    }
-  }
 
   if (!VIAINPIN_BOTTOMLAYER_NAME.empty()) {
     frLayer* layer = tech->getLayer(VIAINPIN_BOTTOMLAYER_NAME);
@@ -585,7 +598,7 @@ void TritonRoute::gr()
 
 void TritonRoute::ta()
 {
-  FlexTA ta(getDesign(), logger_);
+  FlexTA ta(getDesign(), logger_, distributed_);
   ta.setDebug(debug_.get(), db_);
   ta.main();
 }
@@ -609,6 +622,8 @@ void TritonRoute::stepDR(int size,
                          int mazeEndIter,
                          frUInt4 workerDRCCost,
                          frUInt4 workerMarkerCost,
+                         frUInt4 workerFixedShapeCost,
+                         float workerMarkerDecay,
                          int ripupMode,
                          bool followGuide)
 {
@@ -617,7 +632,9 @@ void TritonRoute::stepDR(int size,
                      mazeEndIter,
                      workerDRCCost,
                      workerMarkerCost,
-                     ripupMode,
+                     workerFixedShapeCost,
+                     workerMarkerDecay,
+                     getMode(ripupMode),
                      followGuide});
   num_drvs_ = design_->getTopBlock()->getNumMarkers();
 }
@@ -630,6 +647,8 @@ void TritonRoute::endFR()
   dr_.reset();
   io::Writer writer(getDesign(), logger_);
   writer.updateDb(db_);
+  if (debug_->writeNetTracks)
+    writer.updateTrackAssignment(db_->getChip()->getBlock());
 
   num_drvs_ = design_->getTopBlock()->getNumMarkers();
   if (!REPAIR_PDN_LAYER_NAME.empty()) {
@@ -818,25 +837,51 @@ void TritonRoute::sendDesignUpdates(const std::string& globals_path)
 
 int TritonRoute::main()
 {
+  if (DBPROCESSNODE == "GF14_13M_3Mx_2Cx_4Kx_2Hx_2Gx_LB") {
+    USENONPREFTRACKS = false;
+  }
+  asio::thread_pool pa_pool(1);
+  if (!distributed_)
+    pa_pool.join();
   if (debug_->debugDumpDR) {
     std::string globals_path
         = fmt::format("{}/init_globals.bin", debug_->dumpDir);
     writeGlobals(globals_path);
   }
   MAX_THREADS = ord::OpenRoad::openRoad()->getThreadCount();
-  if (distributed_ && !DO_PA) {
-    asio::post(dist_pool_, boost::bind(&TritonRoute::sendDesignDist, this));
+  if (distributed_) {
+    if (DO_PA)
+      asio::post(pa_pool, [this]() {
+        sendDesignDist();
+        dst::JobMessage msg(dst::JobMessage::PIN_ACCESS,
+                            dst::JobMessage::BROADCAST),
+            result;
+        auto uDesc = std::make_unique<PinAccessJobDescription>();
+        uDesc->setType(PinAccessJobDescription::INIT_PA);
+        msg.setJobDescription(std::move(uDesc));
+        dist_->sendJob(msg, dist_ip_.c_str(), dist_port_, result);
+      });
+    else
+      asio::post(dist_pool_, boost::bind(&TritonRoute::sendDesignDist, this));
   }
   initDesign();
   if (DO_PA) {
-    FlexPA pa(getDesign(), logger_);
+    FlexPA pa(getDesign(), logger_, dist_);
+    pa.setDistributed(dist_ip_, dist_port_, shared_volume_, cloud_sz_);
     pa.setDebug(debug_.get(), db_);
+    pa_pool.join();
     pa.main();
-    if (distributed_ || debug_->debugDumpDR) {
+    if (distributed_ || debug_->debugDR || debug_->debugDumpDR) {
       io::Writer writer(getDesign(), logger_);
       writer.updateDb(db_, true);
-      if (distributed_)
-        asio::post(dist_pool_, boost::bind(&TritonRoute::sendDesignDist, this));
+    }
+    if (distributed_) {
+      asio::post(dist_pool_, [this]() {
+        dst::JobMessage msg(dst::JobMessage::GRDR_INIT,
+                            dst::JobMessage::BROADCAST),
+            result;
+        dist_->sendJob(msg, dist_ip_.c_str(), dist_port_, result);
+      });
     }
   }
   if (debug_->debugDumpDR) {
@@ -848,7 +893,6 @@ int TritonRoute::main()
     io::Parser parser(db_, getDesign(), logger_);
     ENABLE_VIA_GEN = true;
     parser.readGuide();
-    parser.initDefaultVias();
     parser.postProcessGuide();
   }
   prep();
@@ -866,13 +910,29 @@ int TritonRoute::main()
 
 void TritonRoute::pinAccess(std::vector<odb::dbInst*> target_insts)
 {
+  if (distributed_) {
+    asio::post(dist_pool_, [this]() {
+      sendDesignDist();
+      dst::JobMessage msg(dst::JobMessage::PIN_ACCESS,
+                          dst::JobMessage::BROADCAST),
+          result;
+      auto uDesc = std::make_unique<PinAccessJobDescription>();
+      uDesc->setType(PinAccessJobDescription::INIT_PA);
+      msg.setJobDescription(std::move(uDesc));
+      dist_->sendJob(msg, dist_ip_.c_str(), dist_port_, result);
+    });
+  }
   clearDesign();
   MAX_THREADS = ord::OpenRoad::openRoad()->getThreadCount();
   ENABLE_VIA_GEN = true;
   initDesign();
-  FlexPA pa(getDesign(), logger_);
+  FlexPA pa(getDesign(), logger_, dist_);
   pa.setTargetInstances(target_insts);
   pa.setDebug(debug_.get(), db_);
+  if (distributed_) {
+    pa.setDistributed(dist_ip_, dist_port_, shared_volume_, cloud_sz_);
+    dist_pool_.join();
+  }
   pa.main();
   io::Writer writer(getDesign(), logger_);
   writer.updateDb(db_, true);
@@ -891,8 +951,8 @@ void TritonRoute::getDRCMarkers(frList<std::unique_ptr<frMarker>>& markers,
   for (int i = offset; i < (int) xgp.getCount(); i += size) {
     for (int j = offset; j < (int) ygp.getCount(); j += size) {
       Rect routeBox1 = design_->getTopBlock()->getGCellBox(Point(i, j));
-      const int max_i = min((int) xgp.getCount() - 1, i + size - 1);
-      const int max_j = min((int) ygp.getCount(), j + size - 1);
+      const int max_i = std::min((int) xgp.getCount() - 1, i + size - 1);
+      const int max_j = std::min((int) ygp.getCount(), j + size - 1);
       Rect routeBox2 = design_->getTopBlock()->getGCellBox(Point(max_i, max_j));
       Rect routeBox(routeBox1.xMin(),
                     routeBox1.yMin(),
@@ -955,6 +1015,14 @@ void TritonRoute::checkDRC(const char* filename, int x1, int y1, int x2, int y2)
 {
   GC_IGNORE_PDN_LAYER = -1;
   initDesign();
+  auto gcellGrid = db_->getChip()->getBlock()->getGCellGrid();
+  if (gcellGrid != nullptr && gcellGrid->getNumGridPatternsX() == 1
+      && gcellGrid->getNumGridPatternsY() == 1) {
+    io::Parser parser(db_, getDesign(), logger_);
+    parser.buildGCellPatterns(db_);
+  } else if (!initGuide()) {
+    logger_->error(DRT, 1, "GCELLGRID is undefined");
+  }
   Rect requiredDrcBox(x1, y1, x2, y2);
   if (requiredDrcBox.area() == 0) {
     requiredDrcBox = design_->getTopBlock()->getBBox();
@@ -964,95 +1032,149 @@ void TritonRoute::checkDRC(const char* filename, int x1, int y1, int x2, int y2)
   reportDRC(filename, markers, requiredDrcBox);
 }
 
-void TritonRoute::readParams(const string& fileName)
+void TritonRoute::processBTermsAboveTopLayer(bool has_routing)
 {
-  logger_->warn(utl::DRT, 252, "params file is deprecated. Use tcl arguments.");
+  odb::dbTech* tech = db_->getTech();
+  odb::dbBlock* block = db_->getChip()->getBlock();
 
-  int readParamCnt = 0;
-  ifstream fin(fileName.c_str());
-  string line;
-  if (fin.is_open()) {
-    while (fin.good()) {
-      getline(fin, line);
-      if (line[0] != '#') {
-        char delimiter = ':';
-        int pos = line.find(delimiter);
-        string field = line.substr(0, pos);
-        string value = line.substr(pos + 1);
-        stringstream ss(value);
-        if (field == "lef") {
-          logger_->warn(utl::DRT, 148, "Deprecated lef param in params file.");
-        } else if (field == "def") {
-          logger_->warn(utl::DRT, 227, "Deprecated def param in params file.");
-        } else if (field == "guide") {
-          logger_->warn(
-              utl::DRT,
-              309,
-              "Deprecated guide param in params file. use read_guide instead.");
-        } else if (field == "outputTA") {
-          logger_->warn(
-              utl::DRT, 266, "Deprecated outputTA param in params file.");
-        } else if (field == "output") {
-          logger_->warn(
-              utl::DRT, 205, "Deprecated output param in params file.");
-        } else if (field == "outputguide") {
-          logger_->warn(utl::DRT,
-                        310,
-                        "Deprecated outputguide param in params file. use "
-                        "write_guide instead.");
-        } else if (field == "save_guide_updates") {
-          SAVE_GUIDE_UPDATES = true;
-          ++readParamCnt;
-        } else if (field == "outputMaze") {
-          OUT_MAZE_FILE = value;
-          ++readParamCnt;
-        } else if (field == "outputDRC") {
-          DRC_RPT_FILE = value;
-          ++readParamCnt;
-        } else if (field == "outputCMap") {
-          CMAP_FILE = value;
-          ++readParamCnt;
-        } else if (field == "threads") {
-          logger_->warn(utl::DRT,
-                        274,
-                        "Deprecated threads param in params file."
-                        " Use 'set_thread_count'.");
-          ++readParamCnt;
-        } else if (field == "verbose")
-          VERBOSE = atoi(value.c_str());
-        else if (field == "dbProcessNode") {
-          DBPROCESSNODE = value;
-          ++readParamCnt;
-        } else if (field == "viaInPinBottomLayer") {
-          VIAINPIN_BOTTOMLAYER_NAME = value;
-          ++readParamCnt;
-        } else if (field == "viaInPinTopLayer") {
-          VIAINPIN_TOPLAYER_NAME = value;
-          ++readParamCnt;
-        } else if (field == "drouteEndIterNum") {
-          END_ITERATION = atoi(value.c_str());
-          ++readParamCnt;
-        } else if (field == "OR_SEED") {
-          OR_SEED = atoi(value.c_str());
-          ++readParamCnt;
-        } else if (field == "OR_K") {
-          OR_K = atof(value.c_str());
-          ++readParamCnt;
-        } else if (field == "bottomRoutingLayer") {
-          BOTTOM_ROUTING_LAYER_NAME = value;
-          ++readParamCnt;
-        } else if (field == "topRoutingLayer") {
-          TOP_ROUTING_LAYER_NAME = value;
-          ++readParamCnt;
-        } else if (field == "initRouteShapeCost") {
-          ROUTESHAPECOST = atoi(value.c_str());
-          ++readParamCnt;
-        } else if (field == "clean_patches")
-          CLEAN_PATCHES = true;
+  odb::dbTechLayer* top_tech_layer
+      = tech->findLayer(TOP_ROUTING_LAYER_NAME.c_str());
+  if (top_tech_layer != nullptr) {
+    int top_layer_idx = top_tech_layer->getRoutingLevel();
+    for (auto bterm : block->getBTerms()) {
+      if (bterm->getNet()->isSpecial()) {
+        continue;
+      }
+      int bterm_bottom_layer_idx = std::numeric_limits<int>::max();
+      for (auto bpin : bterm->getBPins()) {
+        for (auto box : bpin->getBoxes()) {
+          bterm_bottom_layer_idx = std::min(
+              bterm_bottom_layer_idx, box->getTechLayer()->getRoutingLevel());
+        }
+      }
+
+      if (bterm_bottom_layer_idx > top_layer_idx) {
+        stackVias(bterm, top_layer_idx, bterm_bottom_layer_idx, has_routing);
       }
     }
-    fin.close();
   }
+}
+
+void TritonRoute::stackVias(odb::dbBTerm* bterm,
+                            int top_layer_idx,
+                            int bterm_bottom_layer_idx,
+                            bool has_routing)
+{
+  odb::dbNet* net = bterm->getNet();
+  if (netHasStackedVias(net)) {
+    return;
+  }
+
+  odb::dbTech* tech = db_->getTech();
+  auto fr_tech = getDesign()->getTech();
+  std::map<int, odb::dbTechVia*> default_vias;
+
+  for (auto layer : tech->getLayers()) {
+    if (layer->getType() == odb::dbTechLayerType::CUT) {
+      frLayer* fr_layer = fr_tech->getLayer(layer->getName());
+      frViaDef* via_def = fr_layer->getDefaultViaDef();
+      if (via_def == nullptr) {
+        logger_->warn(utl::DRT,
+                      204,
+                      "Cut layer {} has no default via defined.",
+                      layer->getName());
+        continue;
+      }
+      odb::dbTechVia* tech_via = tech->findVia(via_def->getName().c_str());
+      int via_bottom_layer_idx = tech_via->getBottomLayer()->getRoutingLevel();
+      default_vias[via_bottom_layer_idx] = tech_via;
+    }
+  }
+
+  // get bterm rect
+  odb::Rect pin_rect;
+  for (odb::dbBPin* bpin : bterm->getBPins()) {
+    pin_rect = bpin->getBBox();
+    break;
+  }
+
+  // set the via position as the first AP in the same layer of the bterm
+  odb::Point via_position = odb::Point(pin_rect.xCenter(), pin_rect.yCenter());
+
+  // insert the vias from the top routing layer to the bterm bottom layer
+  odb::dbWire* wire = net->getWire();
+  int bterms_above_max_layer = countNetBTermsAboveMaxLayer(net);
+
+  odb::dbWireEncoder wire_encoder;
+  if (wire == nullptr) {
+    wire = odb::dbWire::create(net);
+    wire_encoder.begin(wire);
+  } else if (bterms_above_max_layer > 1 || has_routing) {
+    // append wire when the net has other pins above the max routing layer
+    wire_encoder.append(wire);
+  } else {
+    logger_->error(utl::DRT, 415, "Net {} already has routes.", net->getName());
+  }
+
+  odb::dbTechLayer* top_tech_layer = tech->findRoutingLayer(top_layer_idx);
+  wire_encoder.newPath(top_tech_layer, odb::dbWireType::ROUTED);
+  wire_encoder.addPoint(via_position.getX(), via_position.getY());
+  for (int layer_idx = top_layer_idx; layer_idx < bterm_bottom_layer_idx;
+       layer_idx++) {
+    wire_encoder.addTechVia(default_vias[layer_idx]);
+  }
+  wire_encoder.end();
+}
+
+int TritonRoute::countNetBTermsAboveMaxLayer(odb::dbNet* net)
+{
+  odb::dbTech* tech = db_->getTech();
+  odb::dbTechLayer* top_tech_layer
+      = tech->findLayer(TOP_ROUTING_LAYER_NAME.c_str());
+  int bterm_count = 0;
+  for (auto bterm : net->getBTerms()) {
+    int bterm_bottom_layer_idx = std::numeric_limits<int>::max();
+    for (auto bpin : bterm->getBPins()) {
+      for (auto box : bpin->getBoxes()) {
+        bterm_bottom_layer_idx = std::min(
+            bterm_bottom_layer_idx, box->getTechLayer()->getRoutingLevel());
+      }
+    }
+    if (bterm_bottom_layer_idx > top_tech_layer->getRoutingLevel()) {
+      bterm_count++;
+    }
+  }
+
+  return bterm_count;
+}
+
+bool TritonRoute::netHasStackedVias(odb::dbNet* net)
+{
+  int bterms_above_max_layer = countNetBTermsAboveMaxLayer(net);
+  uint wire_cnt = 0, via_cnt = 0;
+  net->getWireCount(wire_cnt, via_cnt);
+
+  if (wire_cnt != 0 || via_cnt == 0) {
+    return false;
+  }
+
+  odb::dbWirePath path;
+  odb::dbWirePathShape pshape;
+  odb::dbWire* wire = net->getWire();
+
+  odb::dbWirePathItr pitr;
+  std::set<odb::Point> via_points;
+  for (pitr.begin(wire); pitr.getNextPath(path);) {
+    while (pitr.getNextShape(pshape)) {
+      via_points.insert(path.point);
+    }
+  }
+
+  if (via_points.size() != bterms_above_max_layer) {
+    return false;
+  }
+
+  return true;
 }
 
 void TritonRoute::addUserSelectedVia(const std::string& viaName)
@@ -1080,15 +1202,21 @@ void TritonRoute::setUnidirectionalLayer(const std::string& layerName)
   auto dbLayer = tech->findLayer(layerName.c_str());
   if (dbLayer == nullptr) {
     logger_->error(utl::DRT, 616, "Layer {} not found", layerName);
-  } else {
-    design_->getTech()->setUnidirectionalLayer(dbLayer);
   }
+  if (dbLayer->getType() != dbTechLayerType::ROUTING) {
+    logger_->error(utl::DRT,
+                   618,
+                   "Non-routing layer {} can't be set unidirectional",
+                   layerName);
+  }
+  design_->getTech()->setUnidirectionalLayer(dbLayer);
 }
 
 void TritonRoute::setParams(const ParamStruct& params)
 {
   OUT_MAZE_FILE = params.outputMazeFile;
   DRC_RPT_FILE = params.outputDrcFile;
+  DRC_RPT_ITER_STEP = params.drcReportIterStep;
   CMAP_FILE = params.outputCmapFile;
   GUIDE_REPORT_FILE = params.outputGuideCoverageFile;
   VERBOSE = params.verbose;
@@ -1148,22 +1276,22 @@ int TritonRoute::getWorkerResultsSize()
   return results_sz_;
 }
 
-void TritonRoute::reportDRC(const string& file_name,
+void TritonRoute::reportDRC(const std::string& file_name,
                             const frList<std::unique_ptr<frMarker>>& markers,
                             Rect drcBox)
 {
   double dbu = getDesign()->getTech()->getDBUPerUU();
 
-  if (file_name == string("")) {
+  if (file_name == std::string("")) {
     if (VERBOSE > 0) {
       logger_->warn(
           DRT,
           290,
-          "Waring: no DRC report specified, skipped writing DRC report");
+          "Warning: no DRC report specified, skipped writing DRC report");
     }
     return;
   }
-  ofstream drcRpt(file_name.c_str());
+  std::ofstream drcRpt(file_name.c_str());
   if (drcRpt.is_open()) {
     for (const auto& marker : markers) {
       // get violation bbox
@@ -1187,7 +1315,7 @@ void TritonRoute::reportDRC(const string& file_name,
       } else {
         drcRpt << "nullptr";
       }
-      drcRpt << endl;
+      drcRpt << std::endl;
       // get source(s) of violation
       // format: type:name/identifier
       drcRpt << "    srcs: ";
@@ -1209,9 +1337,13 @@ void TritonRoute::reportDRC(const string& file_name,
               break;
             }
             case frcInstBlockage: {
-              frInstBlockage* instBlockage
-                  = (static_cast<frInstBlockage*>(src));
-              drcRpt << "inst:" << instBlockage->getInst()->getName() << " ";
+              frInst* inst = (static_cast<frInstBlockage*>(src))->getInst();
+              drcRpt << "inst:" << inst->getName() << " ";
+              break;
+            }
+            case frcInst: {
+              frInst* inst = (static_cast<frInst*>(src));
+              drcRpt << "inst:" << inst->getName() << " ";
               break;
             }
             case frcBlockage: {
@@ -1234,6 +1366,6 @@ void TritonRoute::reportDRC(const string& file_name,
       drcRpt << layer->getName() << "\n";
     }
   } else {
-    cout << "Error: Fail to open DRC report file\n";
+    std::cout << "Error: Fail to open DRC report file\n";
   }
 }

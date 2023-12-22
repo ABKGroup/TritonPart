@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,7 +16,15 @@
 
 #pragma once
 
+#include <string>
+#include <set>
+
 namespace sta {
+
+using std::string;
+using std::set;
+
+typedef set<string> StdStringSet;
 
 class Path;
 class StaState;
@@ -33,7 +41,9 @@ writePathSpice(Path *path,
 	       const char *lib_subckt_filename,
 	       // Device model file included in spice file.
 	       const char *model_filename,
-	       const char *power_name,
+	       // Nets off of path to include in the spice run.
+               StdStringSet *off_path_pin_names,
+               const char *power_name,
 	       const char *gnd_name,
 	       StaState *sta);
 

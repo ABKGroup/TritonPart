@@ -47,6 +47,8 @@
 
 #pragma once
 
+#include "utl/Logger.h"
+
 namespace odb {
 
 // Note that the use of the word 'orientation' here is distinct from
@@ -71,7 +73,7 @@ class Direction1D
     High = 1
   };
 
-  constexpr Direction1D() : value_(Low) {}
+  constexpr Direction1D() = default;
   constexpr Direction1D(const Direction1D& other) = default;
   constexpr Direction1D(const Value value) : value_(value) {}
   // [East/North -> High] [West/South -> Low]
@@ -90,7 +92,7 @@ class Direction1D
   bool operator>=(const Direction1D& d) const { return value_ >= d.value_; }
 
  private:
-  const unsigned char value_;
+  const unsigned char value_ = Low;
 };
 
 // Models the axis orientation in two dimensional space.  The
@@ -104,7 +106,7 @@ class Orientation2D
     Vertical = 1
   };
 
-  constexpr Orientation2D() : value_(Horizontal) {}
+  constexpr Orientation2D() = default;
   constexpr Orientation2D(const Orientation2D& ori) = default;
   constexpr Orientation2D(const Value value) : value_(value) {}
   // [West / East -> Horizontal] [South / North -> Vertical]
@@ -126,7 +128,7 @@ class Orientation2D
   bool operator>=(const Orientation2D& d) const { return value_ >= d.value_; }
 
  private:
-  const unsigned char value_;
+  const unsigned char value_ = Horizontal;
 };
 
 // Models a direction in two dimensional space.  The possible values
@@ -142,8 +144,8 @@ class Direction2D
     North = 3
   };
 
-  constexpr Direction2D() : value_(West) {}
-  constexpr Direction2D(const Direction2D& other) : value_(other.value_) {}
+  constexpr Direction2D() = default;
+  constexpr Direction2D(const Direction2D& other) = default;
   constexpr Direction2D(const Value value) : value_(value) {}
 
   bool operator==(const Direction2D& d) const { return value_ == d.value_; }
@@ -176,7 +178,7 @@ class Direction2D
   bool is_negative() const { return !is_positive(); }
 
  private:
-  const unsigned char value_;
+  const unsigned char value_ = West;
 };
 
 // This is axis orientation in three dimensional space.  This implicitly
@@ -190,8 +192,8 @@ class Orientation3D
     Proximal = 2
   };
 
-  constexpr Orientation3D() : value_(Orientation2D::Horizontal) {}
-  constexpr Orientation3D(const Orientation3D& ori) : value_(ori.value_) {}
+  constexpr Orientation3D() = default;
+  constexpr Orientation3D(const Orientation3D& ori) = default;
   constexpr Orientation3D(const Orientation2D& ori) : value_(ori) {}
   constexpr Orientation3D(const Value value) : value_(value) {}
   constexpr explicit Orientation3D(const Direction2D& other);
@@ -210,7 +212,7 @@ class Orientation3D
   bool operator>=(const Orientation3D&& d) const { return value_ >= d.value_; }
 
  private:
-  const unsigned char value_;
+  const unsigned char value_ = Orientation2D::Horizontal;
 };
 
 // Models a direction in three dimensional space.  This implicitly
@@ -225,9 +227,9 @@ class Direction3D
     Up = 5
   };
 
-  constexpr Direction3D() : value_(Direction2D::West) {}
+  constexpr Direction3D() = default;
   constexpr Direction3D(Direction2D other) : value_(other) {}
-  constexpr Direction3D(const Direction3D& other) : value_(other.value_) {}
+  constexpr Direction3D(const Direction3D& other) = default;
   constexpr Direction3D(const Direction2D::Value value) : value_(value) {}
   constexpr Direction3D(const Value value) : value_(value) {}
 
@@ -249,7 +251,7 @@ class Direction3D
   bool is_negative() const { return !is_positive(); }
 
  private:
-  const unsigned char value_;
+  const unsigned char value_ = Direction2D::West;
 };
 
 inline constexpr Direction1D::Direction1D(const Direction2D& other)
@@ -308,5 +310,7 @@ inline constexpr Direction2D north{Direction2D::North};
 
 inline constexpr Direction3D down{Direction3D::Down};
 inline constexpr Direction3D up{Direction3D::Up};
+
+using utl::format_as;
 
 }  // namespace odb

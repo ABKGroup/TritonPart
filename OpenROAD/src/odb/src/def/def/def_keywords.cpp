@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 //
-//  $Author: icftcm $
-//  $Revision: #2 $
-//  $Date: 2017/08/28 $
+//  $Author: dell $
+//  $Revision: #1 $
+//  $Date: 2020/09/29 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -50,15 +50,13 @@
 #include <unistd.h>
 #endif /* WIN32 */
 
-using namespace std;
-
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
 #include "def_parser.hpp"
 
 int defrData::defGetKeyword(const char* name, int* result)
 {
-  map<const char*, int, defCompareCStrings>::const_iterator search
+  std::map<const char*, int, defCompareCStrings>::const_iterator search
       = settings->Keyword_set.find(name);
 
   if (search != settings->Keyword_set.end()) {
@@ -69,9 +67,9 @@ int defrData::defGetKeyword(const char* name, int* result)
   return FALSE;
 }
 
-int defrData::defGetAlias(const string& name, string& result)
+int defrData::defGetAlias(const std::string& name, std::string& result)
 {
-  map<string, string, defCompareStrings>::iterator search
+  std::map<std::string, std::string, defCompareStrings>::iterator search
       = def_alias_set.find(name);
 
   if (search != def_alias_set.end()) {
@@ -82,9 +80,9 @@ int defrData::defGetAlias(const string& name, string& result)
   return FALSE;
 }
 
-int defrData::defGetDefine(const string& name, string& result)
+int defrData::defGetDefine(const std::string& name, std::string& result)
 {
-  map<string, string, defCompareStrings>::iterator search
+  std::map<std::string, std::string, defCompareStrings>::iterator search
       = def_defines_set.find(name);
 
   if (search != def_defines_set.end()) {
@@ -247,7 +245,12 @@ void defrData::print_lines(long long lines)
 
 const char* defrData::lines2str(long long lines)
 {
+#ifdef _WIN32
+  sprintf(lineBuffer, "%I64d", lines);
+#else
   sprintf(lineBuffer, "%lld", lines);
+#endif
+
   return lineBuffer;
 }
 
@@ -406,7 +409,7 @@ void defrData::StoreAlias()
 
   char* uc_line = (char*) malloc(tokenSize);
 
-  string so_far; /* contains alias contents as we build it */
+  std::string so_far; /* contains alias contents as we build it */
 
   if (strcmp(line, "=") != 0) {
     defError(6000, "Expecting '='");
@@ -542,7 +545,7 @@ int defrData::sublex(YYSTYPE* pYylval)
     } else if (fc == '&') {
       /* begins with &.  If &alias, read contents and */
       /* store them.  Otherwise it's a define, or a macro use. */
-      string alias;
+      std::string alias;
       uc_array(deftoken, uc_token);
 
       if (strcmp(uc_token, "&ALIAS") == 0)
@@ -714,7 +717,7 @@ int defrData::sublex(YYSTYPE* pYylval)
     }
     if (routed_is_keyword
         && ((strcmp(deftoken, "ROUTED") == 0)
-            || (strcmp(deftoken, "rounted") == 0))) {
+            || (strcmp(deftoken, "routed") == 0))) {
       return K_ROUTED; /* even in dumb mode, we must see the */
                        /* ROUTED deftoken */
     }
@@ -919,7 +922,7 @@ int defrData::sublex(YYSTYPE* pYylval)
    defined, substitute the definition.  Otherwise return it. */
 int defrData::amper_lookup(YYSTYPE* pYylval, char* tkn)
 {
-  string defValue;
+  std::string defValue;
 
   /* printf("Amper_lookup: %s\n", tkn); */
 
@@ -1649,6 +1652,7 @@ void defrData::pathIsDone(int sh, int reset, int osNet, int* needCbk)
     // defrPath->reverseOrder();
     (*callbacks->PathCbk)(defrPathCbkType, &PathObj, session->UserData);
     PathObj.Destroy();
+    free((char*) &PathObj);
   }
 
   PathObj.Init();

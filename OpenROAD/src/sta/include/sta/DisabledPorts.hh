@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ class DisabledInstancePorts;
 
 typedef Vector<DisabledInstancePorts*> DisabledInstancePortsSeq;
 typedef Vector<DisabledCellPorts*> DisabledCellPortsSeq;
-typedef Vector<LibertyPortPair*> LibertyPortPairSeq;
+typedef Vector<LibertyPortPair> LibertyPortPairSeq;
 typedef Set<TimingArcSet*> TimingArcSetSet;
 
 // Base class for disabled cell and instance ports.
@@ -93,15 +93,12 @@ private:
   Instance *inst_;
 };
 
-void
-sortDisabledCellPortsMap(DisabledCellPortsMap *cell_map,
-			 DisabledCellPortsSeq &disables);
-void
-sortDisabledInstancePortsMap(DisabledInstancePortsMap *inst_map,
-			     Network *network,
-			     DisabledInstancePortsSeq &disables);
-void
-sortLibertyPortPairSet(LibertyPortPairSet *sets,
-		       LibertyPortPairSeq &pairs);
+DisabledCellPortsSeq
+sortByName(DisabledCellPortsMap *cell_map);
+DisabledInstancePortsSeq
+sortByPathName(const DisabledInstancePortsMap *inst_map,
+               const Network *network);
+LibertyPortPairSeq
+sortByName(const LibertyPortPairSet *set);
 
 } // namespace

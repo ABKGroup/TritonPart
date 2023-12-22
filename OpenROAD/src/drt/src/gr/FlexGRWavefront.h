@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FLEX_GR_WF_H_
-#define _FLEX_GR_WF_H_
+#pragma once
 
 #include <bitset>
 #include <memory>
@@ -73,7 +72,7 @@ class FlexGRWavefrontGrid
                       frCoord distIn,
                       frCost pathCostIn,
                       frCost costIn,
-                      std::bitset<WAVEFRONTBITSIZE> backTraceBufferIn)
+                      std::bitset<GRWAVEFRONTBITSIZE> backTraceBufferIn)
       : xIdx_(xIn),
         yIdx_(yIn),
         zIdx_(zIn),
@@ -107,7 +106,7 @@ class FlexGRWavefrontGrid
   frMIdx z() const { return zIdx_; }
   frCost getPathCost() const { return pathCost_; }
   frCost getCost() const { return cost_; }
-  std::bitset<WAVEFRONTBITSIZE> getBackTraceBuffer() const
+  std::bitset<GRWAVEFRONTBITSIZE> getBackTraceBuffer() const
   {
     return backTraceBuffer_;
   }
@@ -121,16 +120,16 @@ class FlexGRWavefrontGrid
 
   bool isBufferFull() const
   {
-    std::bitset<WAVEFRONTBITSIZE> mask = WAVEFRONTBUFFERHIGHMASK;
+    std::bitset<GRWAVEFRONTBITSIZE> mask = GRWAVEFRONTBUFFERHIGHMASK;
     return (mask & backTraceBuffer_).any();
   }
 
   frDirEnum shiftAddBuffer(const frDirEnum& dir)
   {
     auto retBS = static_cast<frDirEnum>(
-        (backTraceBuffer_ >> (WAVEFRONTBITSIZE - DIRBITSIZE)).to_ulong());
+        (backTraceBuffer_ >> (GRWAVEFRONTBITSIZE - DIRBITSIZE)).to_ulong());
     backTraceBuffer_ <<= DIRBITSIZE;
-    std::bitset<WAVEFRONTBITSIZE> newBS = (unsigned) dir;
+    std::bitset<GRWAVEFRONTBITSIZE> newBS = (unsigned) dir;
     backTraceBuffer_ |= newBS;
     return retBS;
   }
@@ -157,5 +156,3 @@ class FlexGRWavefront
   std::priority_queue<FlexGRWavefrontGrid> wavefrontPQ_;
 };
 }  // namespace fr
-
-#endif

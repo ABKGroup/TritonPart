@@ -3,7 +3,7 @@
 %{
 
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 
 %inline %{
 
-TmpStringSeq *
+StringSeq
 delay_calc_names()
 {
   return sta::delayCalcNames();
@@ -46,6 +46,17 @@ void
 set_delay_calc_incremental_tolerance(float tol)
 {
   sta::Sta::sta()->setIncrementalDelayTolerance(tol);
+}
+
+string
+report_delay_calc_cmd(Edge *edge,
+		      TimingArc *arc,
+		      const Corner *corner,
+		      const MinMax *min_max,
+		      int digits)
+{
+  cmdLinkedNetwork();
+  return Sta::sta()->reportDelayCalc(edge, arc, corner, min_max, digits);
 }
 
 %} // inline

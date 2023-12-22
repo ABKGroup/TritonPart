@@ -85,11 +85,6 @@ class dbWireGraph
       VARIABLE
     };
 
-   private:
-    Type _type;
-    int _ext;
-
-   public:
     EndStyle() : _type(EXTENDED), _ext(0) {}
 
     void setExtended()
@@ -114,6 +109,10 @@ class dbWireGraph
       return (_type != s._type) || (_ext != s._ext);
     }
 
+   private:
+    Type _type;
+    int _ext;
+
     friend class dbWireGraph;
   };
 
@@ -132,24 +131,16 @@ class dbWireGraph
       VWIRE
     };
 
-   private:
-    Type _type;
-    Node* _src;
-    Node* _tgt;
-    dbWireType::Value _wire_type;
-    dbTechLayerRule* _non_default_rule;
-    DListEntry<Edge> _edge_entry;
-    DListEntry<Edge> _out_edge_entry;
-
-   public:
     Edge(Type type, dbWireType::Value wire_type, dbTechLayerRule* rule)
         : _type(type),
-          _src(NULL),
-          _tgt(NULL),
+          _src(nullptr),
+          _tgt(nullptr),
           _wire_type(wire_type),
           _non_default_rule(rule)
     {
     }
+
+    virtual ~Edge() = default;
 
     Type type() const { return _type; }
     Node* source() const { return _src; }
@@ -157,6 +148,7 @@ class dbWireGraph
     dbWireType::Value wireType() const { return _wire_type; }
     dbTechLayerRule* nonDefaultRule() const { return _non_default_rule; }
 
+   private:
     static DListEntry<Edge>* edgeEntry(Edge* edge)
     {
       return &edge->_edge_entry;
@@ -167,32 +159,30 @@ class dbWireGraph
       return &edge->_out_edge_entry;
     }
 
+    const Type _type;
+    Node* _src;
+    Node* _tgt;
+    dbWireType::Value _wire_type;
+    dbTechLayerRule* _non_default_rule;
+    DListEntry<Edge> _edge_entry;
+    DListEntry<Edge> _out_edge_entry;
+
     friend class dbWireGraph;
   };
 
   // Node - A Node represents a point "(x y layer)" in the graph.
   class Node
   {
-   private:
-    int _x;
-    int _y;
-    int _jct_id;
-    dbTechLayer* _layer;
-    Edge* _in_edge;
-    dbObject* _object;
-    DList<Edge, &Edge::outEdgeEntry> _out_edges;
-    DListEntry<Node> _node_entry;
-
    public:
-    typedef DList<Edge, &Edge::outEdgeEntry>::iterator edge_iterator;
+    using edge_iterator = DList<Edge, &Edge::outEdgeEntry>::iterator;
 
     Node(int x, int y, dbTechLayer* layer)
         : _x(x),
           _y(y),
           _jct_id(-1),
           _layer(layer),
-          _in_edge(NULL),
-          _object(NULL)
+          _in_edge(nullptr),
+          _object(nullptr)
     {
     }
 
@@ -206,19 +196,29 @@ class dbWireGraph
     edge_iterator begin() { return _out_edges.begin(); }
     edge_iterator end() { return _out_edges.end(); }
     dbObject* object() const { return _object; }
+    void setObject(dbObject* obj) { _object = obj; }
 
+   private:
     static DListEntry<Node>* nodeEntry(Node* node)
     {
       return &node->_node_entry;
     }
+
+    int _x;
+    int _y;
+    int _jct_id;
+    dbTechLayer* _layer;
+    Edge* _in_edge;
+    dbObject* _object;
+    DList<Edge, &Edge::outEdgeEntry> _out_edges;
+    DListEntry<Node> _node_entry;
+
     friend class dbWireGraph;
   };
 
   // VIA edge
   class Via : public Edge
   {
-    dbVia* _via;
-
    public:
     Via(dbVia* via, dbWireType::Value wire_type, dbTechLayerRule* rule)
         : Edge(VIA, wire_type, rule), _via(via)
@@ -226,14 +226,15 @@ class dbWireGraph
     }
 
     dbVia* via() const { return _via; }
+
+   private:
+    dbVia* _via;
     friend class dbWireGraph;
   };
 
   // TECH-VIA edge
   class TechVia : public Edge
   {
-    dbTechVia* _via;
-
    public:
     TechVia(dbTechVia* via, dbWireType::Value wire_type, dbTechLayerRule* rule)
         : Edge(TECH_VIA, wire_type, rule), _via(via)
@@ -241,15 +242,15 @@ class dbWireGraph
     }
 
     dbTechVia* via() const { return _via; }
+
+   private:
+    dbTechVia* _via;
     friend class dbWireGraph;
   };
 
   // Wire segment
   class Segment : public Edge
   {
-    EndStyle _src_style;
-    EndStyle _tgt_style;
-
    public:
     Segment(EndStyle src,
             EndStyle tgt,
@@ -259,6 +260,9 @@ class dbWireGraph
     {
     }
 
+   private:
+    EndStyle _src_style;
+    EndStyle _tgt_style;
     friend class dbWireGraph;
   };
 
@@ -308,68 +312,68 @@ class dbWireGraph
   Node* createNode(int x, int y, dbTechLayer* l);
 
   // Create a via edge.
-  //    Returns NULL, if the "tgt" node already has an in-edge.
-  //    Returns NULL, if the src and tgt layers are not the respective upper and
-  //    lower layers of this via.
+  //    Returns nullptr, if the "tgt" node already has an in-edge.
+  //    Returns nullptr, if the src and tgt layers are not the respective upper
+  //    and lower layers of this via.
   Via* createVia(Node* src,
                  Node* tgt,
                  dbVia* via,
                  dbWireType::Value type = dbWireType::NONE,
-                 dbTechLayerRule* rule = NULL);
+                 dbTechLayerRule* rule = nullptr);
 
   // Create a tech-via edge.
-  //    Returns NULL, if the "tgt" node already has an in-edge.
-  //    Returns NULL, if the src and tgt layers are not the respective upper and
-  //    lower layers of this via.
+  //    Returns nullptr, if the "tgt" node already has an in-edge.
+  //    Returns nullptr, if the src and tgt layers are not the respective upper
+  //    and lower layers of this via.
   TechVia* createTechVia(Node* src,
                          Node* tgt,
                          dbTechVia* via,
                          dbWireType::Value type = dbWireType::NONE,
-                         dbTechLayerRule* rule = NULL);
+                         dbTechLayerRule* rule = nullptr);
 
   // Create a segment edge with the default (EXTENDED) end style.
-  //    Returns NULL, if the "tgt" node already has an in-edge.
-  //    Returns NULL, if the src and tgt layer are not the same.
-  //    Returns NULL, if the src and tgt point do not form an orthogonal
+  //    Returns nullptr, if the "tgt" node already has an in-edge.
+  //    Returns nullptr, if the src and tgt layer are not the same.
+  //    Returns nullptr, if the src and tgt point do not form an orthogonal
   //    segment.
   Segment* createSegment(Node* src,
                          Node* tgt,
                          dbWireType::Value type = dbWireType::NONE,
-                         dbTechLayerRule* rule = NULL);
+                         dbTechLayerRule* rule = nullptr);
 
   // Create a segment edge.
-  //    Returns NULL, if the "tgt" node already has an in-edge.
-  //    Returns NULL, if the src and tgt layer are not the same.
-  //    Returns NULL, if the src and tgt point do not form an orthogonal
+  //    Returns nullptr, if the "tgt" node already has an in-edge.
+  //    Returns nullptr, if the src and tgt layer are not the same.
+  //    Returns nullptr, if the src and tgt point do not form an orthogonal
   //    segment.
   Segment* createSegment(Node* src,
                          Node* tgt,
                          EndStyle src_style,
                          EndStyle tgt_style,
                          dbWireType::Value type = dbWireType::NONE,
-                         dbTechLayerRule* rule = NULL);
+                         dbTechLayerRule* rule = nullptr);
 
   // Create a short edge.
-  //    Returns NULL, if the "tgt" node already has an in-edge.
+  //    Returns nullptr, if the "tgt" node already has an in-edge.
   Short* createShort(Node* src,
                      Node* tgt,
                      dbWireType::Value type = dbWireType::NONE,
-                     dbTechLayerRule* rule = NULL);
+                     dbTechLayerRule* rule = nullptr);
 
   // Create a vwire edge.
-  //    Returns NULL, if the "tgt" node already has an in-edge.
+  //    Returns nullptr, if the "tgt" node already has an in-edge.
   VWire* createVWire(Node* src,
                      Node* tgt,
                      dbWireType::Value type = dbWireType::NONE,
-                     dbTechLayerRule* rule = NULL);
+                     dbTechLayerRule* rule = nullptr);
 
   // Edge iterator
-  typedef DList<Node, &Node::nodeEntry>::iterator node_iterator;
+  using node_iterator = DList<Node, &Node::nodeEntry>::iterator;
   node_iterator begin_nodes() { return _nodes.begin(); }
   node_iterator end_nodes() { return _nodes.end(); }
 
   // Node iterator
-  typedef DList<Edge, &Edge::edgeEntry>::iterator edge_iterator;
+  using edge_iterator = DList<Edge, &Edge::edgeEntry>::iterator;
   edge_iterator begin_edges() { return _edges.begin(); }
   edge_iterator end_edges() { return _edges.end(); }
 

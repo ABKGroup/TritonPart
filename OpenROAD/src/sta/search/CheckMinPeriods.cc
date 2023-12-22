@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -110,9 +110,8 @@ CheckMinPeriods::visitMinPeriodChecks(Vertex *vertex,
   bool exists;
   graph_dcalc->minPeriod(pin, min_period, exists);
   if (exists) {
-    ClockSet clks;
-    search->clocks(vertex, clks);
-    ClockSet::Iterator clk_iter(clks);
+    const ClockSet clks = search->clocks(vertex);
+    ClockSet::ConstIterator clk_iter(clks);
     while (clk_iter.hasNext()) {
       Clock *clk = clk_iter.next();
       MinPeriodCheck check(pin, clk);

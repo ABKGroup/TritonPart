@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <map>
@@ -38,7 +39,25 @@ typedef int64_t VcdTime;
 typedef vector<string> VcdScope;
 typedef map<string, VcdVar*> VcdNameMap;
 
-enum class VcdVarType { wire, reg, parameter, real };
+enum class VcdVarType {
+  wire,
+  reg,
+  parameter,
+  integer,
+  real,
+  supply0,
+  supply1,
+  time,
+  tri,
+  triand,
+  trior,
+  trireg,
+  tri0,
+  tri1,
+  wand,
+  wor,
+  unknown
+};
 
 class Vcd : public StaState
 {
@@ -127,6 +146,7 @@ public:
   VcdTime time() const { return time_; }
   char value() const { return value_; }
   uint64_t busValue() const { return bus_value_; }
+  char value(int value_bit) const;
 
 private:
   VcdTime time_;

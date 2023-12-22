@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 namespace sta {
 
-// Comparison operators for sorting network objects.
+// Comparison operators for network objects.
 
 class PortNameLess
 {
@@ -67,21 +67,17 @@ private:
   const Network *network_;
 };
 
-void
-sortPinSet(PinSet *set,
-	   const Network *network,
-	   PinSeq &pins);
-void
-sortPortSet(PortSet *set,
-	    const Network *network,
-	    PortSeq &ports);
-void
-sortInstanceSet(InstanceSet *set,
-		const Network *network,
-		InstanceSeq &insts);
-void
-sortNetSet(NetSet *set,
-	   const Network *network,
-	   NetSeq &nets);
+PinSeq
+sortByPathName(const PinSet *set,
+               const Network *network);
+PortSeq
+sortByName(const PortSet *set,
+           const Network *network);
+InstanceSeq
+sortByPathName(InstanceSet *set,
+               const Network *network);
+NetSeq
+sortByPathName(NetSet *set,
+               const Network *network);
 
 } // namespace

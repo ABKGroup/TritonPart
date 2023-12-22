@@ -1,7 +1,7 @@
 %{
 
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#include <ctype.h>
+#include <cctype>
 
 #include "sdf/SdfReaderPvt.hh"
 
@@ -25,6 +25,8 @@ int SdfLex_lex();
 // use yacc generated parser errors
 #define YYERROR_VERBOSE
 
+#define YYDEBUG 1
+
 %}
 
 // expected shift/reduce conflicts
@@ -32,9 +34,10 @@ int SdfLex_lex();
 
 %union {
   char character;
-  char *string;
+  const char *string;
   float number;
   float *number_ptr;
+  int integer;
   sta::SdfTriple *triple;
   sta::SdfTripleSeq *delval_list;
   sta::SdfPortSpec *port_spec;
@@ -48,13 +51,14 @@ int SdfLex_lex();
 %token IOPATH TIMINGCHECK
 %token SETUP HOLD SETUPHOLD RECOVERY REMOVAL RECREM WIDTH PERIOD SKEW NOCHANGE
 %token POSEDGE NEGEDGE COND CONDELSE
-%token QSTRING ID PATH NUMBER EXPR_OPEN_IOPATH EXPR_OPEN EXPR_ID_CLOSE
+%token QSTRING ID FNUMBER DNUMBER EXPR_OPEN_IOPATH EXPR_OPEN EXPR_ID_CLOSE
 
-%type <number> NUMBER
+%type <number> FNUMBER NUMBER
+%type <integer> DNUMBER
 %type <number_ptr> number_opt
 %type <triple> value triple
 %type <delval_list> delval_list
-%type <string> QSTRING ID PATH path port_instance
+%type <string> QSTRING ID path port port_instance
 %type <string> EXPR_OPEN_IOPATH EXPR_OPEN EXPR_ID_CLOSE
 %type <port_spec> port_spec port_tchk
 %type <transition> port_transition
@@ -124,8 +128,10 @@ celltype:
 ;
 
 cell_instance:
-	'(' INSTANCE ')'	{ sta::sdf_reader->setInstance(NULL); }
-|	'(' INSTANCE '*' ')'	{ sta::sdf_reader->setInstanceWildcard(); }
+	'(' INSTANCE ')'
+        { sta::sdf_reader->setInstance(NULL); }
+|	'(' INSTANCE '*' ')'
+        { sta::sdf_reader->setInstanceWildcard(); }
 |	'(' INSTANCE path ')'
 	{ sta::sdf_reader->setInstance($3); }
 ;
@@ -159,7 +165,9 @@ del_defs:
 
 path:
 	ID
-|	PATH
+        { $$ = sta::sdf_reader->unescaped($1); }
+|	path hchar ID
+        { $$ = sta::sdf_reader->makePath($1, sta::sdf_reader->unescaped($3)); }
 ;
 
 del_def:
@@ -218,7 +226,6 @@ tchk_def:
 	{ sta::sdf_reader->timingCheckSetupHold($4, $5, $6, $7);
 	  sta::sdf_reader->setInTimingCheck(false);
 	}
-//|	'(' SETUPHOLD port_spec port_spec value value scond? ccond? ')'
 |	'(' RECOVERY { sta::sdf_reader->setInTimingCheck(true); }
 	port_tchk port_tchk value ')'
 	{ sta::sdf_reader->timingCheck(sta::TimingRole::recovery(),$4,$5,$6);
@@ -234,7 +241,6 @@ tchk_def:
 	{ sta::sdf_reader->timingCheckRecRem($4, $5, $6, $7);
 	  sta::sdf_reader->setInTimingCheck(false);
 	}
-//|	'(' RECREM port_spec port_spec value value scond? ccond? ')'
 |	'(' SKEW { sta::sdf_reader->setInTimingCheck(true); }
 	port_tchk port_tchk value ')'
 	// Sdf skew clk/ref are reversed from liberty.
@@ -258,15 +264,26 @@ tchk_def:
 	}
 ;
 
-port_instance:
+port:
 	ID
-|	PATH
+        { $$ = sta::sdf_reader->unescaped($1); }
+        | ID '[' DNUMBER ']'
+        { const char *bus_name = sta::sdf_reader->unescaped($1);
+          $$ = sta::stringPrint("%s[%d]", bus_name, $3);
+          sta::stringDelete(bus_name);
+        }
+;
+
+port_instance:
+	port
+|	path hchar port
+        { $$ = sta::sdf_reader->makePath($1, $3); }
 ;
 
 port_spec:
-	ID
+	port_instance
 	{ $$=sta::sdf_reader->makePortSpec(sta::Transition::riseFall(),$1,NULL); }
-|	'(' port_transition ID ')'
+|	'(' port_transition port_instance ')'
 	{ $$ = sta::sdf_reader->makePortSpec($2, $3, NULL); }
 ;
 
@@ -279,8 +296,8 @@ port_tchk:
 	port_spec
 |	'(' COND EXPR_ID_CLOSE
 	{ $$ = sta::sdf_reader->makeCondPortSpec($3); }
-|	'(' COND EXPR_OPEN port_transition ID ')' ')'
-	{ $$ = sta::sdf_reader->makePortSpec($4, $5, $3); }
+|	'(' COND EXPR_OPEN port_transition port_instance ')' ')'
+        { $$ = sta::sdf_reader->makePortSpec($4, $5, $3); }
 ;
 
 value:
@@ -311,6 +328,14 @@ triple:
 	  float *fp = new float($5);
 	  $$ = sta::sdf_reader->makeTriple($1, $3, fp);
 	}
+;
+
+NUMBER:
+        FNUMBER
+|       DNUMBER
+        { $$ = static_cast<float>($1); }
+|       '-' DNUMBER
+        { $$ = static_cast<float>(-$2); }
 ;
 
 %%

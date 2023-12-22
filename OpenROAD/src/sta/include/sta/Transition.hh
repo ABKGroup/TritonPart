@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 #include <array>
 #include <vector>
+
 #include "Iterator.hh"
 #include "Map.hh"
 #include "StringUtil.hh"
@@ -54,9 +55,9 @@ public:
   RiseFall *opposite() const;
 
   // for range support.
-  // for (auto tr : RiseFall::range()) {}
+  // for (auto rf : RiseFall::range()) {}
   static const std::array<RiseFall*, 2> &range() { return range_; }
-  // for (auto tr_index : RiseFall::rangeIndex()) {}
+  // for (auto rf_index : RiseFall::rangeIndex()) {}
   static const std::array<int, 2> &rangeIndex() { return range_index_; }
   static const int index_count = 2;
   static const int index_max = (index_count - 1);

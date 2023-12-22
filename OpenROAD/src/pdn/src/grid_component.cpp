@@ -60,7 +60,7 @@ VoltageDomain* GridComponent::getDomain() const
   return grid_->getDomain();
 }
 
-const std::string GridComponent::typeToString(Type type)
+std::string GridComponent::typeToString(Type type)
 {
   switch (type) {
     case Ring:
@@ -109,9 +109,7 @@ ShapePtr GridComponent::addShape(Shape* shape)
        it != shapes.qend();
        it++) {
     auto& intersecting_shape = it->second;
-    const odb::Rect intersecting_area
-        = shape_ptr->getRect().intersect(intersecting_shape->getRect());
-    if (intersecting_area.area() == 0) {
+    if (!shape_ptr->getRect().overlaps(intersecting_shape->getRect())) {
       continue;
     }
     if (intersecting_shape->getNet() != shape_ptr->getNet()) {
@@ -299,7 +297,7 @@ void GridComponent::cutShapes(const ShapeTreeMap& obstructions)
     std::map<Shape*, std::vector<Shape*>> replacement_shapes;
     for (const auto& [box, shape] : shapes) {
       std::vector<Shape*> replacements;
-      if (!shape->cut(obs, replacements)) {
+      if (!shape->cut(obs, getGrid(), replacements)) {
         continue;
       }
 
@@ -344,16 +342,19 @@ void GridComponent::writeToDb(
       });
 
   for (const auto& shape : all_shapes) {
-    odb::dbNet* net = shape->getNet();
+    auto net = net_map.find(shape->getNet());
+    if (net == net_map.end()) {
+      continue;
+    }
     const bool is_pin_layer = convert_layer_to_pin.find(shape->getLayer())
                               != convert_layer_to_pin.end();
-    shape->writeToDb(net_map.at(net), add_pins, is_pin_layer);
+    shape->writeToDb(net->second, add_pins, is_pin_layer);
   }
 }
 
 void GridComponent::checkLayerWidth(odb::dbTechLayer* layer,
                                     int width,
-                                    odb::dbTechLayerDir direction) const
+                                    const odb::dbTechLayerDir& direction) const
 {
   const TechLayer tech_layer(layer);
 
@@ -431,10 +432,11 @@ void GridComponent::checkLayerWidth(odb::dbTechLayer* layer,
   }
 }
 
-void GridComponent::checkLayerSpacing(odb::dbTechLayer* layer,
-                                      int width,
-                                      int spacing,
-                                      odb::dbTechLayerDir /* direction */) const
+void GridComponent::checkLayerSpacing(
+    odb::dbTechLayer* layer,
+    int width,
+    int spacing,
+    const odb::dbTechLayerDir& /* direction */) const
 {
   const TechLayer tech_layer(layer);
 
@@ -482,9 +484,8 @@ std::vector<odb::dbNet*> GridComponent::getNets() const
 {
   if (nets_.empty()) {
     return grid_->getNets(starts_with_power_);
-  } else {
-    return nets_;
   }
+  return nets_;
 }
 
 int GridComponent::getNetCount() const

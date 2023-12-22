@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -59,7 +59,6 @@ class ClkSkews;
 class ReportField;
 class Power;
 class PowerResult;
-class ClockIterator;
 class EquivCells;
 
 typedef InstanceSeq::Iterator SlowDrvrIterator;
@@ -151,75 +150,79 @@ public:
 		       const EarlyLate *early_late,
 		       float derate);
   void unsetTimingDerate();
-  void setInputSlew(Port *port,
+  void setInputSlew(const Port *port,
 		    const RiseFallBoth *rf,
 		    const MinMaxAll *min_max,
 		    float slew);
   // Set port external pin load (set_load -pin port).
-  void setPortExtPinCap(Port *port,
+  void setPortExtPinCap(const Port *port,
 			const RiseFallBoth *rf,
+                        const Corner *corner,
 			const MinMaxAll *min_max,
 			float cap);
-  void portExtCaps(Port *port,
+  void portExtCaps(const Port *port,
+                   const Corner *corner,
                    const MinMax *min_max,
                    float &pin_cap,
                    float &wire_cap,
                    int &fanout);
   // Set port external wire load (set_load -wire port).
-  void setPortExtWireCap(Port *port,
+  void setPortExtWireCap(const Port *port,
 			 bool subtract_pin_cap,
 			 const RiseFallBoth *rf,
+                         const Corner *corner,
 			 const MinMaxAll *min_max,
 			 float cap);
   // Set net wire capacitance (set_load -wire net).
-  void setNetWireCap(Net *net,
+  void setNetWireCap(const Net *net,
 		     bool subtract_pin_load,
 		     const Corner *corner,
 		     const MinMaxAll *min_max,
 		     float cap);
-  // Set port external fanout (used by wireload models).
-  void setPortExtFanout(Port *port,
-			int fanout,
-			const MinMaxAll *min_max);
   // Remove all "set_load net" annotations.
   void removeNetLoadCaps() const;
+  // Set port external fanout (used by wireload models).
+  void setPortExtFanout(const Port *port,
+			int fanout,
+                        const Corner *corner,
+			const MinMaxAll *min_max);
   // Liberty port capacitance.
   float capacitance(const LibertyPort *port,
                     Corner *corner,
                     const MinMax *min_max);
   // pin_cap  = net pin capacitances + port external pin capacitance,
   // wire_cap = annotated net capacitance + port external wire capacitance.
-  void connectedCap(Pin *drvr_pin,
+  void connectedCap(const Pin *drvr_pin,
 		    const RiseFall *rf,
 		    const Corner *corner,
 		    const MinMax *min_max,
 		    float &pin_cap,
 		    float &wire_cap) const;
-  void connectedCap(Net *net,
+  void connectedCap(const Net *net,
 		    Corner *corner,
 		    const MinMax *min_max,
 		    float &pin_cap,
 		    float &wire_cap) const;
-  void setResistance(Net *net,
+  void setResistance(const Net *net,
 		     const MinMaxAll *min_max,
 		     float res);
-  void setDriveCell(LibertyLibrary *library,
-		    LibertyCell *cell,
-		    Port *port,
-		    LibertyPort *from_port,
+  void setDriveCell(const LibertyLibrary *library,
+		    const LibertyCell *cell,
+		    const Port *port,
+		    const LibertyPort *from_port,
 		    float *from_slews,
-		    LibertyPort *to_port,
+		    const LibertyPort *to_port,
 		    const RiseFallBoth *rf,
 		    const MinMaxAll *min_max);
-  void setDriveResistance(Port *port,
+  void setDriveResistance(const Port *port,
 			  const RiseFallBoth *rf,
 			  const MinMaxAll *min_max,
 			  float res);
-  void setLatchBorrowLimit(Pin *pin,
+  void setLatchBorrowLimit(const Pin *pin,
 			   float limit);
-  void setLatchBorrowLimit(Instance *inst,
+  void setLatchBorrowLimit(const Instance *inst,
 			   float limit);
-  void setLatchBorrowLimit(Clock *clk,
+  void setLatchBorrowLimit(const Clock *clk,
 			   float limit);
   void setMinPulseWidth(const RiseFallBoth *rf,
 			float min_width);
@@ -426,11 +429,9 @@ public:
   bool isDisabledConstant(Edge *edge);
   // Edge is default cond disabled by timing_disable_cond_default_arcs var.
   bool isDisabledCondDefault(Edge *edge);
-  // Edge is disabled to prpath a clock from propagating.
-  bool isDisabledClock(Edge *edge);
   // Return a set of constant pins that disabled edge.
   // Caller owns the returned set.
-  PinSet *disabledConstantPins(Edge *edge);
+  PinSet disabledConstantPins(Edge *edge);
   // Edge timing sense with propagated constants.
   TimingSense simTimingSense(Edge *edge);
   // Edge is disabled by set_disable_timing constraint.
@@ -444,8 +445,8 @@ public:
   bool isDisabledPresetClr(Edge *edge) const;
   // Return a vector of graph edges that are disabled, sorted by
   // from/to vertex names.  Caller owns the returned vector.
-  EdgeSeq *disabledEdges();
-  EdgeSeq *disabledEdgesSorted();
+  EdgeSeq disabledEdges();
+  EdgeSeq disabledEdgesSorted();
   void disableClockGatingCheck(Instance *inst);
   void disableClockGatingCheck(Pin *pin);
   void removeDisableClockGatingCheck(Instance *inst);
@@ -455,36 +456,36 @@ public:
   void setCaseAnalysis(Pin *pin,
 		       LogicValue value);
   void removeCaseAnalysis(Pin *pin);
-  void setInputDelay(Pin *pin,
+  void setInputDelay(const Pin *pin,
 		     const RiseFallBoth *rf,
-		     Clock *clk,
+		     const Clock *clk,
 		     const RiseFall *clk_rf,
-		     Pin *ref_pin,
+		     const Pin *ref_pin,
 		     bool source_latency_included,
 		     bool network_latency_included,
 		     const MinMaxAll *min_max,
 		     bool add,
 		     float delay);
-  void removeInputDelay(Pin *pin,
-			RiseFallBoth *rf, 
-			Clock *clk,
-			RiseFall *clk_rf, 
-			MinMaxAll *min_max);
-  void setOutputDelay(Pin *pin,
+  void removeInputDelay(const Pin *pin,
+			const RiseFallBoth *rf, 
+			const Clock *clk,
+			const RiseFall *clk_rf, 
+			const MinMaxAll *min_max);
+  void setOutputDelay(const Pin *pin,
 		      const RiseFallBoth *rf,
-		      Clock *clk,
+		      const Clock *clk,
 		      const RiseFall *clk_rf,
-		      Pin *ref_pin,
+		      const Pin *ref_pin,
 		      bool source_latency_included,
 		      bool network_latency_included,
 		      const MinMaxAll *min_max,
 		      bool add,
 		      float delay);
-  void removeOutputDelay(Pin *pin,
-			 RiseFallBoth *rf, 
-			 Clock *clk,
-			 RiseFall *clk_rf, 
-			 MinMaxAll *min_max);
+  void removeOutputDelay(const Pin *pin,
+			 const RiseFallBoth *rf, 
+			 const Clock *clk,
+			 const RiseFall *clk_rf, 
+			 const MinMaxAll *min_max);
   void makeFalsePath(ExceptionFrom *from,
 		     ExceptionThruSeq *thrus,
 		     ExceptionTo *to,
@@ -540,35 +541,34 @@ public:
   void checkExceptionToPins(ExceptionTo *to,
 			    const char *file, int) const;
   void deleteExceptionTo(ExceptionTo *to);
-  InstanceSet *findRegisterInstances(ClockSet *clks,
-				     const RiseFallBoth *clk_rf,
-				     bool edge_triggered,
-				     bool latches);
-  PinSet *findRegisterDataPins(ClockSet *clks,
-			       const RiseFallBoth *clk_rf,
-			       bool registers,
-			       bool latches);
-  PinSet *findRegisterClkPins(ClockSet *clks,
-			      const RiseFallBoth *clk_rf,
-			      bool registers,
-			      bool latches);
-  PinSet *findRegisterAsyncPins(ClockSet *clks,
-				const RiseFallBoth *clk_rf,
-				bool registers,
-				bool latches);
-  PinSet *findRegisterOutputPins(ClockSet *clks,
-				 const RiseFallBoth *clk_rf,
-				 bool registers,
-				 bool latches);
-  PinSet *
-  findFaninPins(PinSeq *to,
-		bool flat,
-		bool startpoints_only,
-		int inst_levels,
-		int pin_levels,
-		bool thru_disabled,
-		bool thru_constants);
-  InstanceSet *
+  InstanceSet findRegisterInstances(ClockSet *clks,
+                                    const RiseFallBoth *clk_rf,
+                                    bool edge_triggered,
+                                    bool latches);
+  PinSet findRegisterDataPins(ClockSet *clks,
+                              const RiseFallBoth *clk_rf,
+                              bool registers,
+                              bool latches);
+  PinSet findRegisterClkPins(ClockSet *clks,
+                             const RiseFallBoth *clk_rf,
+                             bool registers,
+                             bool latches);
+  PinSet findRegisterAsyncPins(ClockSet *clks,
+                               const RiseFallBoth *clk_rf,
+                               bool registers,
+                               bool latches);
+  PinSet findRegisterOutputPins(ClockSet *clks,
+                                const RiseFallBoth *clk_rf,
+                                bool registers,
+                                bool latches);
+  PinSet findFaninPins(PinSeq *to,
+                       bool flat,
+                       bool startpoints_only,
+                       int inst_levels,
+                       int pin_levels,
+                       bool thru_disabled,
+                       bool thru_constants);
+  InstanceSet
   findFaninInstances(PinSeq *to,
 		     bool flat,
 		     bool startpoints_only,
@@ -576,7 +576,7 @@ public:
 		     int pin_levels,
 		     bool thru_disabled,
 		     bool thru_constants);
-  PinSet *
+  PinSet
   findFanoutPins(PinSeq *from,
 		 bool flat,
 		 bool endpoints_only,
@@ -584,7 +584,7 @@ public:
 		 int pin_levels,
 		 bool thru_disabled,
 		 bool thru_constants);
-  InstanceSet *
+  InstanceSet
   findFanoutInstances(PinSeq *from,
 		      bool flat,
 		      bool endpoints_only,
@@ -593,19 +593,19 @@ public:
 		      bool thru_disabled,
 		      bool thru_constants);
 
-  // The set of clocks that reach pin.
-  void clocks(const Pin *pin,
-	      // Return value.
-	      ClockSet &clks);
+  // The set of clocks that arrive at vertex in the clock network.
+  ClockSet clocks(const Pin *pin);
+  // Clock domains for a pin.
+  ClockSet clockDomains(const Pin *pin);
 
   void checkSlewLimitPreamble();
   // Return pins with the min/max slew limit slack.
   // net=null check all nets
   // corner=nullptr checks all corners.
-  PinSeq *checkSlewLimits(Net *net,
-                          bool violators,
-                          const Corner *corner,
-                          const MinMax *min_max);
+  PinSeq checkSlewLimits(Net *net,
+                         bool violators,
+                         const Corner *corner,
+                         const MinMax *min_max);
   void reportSlewLimitShortHeader();
   void reportSlewLimitShort(Pin *pin,
 			    const Corner *corner,
@@ -625,7 +625,7 @@ public:
 		 float &limit,
 		 float &slack);
   void maxSlewCheck(// Return values.
-                    Pin *&pin,
+                    const Pin *&pin,
                     Slew &slew,
                     float &slack,
                     float &limit);
@@ -640,9 +640,9 @@ public:
   // Return pins with the min/max fanout limit slack.
   // net=null check all nets
   // corner=nullptr checks all corners.
-  PinSeq *checkFanoutLimits(Net *net,
-                            bool violators,
-                            const MinMax *min_max);
+  PinSeq checkFanoutLimits(Net *net,
+                           bool violators,
+                           const MinMax *min_max);
   void reportFanoutLimitShortHeader();
   void reportFanoutLimitShort(Pin *pin,
 			      const MinMax *min_max);
@@ -656,7 +656,7 @@ public:
 		   float &limit,
 		   float &slack);
   void maxFanoutCheck(// Return values.
-                      Pin *&pin,
+                      const Pin *&pin,
                       float &fanout,
                       float &slack,
                       float &limit);
@@ -665,10 +665,10 @@ public:
   // Return pins with the min/max slew limit slack.
   // net=null check all nets
   // corner=nullptr checks all corners.
-  PinSeq *checkCapacitanceLimits(Net *net,
-                                 bool violators,
-                                 const Corner *corner,
-                                 const MinMax *min_max);
+  PinSeq checkCapacitanceLimits(Net *net,
+                                bool violators,
+                                const Corner *corner,
+                                const MinMax *min_max);
   void reportCapacitanceLimitShortHeader();
   void reportCapacitanceLimitShort(Pin *pin,
 				   const Corner *corner,
@@ -687,7 +687,7 @@ public:
 			float &limit,
 			float &slack);
   void maxCapacitanceCheck(// Return values.
-                           Pin *&pin,
+                           const Pin *&pin,
                            float &capacitance,
                            float &slack,
                            float &limit);
@@ -734,17 +734,22 @@ public:
 
   // Instance specific process/voltage/temperature.
   // Defaults to operating condition if instance is not annotated.
-  Pvt *pvt(Instance *inst,
-	   const MinMax *min_max);
+  const Pvt *pvt(Instance *inst,
+                 const MinMax *min_max);
   void setPvt(Instance *inst,
 	      const MinMaxAll *min_max,
 	      float process,
 	      float voltage,
 	      float temperature);
   // Pvt may be shared among multiple instances.
-  void setPvt(Instance *inst,
+  void setPvt(const Instance *inst,
 	      const MinMaxAll *min_max,
-	      Pvt *pvt);
+	      const Pvt &pvt);
+  void setVoltage(const MinMax *min_max,
+                  float voltage);
+  void setVoltage(const Net *net,
+                  const MinMax *min_max,
+                  float voltage);
   // Clear all state except network.
   virtual void clear();
   // Remove all constraints.
@@ -843,61 +848,56 @@ public:
 				     bool generated_clks);
   // Path from/thrus/to filter.
   // from/thrus/to are owned and deleted by Search.
-  // Returned sequence is owned by the caller.
-  // PathEnds are owned by Search PathGroups and deleted on next call.
-  virtual PathEndSeq *findPathEnds(ExceptionFrom *from,
-				   ExceptionThruSeq *thrus,
-				   ExceptionTo *to,
-				   bool unconstrained,
-				   // Use corner nullptr to report timing
-				   // for all corners.
-				   const Corner *corner,
-				   // max for setup checks.
-				   // min for hold checks.
-				   // min_max for setup and hold checks.
-				   const MinMaxAll *min_max,
-				   // Number of path ends to report in
-				   // each group.
-				   int group_count,
-				   // Number of paths to report for
-				   // each endpoint.
-				   int endpoint_count,
-				   // endpoint_count paths report unique pins
-				   // without rise/fall variations.
-				   bool unique_pins,
-				   // Min/max bounds for slack of
-				   // returned path ends.
-				   float slack_min,
-				   float slack_max,
-				   // Sort path ends by slack ignoring path groups.
-				   bool sort_by_slack,
-				   // Path groups to report.
-				   // Null or empty list reports all groups.
-				   PathGroupNameSet *group_names,
-				   // Predicates to filter the type of path
-				   // ends returned.
-				   bool setup,
-				   bool hold,
-				   bool recovery,
-				   bool removal,
-				   bool clk_gating_setup,
-				   bool clk_gating_hold);
+  // PathEnds in the returned PathEndSeq are owned by Search PathGroups
+  // and deleted on next call.
+  virtual PathEndSeq findPathEnds(ExceptionFrom *from,
+                                  ExceptionThruSeq *thrus,
+                                  ExceptionTo *to,
+                                  bool unconstrained,
+                                  // Use corner nullptr to report timing
+                                  // for all corners.
+                                  const Corner *corner,
+                                  // max for setup checks.
+                                  // min for hold checks.
+                                  // min_max for setup and hold checks.
+                                  const MinMaxAll *min_max,
+                                  // Number of path ends to report in
+                                  // each group.
+                                  int group_count,
+                                  // Number of paths to report for
+                                  // each endpoint.
+                                  int endpoint_count,
+                                  // endpoint_count paths report unique pins
+                                  // without rise/fall variations.
+                                  bool unique_pins,
+                                  // Min/max bounds for slack of
+                                  // returned path ends.
+                                  float slack_min,
+                                  float slack_max,
+                                  // Sort path ends by slack ignoring path groups.
+                                  bool sort_by_slack,
+                                  // Path groups to report.
+                                  // Null or empty list reports all groups.
+                                  PathGroupNameSet *group_names,
+                                  // Predicates to filter the type of path
+                                  // ends returned.
+                                  bool setup,
+                                  bool hold,
+                                  bool recovery,
+                                  bool removal,
+                                  bool clk_gating_setup,
+                                  bool clk_gating_hold);
   void setReportPathFormat(ReportPathFormat format);
   void setReportPathFieldOrder(StringSeq *field_names);
   void setReportPathFields(bool report_input_pin,
 			   bool report_net,
 			   bool report_cap,
-			   bool report_slew);
+			   bool report_slew,
+                           bool report_fanout);
   ReportField *findReportPathField(const char *name);
   void setReportPathDigits(int digits);
   void setReportPathNoSplit(bool no_split);
   void setReportPathSigmas(bool report_sigmas);
-  // Report clk skews for clks.
-  void reportClkSkew(ClockSet *clks,
-		     const Corner *corner,
-		     const SetupHold *setup_hold,
-		     int digits);
-  float findWorstClkSkew(const SetupHold *setup_hold);
   // Header above reportPathEnd results.
   void reportPathEndHeader();
   // Footer below reportPathEnd results.
@@ -911,6 +911,18 @@ public:
   void reportPathEnds(PathEndSeq *ends);
   ReportPath *reportPath() { return report_path_; }
   void reportPath(Path *path);
+
+  // Report clk skews for clks.
+  void reportClkSkew(ClockSet *clks,
+		     const Corner *corner,
+		     const SetupHold *setup_hold,
+		     int digits);
+  float findWorstClkSkew(const SetupHold *setup_hold);
+  // Find min/max/rise/fall delays for clk.
+  void findClkDelays(const Clock *clk,
+                     // Return values.
+                     ClkDelays &delays);
+
   // Update arrival times for all pins.
   // If necessary updateTiming propagates arrivals around latch
   // loops until the arrivals converge.
@@ -931,15 +943,14 @@ public:
   int endpointViolationCount(const MinMax *min_max);
   // Find the fanin vertices for a group path.
   // Vertices in the clock network are NOT included.
-  // Return value is owned by the caller.
-  PinSet *findGroupPathPins(const char *group_path_name);
+  PinSet findGroupPathPins(const char *group_path_name);
   // Find all required times after updateTiming().
   void findRequireds();
-  string *reportDelayCalc(Edge *edge,
-			  TimingArc *arc,
-			  const Corner *corner,
-			  const MinMax *min_max,
-			  int digits);
+  string reportDelayCalc(Edge *edge,
+                         TimingArc *arc,
+                         const Corner *corner,
+                         const MinMax *min_max,
+                         int digits);
   void writeSdc(const char *filename,
 		// Map hierarchical pins and instances to leaf pins and instances.
 		bool leaf,
@@ -1000,13 +1011,17 @@ public:
   Arrival vertexArrival(Vertex *vertex,
 			const RiseFall *rf,
 			const ClockEdge *clk_edge,
-			const PathAnalysisPt *path_ap);
+			const PathAnalysisPt *path_ap,
+                        const MinMax *min_max);
   // Min/max across all clock tags.
   Arrival vertexArrival(Vertex *vertex,
 			const RiseFall *rf,
 			const PathAnalysisPt *path_ap);
   Arrival vertexArrival(Vertex *vertex,
                         const MinMax *min_max);
+  Arrival pinArrival(const Pin *pin,
+                     const RiseFall *rf,
+                     const MinMax *min_max);
   Required vertexRequired(Vertex *vertex,
 			  const MinMax *min_max);
   Required vertexRequired(Vertex *vertex,
@@ -1174,28 +1189,31 @@ public:
 			  Net *net);
   // disconnect_net
   virtual void disconnectPin(Pin *pin);
+  virtual void makePortPin(const char *port_name,
+                           const char *direction);
   // Notify STA of network change.
   void networkChanged();
-  void deleteLeafInstanceBefore(Instance *inst);
-  void deleteInstancePinsBefore(Instance *inst);
+  void deleteLeafInstanceBefore(const Instance *inst);
+  void deleteInstancePinsBefore(const Instance *inst);
 
   // Network edit before/after methods.
-  void makeInstanceAfter(Instance *inst);
+  void makeInstanceAfter(const Instance *inst);
   // Replace the instance cell with to_cell.
   // equivCells(from_cell, to_cell) must be true.
-  virtual void replaceEquivCellBefore(Instance *inst,
-				      LibertyCell *to_cell);
-  virtual void replaceEquivCellAfter(Instance *inst);
+  virtual void replaceEquivCellBefore(const Instance *inst,
+				      const LibertyCell *to_cell);
+  virtual void replaceEquivCellAfter(const Instance *inst);
   // Replace the instance cell with to_cell.
   // equivCellPorts(from_cell, to_cell) must be true.
-  virtual void replaceCellBefore(Instance *inst,
-				 LibertyCell *to_cell);
-  virtual void replaceCellAfter(Instance *inst);
-  virtual void connectPinAfter(Pin *pin);
-  virtual void disconnectPinBefore(Pin *pin);
-  virtual void deleteNetBefore(Net *net);
-  virtual void deleteInstanceBefore(Instance *inst);
-  virtual void deletePinBefore(Pin *pin);
+  virtual void replaceCellBefore(const Instance *inst,
+				 const LibertyCell *to_cell);
+  virtual void replaceCellAfter(const Instance *inst);
+  virtual void makePortPinAfter(Pin *pin);
+  virtual void connectPinAfter(const Pin *pin);
+  virtual void disconnectPinBefore(const Pin *pin);
+  virtual void deleteNetBefore(const Net *net);
+  virtual void deleteInstanceBefore(const Instance *inst);
+  virtual void deletePinBefore(const Pin *pin);
 
   ////////////////////////////////////////////////////////////////
 
@@ -1241,18 +1259,18 @@ public:
 		     int level);
 
   // Delays and arrivals downsteam from inst are invalid.
-  void delaysInvalidFrom(Instance *inst);
+  void delaysInvalidFrom(const Instance *inst);
   // Delays and arrivals downsteam from pin are invalid.
-  void delaysInvalidFrom(Pin *pin);
+  void delaysInvalidFrom(const Pin *pin);
   void delaysInvalidFrom(Vertex *vertex);
   // Delays to driving pins of net (fanin) are invalid.
   // Arrivals downsteam from net are invalid.
-  void delaysInvalidFromFanin(Net *net);
-  void delaysInvalidFromFanin(Pin *pin);
+  void delaysInvalidFromFanin(const Net *net);
+  void delaysInvalidFromFanin(const Pin *pin);
   void delaysInvalidFromFanin(Vertex *vertex);
-  void replaceCellPinInvalidate(LibertyPort *from_port,
+  void replaceCellPinInvalidate(const LibertyPort *from_port,
 				Vertex *vertex,
-				LibertyCell *to_cell);
+				const LibertyCell *to_cell);
 
   // Power API.
   Power *power() { return power_; }
@@ -1262,12 +1280,11 @@ public:
 	     PowerResult &total,
 	     PowerResult &sequential,
   	     PowerResult &combinational,
+  	     PowerResult &clock,
 	     PowerResult &macro,
 	     PowerResult &pad);
-  void power(const Instance *inst,
-	     const Corner *corner,
-	     // Return values.
-	     PowerResult &result);
+  PowerResult power(const Instance *inst,
+                    const Corner *corner);
   PwrActivity findClkedActivity(const Pin *pin);
 
   void writeTimingModel(const char *lib_name,
@@ -1321,18 +1338,18 @@ protected:
   virtual LibertyLibrary *readLibertyFile(const char *filename,
 					  bool infer_latches);
   void delayCalcPreamble();
-  void delaysInvalidFrom(Port *port);
-  void delaysInvalidFromFanin(Port *port);
+  void delaysInvalidFrom(const Port *port);
+  void delaysInvalidFromFanin(const Port *port);
   void deleteEdge(Edge *edge);
   void netParasiticCaps(Net *net,
 			const RiseFall *rf,
 			const MinMax *min_max,
 			float &pin_cap,
 			float &wire_cap) const;
-  Pin *findNetParasiticDrvrPin(Net *net) const;
+  const Pin *findNetParasiticDrvrPin(const Net *net) const;
   void exprConstantPins(FuncExpr *expr,
-			Instance *inst,
-			PinSet *pins);
+			const Instance *inst,
+			PinSet &pins);
   Slack vertexSlack1(Vertex *vertex,
 		     const RiseFall *rf,
 		     const ClockEdge *clk_edge,
@@ -1359,7 +1376,7 @@ protected:
 		     bool startpoints_only,
 		     int inst_levels,
 		     int pin_levels,
-		     PinSet *fanin,
+		     PinSet &fanin,
 		     SearchPred &pred);
   void findFaninPins(Vertex *to,
 		     bool flat,
@@ -1374,7 +1391,7 @@ protected:
 		      bool endpoints_only,
 		      int inst_levels,
 		      int pin_levels,
-		      PinSet *fanout,
+		      PinSet &fanout,
 		      SearchPred &pred);
   void findFanoutPins(Vertex *from,
 		      bool flat,

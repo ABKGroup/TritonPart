@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ void
 PathExpanded::expandGenclk(PathRef *clk_path)
 {
   if (!clk_path->isNull()) {
-    Clock *src_clk = clk_path->clock(sta_);
+    const Clock *src_clk = clk_path->clock(sta_);
     if (src_clk && src_clk->isGenerated()) {
       PathVertex src_path;
       sta_->search()->genclks()->srcPath(clk_path, src_path);

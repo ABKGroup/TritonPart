@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #include "StringUtil.hh"
 #include "UnitDelayCalc.hh"
 #include "LumpedCapDelayCalc.hh"
-#include "SimpleRCDelayCalc.hh"
+#include "SlewDegradeDelayCalc.hh"
 #include "DmpDelayCalc.hh"
 #include "ArnoldiDelayCalc.hh"
 
@@ -35,7 +35,7 @@ registerDelayCalcs()
 {
   registerDelayCalc("unit", makeUnitDelayCalc);
   registerDelayCalc("lumped_cap", makeLumpedCapDelayCalc);
-  registerDelayCalc("simple_rc", makeSimpleRCDelayCalc);
+  registerDelayCalc("slew_degrade", makeSlewDegradeDelayCalc);
   registerDelayCalc("dmp_ceff_elmore", makeDmpCeffElmoreDelayCalc);
   registerDelayCalc("dmp_ceff_two_pole", makeDmpCeffTwoPoleDelayCalc);
   registerDelayCalc("arnoldi", makeArnoldiDelayCalc);
@@ -74,16 +74,13 @@ isDelayCalcName(const char *name)
   return delay_calcs->hasKey(name);
 }
 
-StringSeq *
+StringSeq
 delayCalcNames()
 {
-  StringSeq *names = new StringSeq;
-  DelayCalcMap::Iterator dcalc_iter(delay_calcs);
-  while (dcalc_iter.hasNext()) {
-    MakeArcDelayCalc maker;
-    const char *name;
-    dcalc_iter.next(name, maker);
-    names->push_back(name);
+  StringSeq names;
+  for (auto name_dcalc : *delay_calcs) {
+    const char *name = name_dcalc.first;
+    names.push_back(name);
   }
   return names;
 }

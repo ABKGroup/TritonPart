@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,8 +24,6 @@
 #include "RiseFallMinMax.hh"
 
 namespace sta {
-
-class PinPathNameLess;
 
 class DataCheck
 {
@@ -65,12 +63,12 @@ private:
 class DataCheckLess
 {
 public:
-  explicit DataCheckLess(const Network *network);
+  DataCheckLess(const Network *network);
   bool operator()(const DataCheck *check1,
 		  const DataCheck *check2) const;
 
 private:
-  PinPathNameLess pin_less_;
+  const Network *network_;
 };
 
 } // namespace

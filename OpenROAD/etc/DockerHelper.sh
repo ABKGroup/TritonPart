@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -20,8 +20,7 @@ usage: $0 [CMD] [OPTIONS]
   OPTIONS:
   -compiler=COMPILER_NAME       Choose between gcc (default) and clang. Valid
                                   only if the target is 'builder'.
-                                  
-  -os=OS_NAME                   Choose beween centos7 (default), ubuntu20, ubuntu22, rhel, opensuse, debian10 and debian11.
+  -os=OS_NAME                   Choose beween centos7 (default), ubuntu20.04, ubuntu22.04, rhel, opensuse, debian10 and debian11.
   -target=TARGET                Choose target fo the Docker image:
                                   'dev': os + packages to compile app
                                   'builder': os + packages to compile app +
@@ -53,10 +52,10 @@ _setup() {
         "centos7")
             osBaseImage="centos:centos7"
             ;;
-        "ubuntu20")
+        "ubuntu20.04")
             osBaseImage="ubuntu:20.04"
             ;;
-        "ubuntu22")
+        "ubuntu22.04")
             osBaseImage="ubuntu:22.04"
             ;;
         "opensuse")
@@ -96,10 +95,15 @@ _setup() {
         "dev" )
             fromImage="${FROM_IMAGE_OVERRIDE:-$osBaseImage}"
             context="etc"
+            buildArgs=""
             if [[ "${isLocal}" == "yes" ]]; then
-                buildArgs="--build-arg INSTALLER_ARGS=-prefix=${LOCAL_PATH}"
-            else
-                buildArgs=""
+                buildArgs="-prefix=${LOCAL_PATH}"
+            fi
+            if [[ "${equivalenceDeps}" == "yes" ]]; then
+                buildArgs="${buildArgs} -eqy"
+            fi
+            if [[ "${buildArgs}" != "" ]]; then
+                buildArgs="--build-arg INSTALLER_ARGS='${buildArgs}'"
             fi
             ;;
         "binary" )
@@ -137,7 +141,7 @@ _test() {
 
 _create() {
     echo "Create docker image ${imagePath} using ${file}"
-    docker build --file "${file}" --tag "${imagePath}" ${buildArgs} "${context}"
+    eval docker build --file "${file}" --tag "${imagePath}" ${buildArgs} "${context}"
 }
 
 _push() {
@@ -148,81 +152,37 @@ _push() {
             if [[ $REPLY =~ ^[Yy]$  ]]; then
                 mkdir -p build
 
+                OS_LIST="centos7 ubuntu20.04 ubuntu22.04"
                 # create image with sha and latest tag for all os
-                ./etc/DockerHelper.sh create -target=dev \
-                    2>&1 | tee build/create-centos-latest.log
-                ./etc/DockerHelper.sh create -target=dev -sha \
-                    2>&1 | tee build/create-centos-${commitSha}.log
-                ./etc/DockerHelper.sh create -target=dev -os=ubuntu20 \
-                    2>&1 | tee build/create-ubuntu20-latest.log
-                ./etc/DockerHelper.sh create -target=dev -os=ubuntu20 -sha \
-                    2>&1 | tee build/create-ubuntu20-${commitSha}.log
-                ./etc/DockerHelper.sh create -target=dev -os=ubuntu22 \
-                    2>&1 | tee build/create-ubuntu22-latest.log
-                ./etc/DockerHelper.sh create -target=dev -os=ubuntu22 -sha \
-                    2>&1 | tee build/create-ubuntu22-${commitSha}.log
-                ./etc/DockerHelper.sh create -target=dev -os=opensuse \
-                    2>&1 | tee build/create-opensuse-latest.log
-                ./etc/DockerHelper.sh create -target=dev -os=opensuse -sha \
-                    2>&1 | tee build/create-opensuse-${commitSha}.log
-                ./etc/DockerHelper.sh create -target=dev -os=debian10 \
-                    2>&1 | tee build/create-debian10-latest.log
-                ./etc/DockerHelper.sh create -target=dev -os=debian10 -sha \
-                    2>&1 | tee build/create-debian10-${commitSha}.log
-                ./etc/DockerHelper.sh create -target=dev -os=debian11 \
-                    2>&1 | tee build/create-debian11-latest.log
-                ./etc/DockerHelper.sh create -target=dev -os=debian11 -sha \
-                    2>&1 | tee build/create-debian11-${commitSha}.log
-                ./etc/DockerHelper.sh create -target=dev -os=rhel \
-                    2>&1 | tee build/create-rhel-latest.log
-                ./etc/DockerHelper.sh create -target=dev -os=rhel -sha \
-                    2>&1 | tee build/create-rhel-${commitSha}.log
+                for os in ${OS_LIST}; do
+                    ./etc/DockerHelper.sh create -target=dev \
+                        2>&1 | tee build/create-${os}-latest.log &
+                done
+                wait
+
+                for os in ${OS_LIST}; do
+                    ./etc/DockerHelper.sh create -target=dev -sha \
+                        2>&1 | tee build/create-${os}-${commitSha}.log &
+                done
+                wait
 
                 # test image with sha and latest tag for all os and compiler
-                ./etc/DockerHelper.sh test -target=builder \
-                    2>&1 | tee build/test-centos-gcc-latest.log
-                ./etc/DockerHelper.sh test -target=builder -compiler=clang \
-                    2>&1 | tee build/test-centos-clang-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=ubuntu20 \
-                    2>&1 | tee build/test-ubuntu20-gcc-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=ubuntu20 -compiler=clang \
-                    2>&1 | tee build/test-ubuntu20-clang-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=ubuntu22 \
-                    2>&1 | tee build/test-ubuntu22-gcc-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=ubuntu22 -compiler=clang \
-                    2>&1 | tee build/test-ubuntu22-clang-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=opensuse \
-                    2>&1 | tee build/test-opensuse-gcc-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=opensuse -compiler=clang \
-                    2>&1 | tee build/test-opensuse-clang-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=debian10 \
-                    2>&1 | tee build/test-debian10-gcc-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=debian10 -compiler=clang \
-                    2>&1 | tee build/test-debian10-clang-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=debian11 \
-                    2>&1 | tee build/test-debian11-gcc-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=debian11 -compiler=clang \
-                    2>&1 | tee build/test-debian11-clang-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=rhel \
-                    2>&1 | tee build/test-rhel-gcc-latest.log
-                ./etc/DockerHelper.sh test -target=builder -os=rhel -compiler=clang \
-                    2>&1 | tee build/test-rhel-clang-latest.log
+                for os in ${OS_LIST}; do
+                    ./etc/DockerHelper.sh test -target=builder -sha \
+                        2>&1 | tee build/test-${os}-gcc-latest.log &
+                done
+                wait
 
-                echo [DRY-RUN] docker push openroad/centos7-dev:latest
-                echo [DRY-RUN] docker push openroad/centos7-dev:${commitSha}
-                echo [DRY-RUN] docker push openroad/ubuntu20-dev:latest
-                echo [DRY-RUN] docker push openroad/ubuntu20-dev:${commitSha}
-                echo [DRY-RUN] docker push openroad/ubuntu22-dev:latest
-                echo [DRY-RUN] docker push openroad/ubuntu22-dev:${commitSha}                
-                echo [DRY-RUN] docker push openroad/opensuse-dev:latest
-                echo [DRY-RUN] docker push openroad/opensuse-dev:${commitSha}    
-                echo [DRY-RUN] docker push openroad/ubuntu22-dev:${commitSha}
-                echo [DRY-RUN] docker push openroad/debian10-dev:latest
-                echo [DRY-RUN] docker push openroad/debian10-dev:${commitSha}
-                echo [DRY-RUN] docker push openroad/debian11-dev:latest
-                echo [DRY-RUN] docker push openroad/debian11-dev:${commitSha}                 
-                echo [DRY-RUN] docker push openroad/rhel-dev:latest
-                echo [DRY-RUN] docker push openroad/rhel-dev:${commitSha}
+                for os in ${OS_LIST}; do
+                    ./etc/DockerHelper.sh test -target=builder -sha -compiler=clang \
+                        2>&1 | tee build/test-${os}-clang-latest.log &
+                done
+                wait
+
+                for os in ${OS_LIST}; do
+                    echo [DRY-RUN] docker push openroad/${os}-dev:latest
+                    echo [DRY-RUN] docker push openroad/${os}-dev:${commitSha}
+                done
 
             else
                 echo "Will not push."
@@ -260,7 +220,18 @@ target="dev"
 compiler="gcc"
 useCommitSha="no"
 isLocal="no"
-numThreads="$(nproc)"
+equivalenceDeps="yes"
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  numThreads=$(nproc --all)
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+  numThreads=$(sysctl -n hw.ncpu)
+else
+  cat << EOF
+WARNING: Unsupported OSTYPE: cannot determine number of host CPUs"
+  Defaulting to 2 threads. Use --threads N to use N threads"
+EOF
+  numThreads=2
+fi
 LOCAL_PATH="/home/openroad-deps"
 
 while [ "$#" -gt 0 ]; do
@@ -285,6 +256,9 @@ while [ "$#" -gt 0 ]; do
             ;;
         -local )
             isLocal=yes
+            ;;
+        -no_eqy )
+            equivalenceDeps=no
             ;;
         -compiler | -os | -target )
             echo "${1} requires an argument" >&2

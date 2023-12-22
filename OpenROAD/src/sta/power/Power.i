@@ -3,7 +3,7 @@
 %{
 
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,59 +23,50 @@
 #include "power/VcdReader.hh"
 #include "power/ReadVcdActivities.hh"
 
-namespace sta {
-
-typedef FloatSeq TmpFloatSeq;
-
-} // namespace
-
 using namespace sta;
 
 %}
 
-%typemap(out) TmpFloatSeq* {
-  FloatSeq *floats = $1;
-  Tcl_Obj *list = Tcl_NewListObj(0, nullptr);
-  if (floats) {
-    for (unsigned i = 0; i < floats->size(); i++) {
-      Tcl_Obj *obj = Tcl_NewDoubleObj((*floats)[i]);
-      Tcl_ListObjAppendElement(interp, list, obj);
-    }
-    delete floats;
-  }
-  Tcl_SetObjResult(interp, list);
-}
-
 %inline %{
 
-TmpFloatSeq *
+static void
+pushPowerResultFloats(PowerResult &power,
+		      FloatSeq &powers)
+{
+  powers.push_back(power.internal());
+  powers.push_back(power.switching());
+  powers.push_back(power.leakage());
+  powers.push_back(power.total());
+}
+
+FloatSeq
 design_power(const Corner *corner)
 {
   cmdLinkedNetwork();
-  PowerResult total, sequential, combinational, macro, pad;
-  Sta::sta()->power(corner, total, sequential, combinational, macro, pad);
-  FloatSeq *floats = new FloatSeq;
-  pushPowerResultFloats(total, floats);
-  pushPowerResultFloats(sequential, floats);
-  pushPowerResultFloats(combinational, floats);
-  pushPowerResultFloats(macro, floats);
-  pushPowerResultFloats(pad, floats);
-  return floats;
+  PowerResult total, sequential, combinational, clock, macro, pad;
+  Sta::sta()->power(corner, total, sequential, combinational, clock, macro, pad);
+  FloatSeq powers;
+  pushPowerResultFloats(total, powers);
+  pushPowerResultFloats(sequential, powers);
+  pushPowerResultFloats(combinational, powers);
+  pushPowerResultFloats(clock, powers);
+  pushPowerResultFloats(macro, powers);
+  pushPowerResultFloats(pad, powers);
+  return powers;
 }
 
-TmpFloatSeq *
+FloatSeq
 instance_power(Instance *inst,
 	       const Corner *corner)
 {
   cmdLinkedNetwork();
-  PowerResult power;
-  Sta::sta()->power(inst, corner, power);
-  FloatSeq *floats = new FloatSeq;
-  floats->push_back(power.internal());
-  floats->push_back(power.switching());
-  floats->push_back(power.leakage());
-  floats->push_back(power.total());
-  return floats;
+  PowerResult power = Sta::sta()->power(inst, corner);
+  FloatSeq powers;
+  powers.push_back(power.internal());
+  powers.push_back(power.switching());
+  powers.push_back(power.leakage());
+  powers.push_back(power.total());
+  return powers;
 }
 
 void

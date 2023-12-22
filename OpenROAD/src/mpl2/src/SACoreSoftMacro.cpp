@@ -33,9 +33,11 @@
 
 #include "SACoreSoftMacro.h"
 
+#include "Mpl2Observer.h"
 #include "utl/Logger.h"
 
 namespace mpl2 {
+using utl::MPL;
 
 //////////////////////////////////////////////////////////////////
 // Class SACoreSoftMacro
@@ -69,7 +71,7 @@ SACoreSoftMacro::SACoreSoftMacro(
     int k,
     int c,
     unsigned seed,
-    Graphics* graphics,
+    Mpl2Observer* graphics,
     utl::Logger* logger)
     : SimulatedAnnealingCore<SoftMacro>(outline_width,
                                         outline_height,
@@ -129,6 +131,12 @@ float SACoreSoftMacro::getNotchPenalty() const
   return notch_penalty_;
 }
 
+float SACoreSoftMacro::getAreaPenalty() const
+{
+  const float outline_area = outline_width_ * outline_height_;
+  return (width_ * height_) / outline_area;
+}
+
 float SACoreSoftMacro::getNormNotchPenalty() const
 {
   return norm_notch_penalty_;
@@ -139,7 +147,7 @@ float SACoreSoftMacro::calNormCost() const
 {
   float cost = 0.0;  // Initialize cost
   if (norm_area_penalty_ > 0.0) {
-    cost += area_weight_ * (width_ * height_) / norm_area_penalty_;
+    cost += area_weight_ * getAreaPenalty();
   }
   if (norm_outline_penalty_ > 0.0) {
     cost += outline_weight_ * outline_penalty_ / norm_outline_penalty_;
@@ -175,11 +183,15 @@ void SACoreSoftMacro::calPenalty()
   calBoundaryPenalty();
   calMacroBlockagePenalty();
   calNotchPenalty();
+  if (graphics_) {
+    graphics_->setAreaPenalty(getAreaPenalty());
+    graphics_->penaltyCalculated(calNormCost());
+  }
 }
 
 void SACoreSoftMacro::perturb()
 {
-  if (macros_.size() == 0) {
+  if (macros_.empty()) {
     return;
   }
 
@@ -229,7 +241,7 @@ void SACoreSoftMacro::perturb()
 
 void SACoreSoftMacro::restore()
 {
-  if (macros_.size() == 0) {
+  if (macros_.empty()) {
     return;
   }
 
@@ -275,7 +287,8 @@ void SACoreSoftMacro::initialize()
     // store current penalties
     width_list.push_back(width_);
     height_list.push_back(height_);
-    area_penalty_list.push_back(width_ * height_);
+    area_penalty_list.push_back(width_ * height_ / outline_width_
+                                / outline_height_);
     outline_penalty_list.push_back(outline_penalty_);
     wirelength_list.push_back(wirelength_);
     guidance_penalty_list.push_back(guidance_penalty_);
@@ -292,8 +305,41 @@ void SACoreSoftMacro::initialize()
   norm_fence_penalty_ = calAverage(fence_penalty_list);
   norm_boundary_penalty_ = calAverage(boundary_penalty_list);
   norm_macro_blockage_penalty_ = calAverage(macro_blockage_penalty_list);
-  // norm_notch_penalty_    = calAverage(notch_penalty_list);
-  norm_notch_penalty_ = outline_width_ * outline_height_;
+  norm_notch_penalty_ = calAverage(notch_penalty_list);
+
+  // Reset penalites if lower than threshold
+
+  if (norm_area_penalty_ <= 1e-4) {
+    norm_area_penalty_ = 1.0;
+  }
+
+  if (norm_outline_penalty_ <= 1e-4) {
+    norm_outline_penalty_ = 1.0;
+  }
+
+  if (norm_wirelength_ <= 1e-4) {
+    norm_wirelength_ = 1.0;
+  }
+
+  if (norm_guidance_penalty_ <= 1e-4) {
+    norm_guidance_penalty_ = 1.0;
+  }
+
+  if (norm_fence_penalty_ <= 1e-4) {
+    norm_fence_penalty_ = 1.0;
+  }
+
+  if (norm_macro_blockage_penalty_ <= 1e-4) {
+    norm_macro_blockage_penalty_ = 1.0;
+  }
+
+  if (norm_boundary_penalty_ <= 1e-4) {
+    norm_boundary_penalty_ = 1.0;
+  }
+
+  if (norm_notch_penalty_ <= 1e-4) {
+    norm_notch_penalty_ = 1.0;
+  }
 
   // Calculate initial temperature
   std::vector<float> cost_list;
@@ -313,8 +359,13 @@ void SACoreSoftMacro::initialize()
   for (int i = 1; i < cost_list.size(); i++) {
     delta_cost += std::abs(cost_list[i] - cost_list[i - 1]);
   }
-  init_temperature_
-      = (-1.0) * (delta_cost / (cost_list.size() - 1)) / log(init_prob_);
+
+  if (cost_list.size() > 1 && delta_cost > 0.0) {
+    init_temperature_
+        = (-1.0) * (delta_cost / (cost_list.size() - 1)) / std::log(init_prob_);
+  } else {
+    init_temperature_ = 1.0;
+  }
 }
 
 // We only push hard macro clusters to boundaries
@@ -327,6 +378,14 @@ void SACoreSoftMacro::calBoundaryPenalty()
     return;
   }
 
+  int tot_num_macros = 0;
+  for (const auto& macro : macros_) {
+    tot_num_macros += macro.getNumMacro();
+  }
+  if (tot_num_macros <= 0) {
+    return;
+  }
+
   for (const auto& macro : macros_) {
     if (macro.getNumMacro() > 0) {
       const float lx = macro.getX();
@@ -335,16 +394,28 @@ void SACoreSoftMacro::calBoundaryPenalty()
       const float uy = ly + macro.getHeight();
       const float x_dist = std::min(lx, std::abs(outline_width_ - ux));
       const float y_dist = std::min(ly, std::abs(outline_height_ - uy));
-      boundary_penalty_
-          += std::pow(std::min(x_dist, y_dist) * macro.getNumMacro(), 2);
+      boundary_penalty_ += std::min(x_dist, y_dist) * macro.getNumMacro();
     }
+  }
+  // normalization
+  boundary_penalty_ = boundary_penalty_ / tot_num_macros;
+  if (graphics_) {
+    graphics_->setBoundaryPenalty(boundary_penalty_);
   }
 }
 
 void SACoreSoftMacro::calMacroBlockagePenalty()
 {
   macro_blockage_penalty_ = 0.0;
-  if (blockages_.size() == 0) {
+  if (blockages_.empty() || macro_blockage_weight_ <= 0.0) {
+    return;
+  }
+
+  int tot_num_macros = 0;
+  for (const auto& macro : macros_) {
+    tot_num_macros += macro.getNumMacro();
+  }
+  if (tot_num_macros <= 0) {
     return;
   }
 
@@ -359,15 +430,25 @@ void SACoreSoftMacro::calMacroBlockagePenalty()
         const float region_ly = bbox.yMin();
         const float region_ux = bbox.xMax();
         const float region_uy = bbox.yMax();
-        if (ux > region_lx && lx < region_ux && uy > region_ly
-            && ly < region_uy) {
-          const float width = std::min(ux, region_ux) - std::max(lx, region_lx);
-          const float height
-              = std::min(uy, region_uy) - std::max(ly, region_ly);
-          macro_blockage_penalty_ += width * height;
-        }
+        // check each dimension seperately
+        // center to center distance
+        const float width = ((ux - lx) + (region_ux - region_lx)) / 2.0;
+        const float height = ((uy - ly) + (region_uy - region_ly)) / 2.0;
+        float x_dist
+            = std::abs((region_ux + region_lx) / 2.0 - (ux + lx) / 2.0);
+        float y_dist
+            = std::abs((region_uy + region_ly) / 2.0 - (uy + ly) / 2.0);
+        x_dist = std::max(width - x_dist, 0.0f) / width;
+        y_dist = std::max(height - y_dist, 0.0f) / height;
+        macro_blockage_penalty_
+            += (x_dist * x_dist + y_dist * y_dist) * macro.getNumMacro();
       }
     }
+  }
+  // normalization
+  macro_blockage_penalty_ = macro_blockage_penalty_ / tot_num_macros;
+  if (graphics_) {
+    graphics_->setMacroBlockagePenalty(macro_blockage_penalty_);
   }
 }
 
@@ -425,16 +506,17 @@ void SACoreSoftMacro::calNotchPenalty()
   }
   // If the floorplan cannot fit into the outline
   // We think the entire floorplan is a "huge" notch
-  if (width_ > outline_width_ || height_ > outline_height_) {
-    notch_penalty_ += outline_width_ * outline_height_;
+  if (width_ > outline_width_ * 1.001 || height_ > outline_height_ * 1.001) {
+    notch_penalty_ += outline_width_ * outline_height_
+                      / (outline_width_ * outline_height_);
     return;
   }
 
   pre_macros_ = macros_;
-  // Fill dead space
-  fillDeadSpace();
   // align macro clusters to reduce notches
   alignMacroClusters();
+  // Fill dead space
+  fillDeadSpace();
   // Create grids based on location of MixedCluster and HardMacroCluster
   std::set<float> x_point;
   std::set<float> y_point;
@@ -525,13 +607,12 @@ void SACoreSoftMacro::calNotchPenalty()
       }             // end y
       if (!flag) {  // extension done
         break;
-      } else {
-        x_start_new--;  // extend left
-        for (int j = y_start; j < y_end; j++) {
-          grids[j][i] = macro_id;
-        }
-      }  // end update
-    }    // end left
+      }
+      x_start_new--;  // extend left
+      for (int j = y_start; j < y_end; j++) {
+        grids[j][i] = macro_id;
+      }
+    }  // end left
     // check top second
     for (int j = y_end; j < num_y; j++) {
       bool flag = true;
@@ -543,13 +624,12 @@ void SACoreSoftMacro::calNotchPenalty()
       }             // end y
       if (!flag) {  // extension done
         break;
-      } else {
-        y_end_new++;  // extend top
-        for (int i = x_start; i < x_end; i++) {
-          grids[j][i] = macro_id;
-        }
-      }  // end update
-    }    // end top
+      }
+      y_end_new++;  // extend top
+      for (int i = x_start; i < x_end; i++) {
+        grids[j][i] = macro_id;
+      }
+    }  // end top
     // check right third
     for (int i = x_end; i < num_x; i++) {
       bool flag = true;
@@ -561,13 +641,12 @@ void SACoreSoftMacro::calNotchPenalty()
       }             // end y
       if (!flag) {  // extension done
         break;
-      } else {
-        x_end_new++;  // extend right
-        for (int j = y_start; j < y_end; j++) {
-          grids[j][i] = macro_id;
-        }
-      }  // end update
-    }    // end right
+      }
+      x_end_new++;  // extend right
+      for (int j = y_start; j < y_end; j++) {
+        grids[j][i] = macro_id;
+      }
+    }  // end right
     // check down second
     for (int j = y_start - 1; j >= 0; j--) {
       bool flag = true;
@@ -579,13 +658,12 @@ void SACoreSoftMacro::calNotchPenalty()
       }             // end y
       if (!flag) {  // extension done
         break;
-      } else {
-        y_start_new--;  // extend down
-        for (int i = x_start; i < x_end; i++) {
-          grids[j][i] = macro_id;
-        }
-      }  // end update
-    }    // end down
+      }
+      y_start_new--;  // extend down
+      for (int i = x_start; i < x_end; i++) {
+        grids[j][i] = macro_id;
+      }
+    }  // end down
     // check the notch area
     if ((x_grid[x_start] - x_grid[x_start_new]) <= notch_h_th_) {
       notch_penalty_ += (x_grid[x_start] - x_grid[x_start_new])
@@ -605,6 +683,11 @@ void SACoreSoftMacro::calNotchPenalty()
     }
   }
   macros_ = pre_macros_;
+  // normalization
+  notch_penalty_ = notch_penalty_ / (outline_width_ * outline_height_);
+  if (graphics_) {
+    graphics_->setNotchPenalty(notch_penalty_);
+  }
 }
 
 void SACoreSoftMacro::resize()
@@ -654,9 +737,8 @@ void SACoreSoftMacro::resize()
     }
     if (d_x2 <= lx) {
       return;
-    } else {
-      src_macro.setWidth(d_x2 - lx);
     }
+    src_macro.setWidth(d_x2 - lx);
   } else if (option <= 0.75) {
     // change the height of soft block to Tb = a.y2 - b.y1
     float a_y2 = outline_height_;
@@ -678,9 +760,8 @@ void SACoreSoftMacro::resize()
     }
     if (c_y2 <= ly) {
       return;
-    } else {
-      src_macro.setHeight(c_y2 - ly);
     }
+    src_macro.setHeight(c_y2 - ly);
   }
 }
 
@@ -693,24 +774,105 @@ void SACoreSoftMacro::shrink()
 
 void SACoreSoftMacro::printResults() const
 {
-  logger_->report("outline_penalty : {}",
-                  outline_penalty_ / norm_outline_penalty_);
-  logger_->report("wirelength : {}", wirelength_ / norm_wirelength_);
-  logger_->report("guidance_penalty : {}",
-                  guidance_penalty_ / norm_guidance_penalty_);
-  logger_->report("fence_penalty : {}", fence_penalty_ / norm_fence_penalty_);
-  logger_->report("boundary_penalty : {}",
-                  boundary_penalty_ / norm_boundary_penalty_);
-  logger_->report("macro_blockage_penalty : {}",
-                  macro_blockage_penalty_ / norm_macro_blockage_penalty_);
-  logger_->report("notch_penalty : {}", notch_penalty_ / norm_notch_penalty_);
+  debugPrint(
+      logger_, MPL, "hierarchical_macro_placement", 2, "SACoreSoftMacro");
+  debugPrint(logger_,
+             MPL,
+             "hierarchical_macro_placement",
+             2,
+             "number of macros : {}",
+             macros_.size());
+  for (const auto& macro : macros_) {
+    debugPrint(logger_,
+               MPL,
+               "hierarchical_macro_placement",
+               2,
+               "lx = {}, ly = {}, width = {}, height = {}, name = {}",
+               macro.getX(),
+               macro.getY(),
+               macro.getWidth(),
+               macro.getHeight(),
+               macro.getName());
+  }
+  debugPrint(logger_,
+             MPL,
+             "hierarchical_macro_placement",
+             2,
+             "width = {}, outline_width = {}",
+             width_,
+             outline_width_);
+  debugPrint(logger_,
+             MPL,
+             "hierarchical_macro_placement",
+             2,
+             "height = {}, outline_height = {}",
+             height_,
+             outline_height_);
+  debugPrint(
+      logger_,
+      MPL,
+      "hierarchical_macro_placement",
+      2,
+      "outline_weight = {}, outline_penalty  = {}, norm_outline_penalty = {}",
+      outline_weight_,
+      outline_penalty_,
+      norm_outline_penalty_);
+  debugPrint(logger_,
+             MPL,
+             "hierarchical_macro_placement",
+             2,
+             "wirelength_weight = {}, wirelength  = {}, norm_wirelength = {}",
+             wirelength_weight_,
+             wirelength_,
+             norm_wirelength_);
+  debugPrint(logger_,
+             MPL,
+             "hierarchical_macro_placement",
+             2,
+             "guidance_weight = {}, guidance_penalty  = {}, "
+             "norm_guidance_penalty = {}",
+             guidance_weight_,
+             guidance_penalty_,
+             norm_guidance_penalty_);
+  debugPrint(logger_,
+             MPL,
+             "hierarchical_macro_placement",
+             2,
+             "fence_weight = {}, fence_penalty  = {}, norm_fence_penalty = {}",
+             fence_weight_,
+             fence_penalty_,
+             norm_fence_penalty_);
+  debugPrint(logger_,
+             MPL,
+             "hierarchical_macro_placement",
+             2,
+             "macro_blockage_weight = {}, macro_blockage_penalty  = {}, "
+             "norm_macro_blockage_penalty = {}",
+             macro_blockage_weight_,
+             macro_blockage_penalty_,
+             norm_macro_blockage_penalty_);
+  debugPrint(logger_,
+             MPL,
+             "hierarchical_macro_placement",
+             2,
+             "notch_weight = {}, notch_penalty  = {}, norm_notch_penalty = {}",
+             notch_weight_,
+             notch_penalty_,
+             norm_notch_penalty_);
+  debugPrint(logger_,
+             MPL,
+             "hierarchical_macro_placement",
+             2,
+             "final cost = {}",
+             getNormCost());
 }
 
 // fill the dead space by adjust the size of MixedCluster
 void SACoreSoftMacro::fillDeadSpace()
 {
   // if the floorplan is invalid, do nothing
-  if (width_ > outline_width_ || height_ > outline_height_) {
+  if (width_ > outline_width_ * (1.0 + 0.001)
+      || height_ > outline_height_ * (1.0 + 0.001)) {
     return;
   }
 
@@ -808,13 +970,12 @@ void SACoreSoftMacro::fillDeadSpace()
         }             // end y
         if (!flag) {  // extension done
           break;
-        } else {
-          x_start_new--;  // extend left
-          for (int j = y_start; j < y_end; j++) {
-            grids[j][i] = macro_id;
-          }
-        }  // end update
-      }    // end left
+        }
+        x_start_new--;  // extend left
+        for (int j = y_start; j < y_end; j++) {
+          grids[j][i] = macro_id;
+        }
+      }  // end left
       x_start = x_start_new;
       // propagate top second
       for (int j = y_end; j < num_y; j++) {
@@ -827,13 +988,12 @@ void SACoreSoftMacro::fillDeadSpace()
         }             // end y
         if (!flag) {  // extension done
           break;
-        } else {
-          y_end_new++;  // extend top
-          for (int i = x_start; i < x_end; i++) {
-            grids[j][i] = macro_id;
-          }
-        }  // end update
-      }    // end top
+        }
+        y_end_new++;  // extend top
+        for (int i = x_start; i < x_end; i++) {
+          grids[j][i] = macro_id;
+        }
+      }  // end top
       y_end = y_end_new;
       // propagate right third
       for (int i = x_end; i < num_x; i++) {
@@ -846,13 +1006,12 @@ void SACoreSoftMacro::fillDeadSpace()
         }             // end y
         if (!flag) {  // extension done
           break;
-        } else {
-          x_end_new++;  // extend right
-          for (int j = y_start; j < y_end; j++) {
-            grids[j][i] = macro_id;
-          }
-        }  // end update
-      }    // end right
+        }
+        x_end_new++;  // extend right
+        for (int j = y_start; j < y_end; j++) {
+          grids[j][i] = macro_id;
+        }
+      }  // end right
       x_end = x_end_new;
       // propagate down second
       for (int j = y_start - 1; j >= 0; j--) {
@@ -865,13 +1024,12 @@ void SACoreSoftMacro::fillDeadSpace()
         }             // end y
         if (!flag) {  // extension done
           break;
-        } else {
-          y_start_new--;  // extend down
-          for (int i = x_start; i < x_end; i++) {
-            grids[j][i] = macro_id;
-          }
-        }  // end update
-      }    // end down
+        }
+        y_start_new--;  // extend down
+        for (int i = x_start; i < x_end; i++) {
+          grids[j][i] = macro_id;
+        }
+      }  // end down
       y_start = y_start_new;
       // update the location of cluster
       macros_[macro_id].setLocationF(x_grid[x_start], y_grid[y_start]);
@@ -902,6 +1060,12 @@ void SACoreSoftMacro::calSegmentLoc(float seg_start,
   if (end_id == -1) {
     end_id = grid.size() - 1;
   }
+}
+
+// The blockages here are only those that overlap with the annealing outline.
+void SACoreSoftMacro::addBlockages(const std::vector<Rect>& blockages)
+{
+  blockages_.insert(blockages_.end(), blockages.begin(), blockages.end());
 }
 
 }  // namespace mpl2

@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -183,7 +183,7 @@ EstimateParasitics::estimatePiElmoreBalanced(const Pin *drvr_pin,
 	  load_cap = sdc->pinCapacitance(load_pin, rf, op_cond,
 						 corner, min_max);
 	else if (network->isTopLevelPort(load_pin))
-	  load_cap = sdc->portExtCap(port, rf, min_max);
+	  load_cap = sdc->portExtCap(port, rf, corner, min_max);
 	else
 	  report->critical(597, "load pin not leaf or top level");
 	double cap = load_cap + cap_fanout;

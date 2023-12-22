@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -72,8 +72,8 @@ private:
 			// Return values.
 			Crpr &crpr,
 			Pin *&crpr_pin);
-  bool crprPossible(Clock *clk1,
-		    Clock *clk2);
+  bool crprPossible(const Clock *clk1,
+		    const Clock *clk2);
   void genClkSrcPaths(const PathVertex *path,
 		      PathVertexSeq &gclk_paths);
   void findCrpr(const PathVertex *src_clk_path,

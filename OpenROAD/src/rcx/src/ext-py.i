@@ -57,7 +57,8 @@ void extract(const char* ext_model_file,
              bool lef_res,
              bool no_merge_via_res);
 
-void write_spef(const char* file, const char* nets, int net_id);
+void write_spef(const char* file, const char* nets, int net_id,
+                bool write_coordinates);
 
 void adjust_rc(double res_factor,
                double cc_factor,
@@ -87,9 +88,7 @@ void bench_verilog(const char* file);
 void write_rules(const char* file,
                  const char* dir,
                  const char* name,
-                 int pattern,
-                 bool read_from_db,
-                 bool read_from_solver);
+                 int pattern);
 
 void read_spef(const char* file);
 

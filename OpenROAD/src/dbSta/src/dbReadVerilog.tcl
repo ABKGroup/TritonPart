@@ -48,32 +48,34 @@ proc link_design { {top_cell_name ""} } {
 
   if { $top_cell_name == "" } {
     if { $current_design_name == "" } {
-      utl::error ORD 1009 "missing top_cell_name argument and no current_design."
+      utl::error ORD 2009 "missing top_cell_name argument and no current_design."
       return 0
     } else {
       set top_cell_name $current_design_name
     }
   }
   if { ![ord::db_has_tech] } {
-    utl::error ORD 1010 "no technology has been read."
+    utl::error ORD 2010 "no technology has been read."
   }
   ord::link_design_db_cmd $top_cell_name
 }
 
 sta::define_cmd_args "write_verilog" {[-sort] [-include_pwr_gnd]\
-					[-remove_cells cells] filename}
+                                        [-remove_cells cells] filename}
 
+# Copied from sta/verilog/Verilog.tcl because we don't want sta::read_verilog
+# that is in the same file.
 proc write_verilog { args } {
   sta::parse_key_args "write_verilog" args keys {-remove_cells} \
     flags {-sort -include_pwr_gnd}
 
   set remove_cells {}
   if { [info exists keys(-remove_cells)] } {
-    set remove_cells [sta::parse_libcell_arg $keys(-remove_cells)]
+    set remove_cells [sta::parse_cell_arg $keys(-remove_cells)]
   }
   set sort [info exists flags(-sort)]
   set include_pwr_gnd [info exists flags(-include_pwr_gnd)]
   sta::check_argc_eq1 "write_verilog" $args
   set filename [file nativename [lindex $args 0]]
-  ord::write_verilog_cmd $filename $sort $include_pwr_gnd $remove_cells
+  sta::write_verilog_cmd $filename $sort $include_pwr_gnd $remove_cells
 }

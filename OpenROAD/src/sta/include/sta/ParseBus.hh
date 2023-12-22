@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,7 +16,11 @@
 
 #pragma once
 
+#include <string>
+
 namespace sta {
+
+using std::string;
 
 // Return true if name is a bus.
 bool
@@ -38,7 +42,8 @@ parseBusName(const char *name,
 	     const char brkt_right,
 	     char escape,
 	     // Return values.
-	     char *&bus_name,
+	     bool &is_bus,
+             string &bus_name,
 	     int &index);
 // Allow multiple different left/right bus brackets.
 void
@@ -47,35 +52,43 @@ parseBusName(const char *name,
 	     const char *brkts_right,
 	     char escape,
 	     // Return values.
-	     char *&bus_name,
+	     bool &is_bus,
+	     string &bus_name,
 	     int &index);
 
 // Parse a bus range, such as BUS[4:0].
 // bus_name is set to null if name is not a range.
 // Caller must delete returned bus_name string.
 void
-parseBusRange(const char *name,
-	      const char brkt_left,
-	      const char brkt_right,
-	      char escape,
-	      // Return values.
-	      char *&bus_name,
-	      int &from,
-	      int &to);
+parseBusName(const char *name,
+             const char brkt_left,
+             const char brkt_right,
+             char escape,
+             // Return values.
+             bool &is_bus,
+             bool &is_range,
+             string &bus_name,
+             int &from,
+             int &to,
+             bool &subscript_wild);
+
 // brkt_lefts and brkt_rights are corresponding strings of legal
 // bus brackets such as "[(<" and "])>".
 void
-parseBusRange(const char *name,
-	      const char *brkts_left,
-	      const char *brkts_right,
-	      const char escape,
-	      // Return values.
-	      char *&bus_name,
-	      int &from,
-	      int &to);
+parseBusName(const char *name,
+             const char *brkts_left,
+             const char *brkts_right,
+             const char escape,
+             // Return values.
+             bool &is_bus,
+             bool &is_range,
+             string &bus_name,
+             int &from,
+             int &to,
+             bool &subscript_wild);
 
 // Insert escapes before ch1 and ch2 in token.
-const char *
+string
 escapeChars(const char *token,
 	    const char ch1,
 	    const char ch2,

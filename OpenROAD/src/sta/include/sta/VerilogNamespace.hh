@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,21 +16,29 @@
 
 #pragma once
 
+#include <string>
+
 namespace sta {
 
-const char *
-staToVerilog(const char *sta_name,
-	     const char escape);
-const char *
-verilogToSta(const char *verilog_name);
-const char *
+using std::string;
+
+string
 instanceVerilogName(const char *sta_name,
 		    const char escape);
-const char *
+string
 netVerilogName(const char *sta_name,
 	       const char escape);
-const char *
+string
 portVerilogName(const char *sta_name,
 		const char escape);
+
+string
+moduleVerilogToSta(const char *sta_name);
+string
+instanceVerilogToSta(const char *sta_name);
+string
+netVerilogToSta(const char *sta_name);
+string
+portVerilogToSta(const char *sta_name);
 
 } // namespace

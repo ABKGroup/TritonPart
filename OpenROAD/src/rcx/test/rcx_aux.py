@@ -31,8 +31,8 @@ def extract_parasitics(*, ext_model_file=None,
                 no_merge_via_res)
 
 
-def write_spef(*, filename="", nets="", net_id=0):
-    rcx.write_spef(filename, nets, net_id)
+def write_spef(*, filename="", nets="", net_id=0, coordinates=False):
+    rcx.write_spef(filename, nets, net_id, coordinates)
 
 
 def bench_verilog(*, filename=""):
@@ -74,11 +74,8 @@ def write_rules(*,
                 filename="extRules",
                 dir="./",
                 name="TYP",
-                pattern=0,
-                read_from_db=False,
-                read_from_solver=False):
-    rcx.write_rules(filename, dir, name, pattern,
-                    read_from_db, read_from_solver)
+                pattern=0):
+    rcx.write_rules(filename, dir, name, pattern)
 
 
 def read_spef(*, filename):

@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -45,9 +45,9 @@
 
 namespace sta {
 
-using std::string;
 using std::ofstream;
 using std::ifstream;
+using std::max;
 
 typedef Map<string, StringVector*> CellSpicePortNames;
 typedef int Stage;
@@ -69,6 +69,7 @@ public:
 		 const char *subckt_filename,
 		 const char *lib_subckt_filename,
 		 const char *model_filename,
+                 StdStringSet *off_path_pin_names,
 		 const char *power_name,
 		 const char *gnd_name,
 		 const StaState *sta);
@@ -79,7 +80,7 @@ private:
   void writeHeader();
   void writeStageInstances();
   void writeInputSource();
-  void writeStepVoltSource(const Pin *pin,
+  void writeRampVoltSource(const Pin *pin,
 			   const RiseFall *rf,
 			   float slew,
 			   float time,
@@ -97,12 +98,19 @@ private:
 			       const Clock *clk,
 			       DcalcAPIndex dcalc_ap_index);
   void writeStageParasitics(Stage stage);
+  void writeStageParasiticNetwork(Pin *drvr_pin,
+                                  Parasitic *parasitic,
+                                  ParasiticAnalysisPt *parasitic_ap);
+  void writeStagePiElmore(Pin *drvr_pin,
+                          Parasitic *parasitic);
+  void writeNullParasitics(Pin *drvr_pin);
   void writeSubckts();
-  void findPathCellnames(// Return values.
-			 StringSet &path_cell_names);
+  StdStringSet findPathCellnames();
+  void findPathCellSubckts(StdStringSet &path_cell_names);
   void recordSpicePortNames(const char *cell_name,
 			    StringVector &tokens);
   float maxTime();
+  float pathMaxTime();
   const char *nodeName(ParasiticNode *node);
   void initNodeMap(const char *net_name);
   const char *spiceTrans(const RiseFall *rf);
@@ -135,6 +143,11 @@ private:
   void writeWaveformEdge(const RiseFall *rf,
 			 float time,
 			 float slew);
+  void writeWaveformVoltSource(const Pin *pin,
+                               DriverWaveform *drvr_waveform,
+                               const RiseFall *rf,
+                               float slew,
+                               int &volt_index);
   void writeClkedStepSource(const Pin *pin,
 			    const RiseFall *rf,
 			    const Clock *clk,
@@ -162,6 +175,9 @@ private:
 			  int &volt_index);
   float slewAxisMinValue(TimingArc *arc);
   float pgPortVoltage(LibertyPgPort *pg_port);
+  void writePrintStmt();
+  float railToRailSlew(float slew,
+                       const RiseFall *rf);
 
   // Stage "accessors".
   //
@@ -199,12 +215,14 @@ private:
   const char *stageLoadPinName(Stage stage);
   LibertyCell *stageLibertyCell(Stage stage);
   Instance *stageInstance(Stage stage);
+  StdStringSet stageOffPathPinNames(Stage stage);
 
   Path *path_;
   const char *spice_filename_;
   const char *subckt_filename_;
   const char *lib_subckt_filename_;
   const char *model_filename_;
+  StdStringSet *off_path_pin_names_;
   const char *power_name_;
   const char *gnd_name_;
 
@@ -260,13 +278,14 @@ writePathSpice(Path *path,
 	       const char *subckt_filename,
 	       const char *lib_subckt_filename,
 	       const char *model_filename,
-	       const char *power_name,
+               StdStringSet *off_path_pin_names,
+               const char *power_name,
 	       const char *gnd_name,
 	       StaState *sta)
 {
   WritePathSpice writer(path, spice_filename, subckt_filename,
 			lib_subckt_filename, model_filename,
-			power_name, gnd_name, sta);
+			off_path_pin_names, power_name, gnd_name, sta);
   writer.writeSpice();
 }
 
@@ -275,6 +294,7 @@ WritePathSpice::WritePathSpice(Path *path,
 			       const char *subckt_filename,
 			       const char *lib_subckt_filename,
 			       const char *model_filename,
+                               StdStringSet *off_path_pin_names,
 			       const char *power_name,
 			       const char *gnd_name,
 			       const StaState *sta) :
@@ -284,6 +304,7 @@ WritePathSpice::WritePathSpice(Path *path,
   subckt_filename_(subckt_filename),
   lib_subckt_filename_(lib_subckt_filename),
   model_filename_(model_filename),
+  off_path_pin_names_(off_path_pin_names),
   power_name_(power_name),
   gnd_name_(gnd_name),
   path_expanded_(sta),
@@ -321,6 +342,7 @@ WritePathSpice::writeSpice()
     // Find subckt port names as a side-effect of writeSubckts.
     writeSubckts();
     writeHeader();
+    writePrintStmt();
     writeStageInstances();
     writeMeasureStmts();
     writeInputSource();
@@ -330,6 +352,18 @@ WritePathSpice::writeSpice()
   }
   else
     throw FileNotWritable(spice_filename_);
+}
+
+// Use c++17 fs::path(filename).stem()
+static string
+filenameStem(const char *filename)
+{
+  string filename1 = filename;
+  const size_t last_slash_idx = filename1.find_last_of("\\/");
+  if (last_slash_idx != std::string::npos)
+    return filename1.substr(last_slash_idx + 1);
+  else
+    return filename1;
 }
 
 void
@@ -348,12 +382,28 @@ WritePathSpice::writeHeader()
   float temp = pvt->temperature();
   streamPrint(spice_stream_, ".temp %.1f\n", temp);
   streamPrint(spice_stream_, ".include \"%s\"\n", model_filename_);
-  streamPrint(spice_stream_, ".include \"%s\"\n", subckt_filename_);
+  string subckt_filename_stem = filenameStem(subckt_filename_);
+  streamPrint(spice_stream_, ".include \"%s\"\n", subckt_filename_stem.c_str());
 
   float max_time = maxTime();
-  float time_step = max_time / 1e+3;
+  float time_step = 1e-13;
   streamPrint(spice_stream_, ".tran %.3g %.3g\n\n",
 	      time_step, max_time);
+  streamPrint(spice_stream_, ".options nomod\n");
+}
+
+void
+WritePathSpice::writePrintStmt()
+{
+  streamPrint(spice_stream_, ".print tran");
+  for (Stage stage = stageFirst(); stage <= stageLast(); stage++) {
+    streamPrint(spice_stream_, " v(%s)", stageDrvrPinName(stage));
+    streamPrint(spice_stream_, " v(%s)", stageLoadPinName(stage));
+    StdStringSet off_path_names = stageOffPathPinNames(stage);
+    for (const string &off_path_name : off_path_names)
+      streamPrint(spice_stream_, " v(%s)", off_path_name.c_str());
+  }
+  streamPrint(spice_stream_, "\n\n");
 }
 
 float
@@ -361,23 +411,52 @@ WritePathSpice::maxTime()
 {
   Stage input_stage = stageFirst();
   PathRef *input_path = stageDrvrPath(input_stage);
-  const RiseFall *rf = input_path->transition(this);
-  TimingArc *next_arc = stageGateArc(input_stage + 1);
-  float input_slew = findSlew(input_path, rf, next_arc);
   if (input_path->isClock(this)) {
-    Clock *clk = input_path->clock(this);
+    const Clock *clk = input_path->clock(this);
     float period = clk->period();
     float first_edge_offset = period / 10;
     float max_time = period * clk_cycle_count_ + first_edge_offset;
     return max_time;
   }
-  else {
-    float end_slew = findSlew(path_);
-    float max_time = delayAsFloat(input_slew
-				  + path_->arrival(this)
-				  + end_slew * 2) * 1.5;
-    return max_time;
+  else
+    return pathMaxTime();
+}
+
+// Make sure run time is long enough to see side load transitions along the path.
+float
+WritePathSpice::pathMaxTime()
+{
+  float max_time = 0.0;
+  DcalcAPIndex dcalc_ap_index = path_->dcalcAnalysisPt(this)->index();
+  for (size_t i = 0; i < path_expanded_.size(); i++) {
+    PathRef *path = path_expanded_.path(i);
+    const RiseFall *rf = path->transition(this);
+    Vertex *vertex = path->vertex(this);
+    float path_max_slew = railToRailSlew(findSlew(vertex,rf,nullptr,dcalc_ap_index),rf);
+    if (vertex->isDriver(network_)) {
+      VertexOutEdgeIterator edge_iter(vertex, graph_);
+      while (edge_iter.hasNext()) {
+        Edge *edge = edge_iter.next();
+        Vertex *load = edge->to(graph_);
+        float load_slew = railToRailSlew(findSlew(load, rf, nullptr, dcalc_ap_index),rf);
+        if (load_slew > path_max_slew)
+          path_max_slew = load_slew;
+      }
+    }
+    float path_max_time = delayAsFloat(path->arrival(this)) + path_max_slew * 2.0;
+    if (path_max_time > max_time)
+      max_time = path_max_time;
   }
+  return max_time;
+}
+
+float
+WritePathSpice::railToRailSlew(float slew,
+                               const RiseFall *rf)
+{
+  float lower = default_library_->slewLowerThreshold(rf);
+  float upper = default_library_->slewUpperThreshold(rf);
+  return slew / (upper - lower);
 }
 
 void
@@ -396,13 +475,17 @@ WritePathSpice::writeStageInstances()
 		  stageDrvrPinName(stage),
 		  stageLoadPinName(stage),
 		  stage_cname);
-    else 
-      streamPrint(spice_stream_, "x%s %s %s %s %s\n",
+    else {
+      streamPrint(spice_stream_, "x%s %s %s %s",
 		  stage_cname,
 		  stageGateInputPinName(stage),
 		  stageDrvrPinName(stage),
-		  stageLoadPinName(stage),
-		  stage_cname);
+		  stageLoadPinName(stage));
+      StdStringSet off_path_names = stageOffPathPinNames(stage);
+      for (const string &off_path_name : off_path_names)
+        streamPrint(spice_stream_, " %s", off_path_name.c_str());
+      streamPrint(spice_stream_, " %s\n", stage_cname);
+    }
   }
   streamPrint(spice_stream_, "\n");
 }
@@ -459,15 +542,62 @@ WritePathSpice::writeInputWaveform()
   const RiseFall *rf = input_path->transition(this);
   TimingArc *next_arc = stageGateArc(input_stage + 1);
   float slew0 = findSlew(input_path, rf, next_arc);
-  // Arbitrary offset.
-  float time0 = slew0;
+
+  float threshold = default_library_->inputThreshold(rf);
+  float dt = railToRailSlew(slew0, rf);
+  float time0 = dt * threshold;
+
   int volt_index = 1;
   const Pin *drvr_pin = stageDrvrPin(input_stage);
-  writeStepVoltSource(drvr_pin, rf, slew0, time0, volt_index);
+  const Pin *load_pin = stageLoadPin(input_stage);
+  const LibertyPort *load_port = network_->libertyPort(load_pin);
+  DriverWaveform *drvr_waveform = nullptr;
+  if (load_port)
+    drvr_waveform = load_port->driverWaveform(rf);
+  if (drvr_waveform)
+    writeWaveformVoltSource(drvr_pin, drvr_waveform,
+                            rf, slew0, volt_index);
+  else
+    writeRampVoltSource(drvr_pin, rf, slew0, time0, volt_index);
 }
 
 void
-WritePathSpice::writeStepVoltSource(const Pin *pin,
+WritePathSpice::writeWaveformVoltSource(const Pin *pin,
+                                        DriverWaveform *drvr_waveform,
+                                        const RiseFall *rf,
+                                        float slew,
+                                        int &volt_index)
+{
+  float volt0, volt1, volt_factor;
+  if (rf == RiseFall::rise()) {
+    volt0 = gnd_voltage_;
+    volt1 = power_voltage_;
+    volt_factor = power_voltage_;
+  }
+  else {
+    volt0 = power_voltage_;
+    volt1 = gnd_voltage_;
+    volt_factor = -power_voltage_;
+  }
+  streamPrint(spice_stream_, "v%d %s 0 pwl(\n",
+	      volt_index,
+	      network_->pathName(pin));
+  streamPrint(spice_stream_, "+%.3e %.3e\n", 0.0, volt0);
+  Table1 waveform = drvr_waveform->waveform(slew);
+  const TableAxis *time_axis = waveform.axis1();
+  for (size_t time_index = 0; time_index <  time_axis->size(); time_index++) {
+    float time = time_axis->axisValue(time_index);
+    float wave_volt = waveform.value(time_index);
+    float volt = volt0 + wave_volt * volt_factor;
+    streamPrint(spice_stream_, "+%.3e %.3e\n", time, volt);
+  }
+  streamPrint(spice_stream_, "+%.3e %.3e\n", maxTime(), volt1);
+  streamPrint(spice_stream_, "+)\n");
+  volt_index++;
+}
+
+void
+WritePathSpice::writeRampVoltSource(const Pin *pin,
 				    const RiseFall *rf,
 				    float slew,
 				    float time,
@@ -498,8 +628,8 @@ WritePathSpice::writeClkWaveform()
   Stage input_stage = stageFirst();
   PathRef *input_path = stageDrvrPath(input_stage);
   TimingArc *next_arc = stageGateArc(input_stage + 1);
-  ClockEdge *clk_edge = input_path->clkEdge(this);
-  Clock *clk = clk_edge->clock();
+  const ClockEdge *clk_edge = input_path->clkEdge(this);
+  const Clock *clk = clk_edge->clock();
   float period = clk->period();
   float time_offset = clkWaveformTImeOffset(clk);
   RiseFall *rf0, *rf1;
@@ -575,19 +705,19 @@ WritePathSpice::slewAxisMinValue(TimingArc *arc)
   GateTableModel *gate_model = dynamic_cast<GateTableModel*>(arc->model());
   if (gate_model) {
     const TableModel *model = gate_model->delayModel();
-    TableAxisPtr axis1 = model->axis1();
+    const TableAxis *axis1 = model->axis1();
     TableAxisVariable var1 = axis1->variable();
     if (var1 == TableAxisVariable::input_transition_time
 	|| var1 == TableAxisVariable::input_net_transition)
       return axis1->axisValue(0);
 
-    TableAxisPtr axis2 = model->axis2();
+    const TableAxis *axis2 = model->axis2();
     TableAxisVariable var2 = axis2->variable();
     if (var2 == TableAxisVariable::input_transition_time
 	|| var2 == TableAxisVariable::input_net_transition)
       return axis2->axisValue(0);
 
-    TableAxisPtr axis3 = model->axis3();
+    const TableAxis *axis3 = model->axis3();
     TableAxisVariable var3 = axis3->variable();
     if (var3 == TableAxisVariable::input_transition_time
 	|| var3 == TableAxisVariable::input_net_transition)
@@ -612,12 +742,11 @@ WritePathSpice::writeWaveformEdge(const RiseFall *rf,
     volt1 = gnd_voltage_;
   }
   float threshold = default_library_->inputThreshold(rf);
-  float lower = default_library_->slewLowerThreshold(rf);
-  float upper = default_library_->slewUpperThreshold(rf);
-  float dt = slew / (upper - lower);
+  float dt = railToRailSlew(slew, rf);
   float time0 = time - dt * threshold;
   float time1 = time0 + dt;
-  streamPrint(spice_stream_, "+%.3e %.3e\n", time0, volt0);
+  if (time0 > 0.0)
+    streamPrint(spice_stream_, "+%.3e %.3e\n", time0, volt0);
   streamPrint(spice_stream_, "+%.3e %.3e\n", time1, volt1);
 }
 
@@ -764,11 +893,16 @@ WritePathSpice::writeGateStage(Stage stage)
   const char *drvr_pin_name = stageDrvrPinName(stage);
   const Pin *load_pin = stageLoadPin(stage);
   const char *load_pin_name = stageLoadPinName(stage);
-  streamPrint(spice_stream_, ".subckt stage%d %s %s %s\n",
+  streamPrint(spice_stream_, ".subckt stage%d %s %s %s",
 	      stage,
 	      input_pin_name,
 	      drvr_pin_name,
 	      load_pin_name);
+  StdStringSet off_path_names = stageOffPathPinNames(stage);
+  for (const string &off_path_name : off_path_names)
+    streamPrint(spice_stream_, " %s", off_path_name.c_str());
+  streamPrint(spice_stream_, "\n");
+
   // Driver subckt call.
   Instance *inst = stageInstance(stage);
   LibertyPort *input_port = stageGateInputPort(stage);
@@ -790,7 +924,7 @@ WritePathSpice::writeGateStage(Stage stage)
   port_values.clear();
   auto pin_iter = network_->connectedPinIterator(drvr_pin);
   while (pin_iter->hasNext()) {
-    Pin *pin = pin_iter->next();
+    const Pin *pin = pin_iter->next();
     if (pin != drvr_pin
 	&& pin != load_pin
 	&& network_->direction(pin)->isAnyInput()
@@ -928,7 +1062,7 @@ WritePathSpice::writeClkedStepSource(const Pin *pin,
   Vertex *vertex = graph_->pinLoadVertex(pin);
   float slew = findSlew(vertex, rf, nullptr, dcalc_ap_index);
   float time = clkWaveformTImeOffset(clk) + clk->period() / 2.0;
-  writeStepVoltSource(pin, rf, slew, time, volt_index);
+  writeRampVoltSource(pin, rf, slew, time, volt_index);
 }
 
 void
@@ -1209,60 +1343,77 @@ WritePathSpice::writeStageParasitics(Stage stage)
 {
   PathRef *drvr_path = stageDrvrPath(stage);
   Pin *drvr_pin = stageDrvrPin(stage);
+
+  Net *net = network_->net(drvr_pin);
+  const char *net_name = net ? network_->pathName(net) : network_->pathName(drvr_pin);
+  initNodeMap(net_name);
+  streamPrint(spice_stream_, "* Net %s\n", net_name);
+
   DcalcAnalysisPt *dcalc_ap = drvr_path->dcalcAnalysisPt(this);
   ParasiticAnalysisPt *parasitic_ap = dcalc_ap->parasiticAnalysisPt();
   Parasitic *parasitic = parasitics_->findParasiticNetwork(drvr_pin, parasitic_ap);
+  if (parasitic)
+    writeStageParasiticNetwork(drvr_pin, parasitic, parasitic_ap);
+  else {
+    const RiseFall *drvr_rf = drvr_path->transition(this);
+    parasitic = parasitics_->findPiElmore(drvr_pin, drvr_rf, parasitic_ap);
+    if (parasitic)
+      writeStagePiElmore(drvr_pin, parasitic);
+    else {
+      streamPrint(spice_stream_, "* No parasitics found for this net.\n");
+      writeNullParasitics(drvr_pin);
+    }
+  }
+}
+
+void
+WritePathSpice::writeStageParasiticNetwork(Pin *drvr_pin,
+                                           Parasitic *parasitic,
+                                           ParasiticAnalysisPt *parasitic_ap)
+{
   Set<const Pin*> reachable_pins;
   int res_index = 1;
   int cap_index = 1;
-  if (parasitic) {
-    Net *net = network_->net(drvr_pin);
-    const char *net_name = net ? network_->pathName(net) : network_->pathName(drvr_pin);
-    initNodeMap(net_name);
-    streamPrint(spice_stream_, "* Net %s\n", net_name);
 
-    // Sort devices for consistent regression results.
-    Vector<ParasiticDevice*> devices;
-    ParasiticDeviceIterator *device_iter1 = parasitics_->deviceIterator(parasitic);
-    while (device_iter1->hasNext()) {
-      ParasiticDevice *device = device_iter1->next();
-      devices.push_back(device);
+  // Sort devices for consistent regression results.
+  Vector<ParasiticDevice*> devices;
+  ParasiticDeviceIterator *device_iter1 = parasitics_->deviceIterator(parasitic);
+  while (device_iter1->hasNext()) {
+    ParasiticDevice *device = device_iter1->next();
+    devices.push_back(device);
+  }
+  delete device_iter1;
+
+  sort(devices, ParasiticDeviceLess(parasitics_));
+
+  for (ParasiticDevice *device : devices) {
+    float resistance = parasitics_->value(device, parasitic_ap);
+    if (parasitics_->isResistor(device)) {
+      ParasiticNode *node1 = parasitics_->node1(device);
+      ParasiticNode *node2 = parasitics_->node2(device);
+      streamPrint(spice_stream_, "R%d %s %s %.3e\n",
+                  res_index,
+                  nodeName(node1),
+                  nodeName(node2),
+                  resistance);
+      res_index++;
+
+      const Pin *pin1 = parasitics_->connectionPin(node1);
+      reachable_pins.insert(pin1);
+      const Pin *pin2 = parasitics_->connectionPin(node2);
+      reachable_pins.insert(pin2);
     }
-    delete device_iter1;
-
-    sort(devices, ParasiticDeviceLess(parasitics_));
-
-    for (ParasiticDevice *device : devices) {
-      float resistance = parasitics_->value(device, parasitic_ap);
-      if (parasitics_->isResistor(device)) {
-	ParasiticNode *node1 = parasitics_->node1(device);
-	ParasiticNode *node2 = parasitics_->node2(device);
-	streamPrint(spice_stream_, "R%d %s %s %.3e\n",
-		    res_index,
-		    nodeName(node1),
-		    nodeName(node2),
-		    resistance);
-	res_index++;
-
-	const Pin *pin1 = parasitics_->connectionPin(node1);
-	reachable_pins.insert(pin1);
-	const Pin *pin2 = parasitics_->connectionPin(node2);
-	reachable_pins.insert(pin2);
-      }
-      else if (parasitics_->isCouplingCap(device)) {
-	// Ground coupling caps for now.
-	ParasiticNode *node1 = 	parasitics_->node1(device);
-	float cap = parasitics_->value(device, parasitic_ap);
-	streamPrint(spice_stream_, "C%d %s 0 %.3e\n",
-		    cap_index,
-		    nodeName(node1),
-		    cap);
-	cap_index++;
-      }
+    else if (parasitics_->isCouplingCap(device)) {
+      // Ground coupling caps for now.
+      ParasiticNode *node1 = 	parasitics_->node1(device);
+      float cap = parasitics_->value(device, parasitic_ap);
+      streamPrint(spice_stream_, "C%d %s 0 %.3e\n",
+                  cap_index,
+                  nodeName(node1),
+                  cap);
+      cap_index++;
     }
   }
-  else
-    streamPrint(spice_stream_, "* No parasitics found for this net.\n");
 
   // Add resistors from drvr to load for missing parasitic connections.
   auto pin_iter = network_->connectedPinIterator(drvr_pin);
@@ -1282,30 +1433,107 @@ WritePathSpice::writeStageParasitics(Stage stage)
   }
   delete pin_iter;
 
-  if (parasitic) {
-    // Sort node capacitors for consistent regression results.
-    Vector<ParasiticNode*> nodes;
-    ParasiticNodeIterator *node_iter = parasitics_->nodeIterator(parasitic);
-    while (node_iter->hasNext()) {
-      ParasiticNode *node = node_iter->next();
-      nodes.push_back(node);
-    }
-
-    sort(nodes, ParasiticNodeLess(parasitics_));
-
-    for (ParasiticNode *node : nodes) {
-      float cap = parasitics_->nodeGndCap(node, parasitic_ap);
-      // Spice has a cow over zero value caps.
-      if (cap > 0.0) {
-	streamPrint(spice_stream_, "C%d %s 0 %.3e\n",
-		    cap_index,
-		    nodeName(node),
-		    cap);
-	cap_index++;
-      }
-    }
-    delete node_iter;
+  // Sort node capacitors for consistent regression results.
+  Vector<ParasiticNode*> nodes;
+  ParasiticNodeIterator *node_iter = parasitics_->nodeIterator(parasitic);
+  while (node_iter->hasNext()) {
+    ParasiticNode *node = node_iter->next();
+    nodes.push_back(node);
   }
+
+  sort(nodes, ParasiticNodeLess(parasitics_));
+
+  for (ParasiticNode *node : nodes) {
+    float cap = parasitics_->nodeGndCap(node, parasitic_ap);
+    // Spice has a cow over zero value caps.
+    if (cap > 0.0) {
+      streamPrint(spice_stream_, "C%d %s 0 %.3e\n",
+                  cap_index,
+                  nodeName(node),
+                  cap);
+      cap_index++;
+    }
+  }
+  delete node_iter;
+}
+
+void
+WritePathSpice::writeStagePiElmore(Pin *drvr_pin,
+                                   Parasitic *parasitic)
+{
+  float c2, rpi, c1;
+  parasitics_->piModel(parasitic, c2, rpi, c1);
+  const char *c1_node = "n1";
+  streamPrint(spice_stream_, "RPI %s %s %.3e\n",
+              network_->pathName(drvr_pin),
+              c1_node,
+              rpi);
+  if (c2 > 0.0)
+    streamPrint(spice_stream_, "C2 %s 0 %.3e\n",
+                network_->pathName(drvr_pin),
+                c2);
+  if (c1 > 0.0)
+    streamPrint(spice_stream_, "C1 %s 0 %.3e\n",
+                c1_node,
+                c1);
+  
+  int load_index = 3;
+  auto pin_iter = network_->connectedPinIterator(drvr_pin);
+  while (pin_iter->hasNext()) {
+    const Pin *load_pin = pin_iter->next();
+    if (load_pin != drvr_pin
+	&& network_->isLoad(load_pin)
+	&& !network_->isHierarchical(load_pin)) {
+      float elmore;
+      bool exists;
+      parasitics_->findElmore(parasitic, load_pin, elmore, exists);
+      if (exists) {
+        streamPrint(spice_stream_, "E%d el%d 0 %s 0 1.0\n",
+                    load_index,
+                    load_index,
+                    network_->pathName(drvr_pin));
+        streamPrint(spice_stream_, "R%d el%d %s 1.0\n",
+                    load_index,
+                    load_index,
+                    network_->pathName(load_pin));
+        streamPrint(spice_stream_, "C%d %s 0 %.3e\n",
+                    load_index,
+                    network_->pathName(load_pin),
+                    elmore);
+      }
+      else
+        // Add resistor from drvr to load for missing elmore.
+        streamPrint(spice_stream_, "R%d %s %s %.3e\n",
+                    load_index,
+                    network_->pathName(drvr_pin),
+                    network_->pathName(load_pin),
+                    short_ckt_resistance_);
+      load_index++;
+    }
+  }
+  delete pin_iter;
+}
+
+void
+WritePathSpice::writeNullParasitics(Pin *drvr_pin)
+{
+  int res_index = 1;
+  // Add resistors from drvr to load for missing parasitic connections.
+  auto pin_iter = network_->connectedPinIterator(drvr_pin);
+  while (pin_iter->hasNext()) {
+    const Pin *load_pin = pin_iter->next();
+    if (load_pin != drvr_pin
+	&& network_->isLoad(load_pin)
+	&& !network_->isHierarchical(load_pin)) {
+      streamPrint(spice_stream_, "R%d %s %s %.3e\n",
+                  res_index,
+                  network_->pathName(drvr_pin),
+                  network_->pathName(load_pin),
+                  short_ckt_resistance_);
+      res_index++;
+    }
+  }
+  delete pin_iter;
 }
 
 void
@@ -1342,8 +1570,8 @@ WritePathSpice::nodeName(ParasiticNode *node)
 void
 WritePathSpice::writeSubckts()
 {
-  StringSet path_cell_names;
-  findPathCellnames(path_cell_names);
+  StdStringSet path_cell_names = findPathCellnames();
+  findPathCellSubckts(path_cell_names);
 
   ifstream lib_subckts_stream(lib_subckt_filename_);
   if (lib_subckts_stream.is_open()) {
@@ -1357,7 +1585,7 @@ WritePathSpice::writeSubckts()
 	if (tokens.size() >= 2
 	    && stringEqual(tokens[0].c_str(), ".subckt")) {
 	  const char *cell_name = tokens[1].c_str();
-	  if (path_cell_names.hasKey(cell_name)) {
+	  if (path_cell_names.find(cell_name) != path_cell_names.end()) {
 	    subckts_stream << line << "\n";
 	    bool found_ends = false;
 	    while (getline(lib_subckts_stream, line)) {
@@ -1379,10 +1607,14 @@ WritePathSpice::writeSubckts()
       lib_subckts_stream.close();
 
       if (!path_cell_names.empty()) {
-	report_->error(28, "The following subkcts are missing from %s",
-		       lib_subckt_filename_);
-	for (const char *cell_name : path_cell_names)
-	  report_->reportLine(" %s", cell_name);
+	string missing_cells;
+        for (const string &cell_name : path_cell_names) {
+	  missing_cells += "\n";
+	  missing_cells += cell_name;
+        }
+	report_->error(28, "The subkct file %s is missing definitions for %s",
+		       lib_subckt_filename_,
+                       missing_cells.c_str());
       }
     }
     else {
@@ -1394,10 +1626,10 @@ WritePathSpice::writeSubckts()
     throw FileNotReadable(lib_subckt_filename_);
 }
 
-void
-WritePathSpice::findPathCellnames(// Return values.
-				  StringSet &path_cell_names)
+StdStringSet
+WritePathSpice::findPathCellnames()
 {
+  StdStringSet path_cell_names;
   for (Stage stage = stageFirst(); stage <= stageLast(); stage++) {
     TimingArc *arc = stageGateArc(stage);
     if (arc) {
@@ -1420,6 +1652,47 @@ WritePathSpice::findPathCellnames(// Return values.
       delete pin_iter;
     }
   }
+  return path_cell_names;
+}
+
+// Subckts can call subckts (asap7).
+void
+WritePathSpice::findPathCellSubckts(StdStringSet &path_cell_names)
+{
+  ifstream lib_subckts_stream(lib_subckt_filename_);
+  if (lib_subckts_stream.is_open()) {
+    string line;
+    while (getline(lib_subckts_stream, line)) {
+      // .subckt <cell_name> [args..]
+      StringVector tokens;
+      split(line, " \t", tokens);
+      if (tokens.size() >= 2
+          && stringEqual(tokens[0].c_str(), ".subckt")) {
+        const char *cell_name = tokens[1].c_str();
+        if (path_cell_names.find(cell_name) != path_cell_names.end()) {
+          // Scan the subckt definition for subckt calls.
+          string stmt;
+          while (getline(lib_subckts_stream, line)) {
+            if (line[0] == '+')
+              stmt += line.substr(1);
+            else {
+              // Process previous statement.
+              if (tolower(stmt[0]) == 'x') {
+                split(stmt, " \t", tokens);
+                string &subckt_cell = tokens[tokens.size() - 1];
+                path_cell_names.insert(subckt_cell);
+              }
+              stmt = line;
+            }
+            if (stringBeginEqual(line.c_str(), ".ends"))
+              break;
+          }
+        }
+      }
+    }
+  }
+  else
+    throw FileNotReadable(lib_subckt_filename_);
 }
 
 void
@@ -1593,6 +1866,26 @@ WritePathSpice::stageLoadPinName(Stage stage)
 {
   Pin *pin = stageLoadPin(stage);
   return network_->pathName(pin);
+}
+
+StdStringSet
+WritePathSpice::stageOffPathPinNames(Stage stage)
+{
+  StdStringSet pin_names;
+  if (off_path_pin_names_) {
+    const PathRef *path = stageDrvrPath(stage);
+    Vertex *drvr = path->vertex(this);
+    VertexOutEdgeIterator edge_iter(drvr, graph_);
+    while (edge_iter.hasNext()) {
+      Edge *edge = edge_iter.next();
+      Vertex *load = edge->to(graph_);
+      const Pin *load_pin = load->pin();
+      string load_pin_name = network_->pathName(load_pin);
+      if (off_path_pin_names_->find(load_pin_name) != off_path_pin_names_->end())
+        pin_names.insert(load_pin_name);
+    }
+  }
+  return pin_names;
 }
 
 Instance *

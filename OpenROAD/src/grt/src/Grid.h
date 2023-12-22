@@ -35,13 +35,13 @@
 
 #pragma once
 
+#include <boost/icl/interval.hpp>
 #include <cmath>
 #include <iostream>
 #include <map>
 #include <vector>
 
 #include "RoutingTracks.h"
-#include "boost/icl/interval.hpp"
 #include "odb/db.h"
 
 using boost::icl::interval;
@@ -77,6 +77,9 @@ class Grid
 
   int getXGrids() const { return x_grids_; }
   int getYGrids() const { return y_grids_; }
+
+  void setXGrids(int x_grids) { x_grids_ = x_grids; }
+  void setYGrids(int y_grids) { y_grids_ = y_grids; }
 
   bool isPerfectRegularX() const { return perfect_regular_x_; }
   bool isPerfectRegularY() const { return perfect_regular_y_; }
@@ -132,7 +135,7 @@ class Grid
 
   int computeTileReduce(const odb::Rect& obs,
                         const odb::Rect& tile,
-                        int track_space,
+                        double track_space,
                         bool first,
                         odb::dbTechLayerDir direction);
 

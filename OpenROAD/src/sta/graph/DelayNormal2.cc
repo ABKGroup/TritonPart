@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -403,7 +403,7 @@ delayAsString(const Delay &delay,
   if (sta->pocvEnabled()) {
     float sigma_early = delay.sigma(EarlyLate::early());
     float sigma_late = delay.sigma(EarlyLate::late());
-    return stringPrintTmp("%s[%s : %s]",
+    return stringPrintTmp("%s[%s:%s]",
 			  unit->asString(delay.mean(), digits),
 			  unit->asString(sigma_early, digits),
 			  unit->asString(sigma_late, digits));

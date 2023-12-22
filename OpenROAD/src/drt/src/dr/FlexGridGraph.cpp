@@ -34,13 +34,12 @@
 
 #include "dr/FlexDR.h"
 
-using namespace std;
 using namespace fr;
 
 void FlexGridGraph::initGrids(
-    const map<frCoord, map<frLayerNum, frTrackPattern*>>& xMap,
-    const map<frCoord, map<frLayerNum, frTrackPattern*>>& yMap,
-    const map<frLayerNum, dbTechLayerDir>& zMap,
+    const std::map<frCoord, std::map<frLayerNum, frTrackPattern*>>& xMap,
+    const std::map<frCoord, std::map<frLayerNum, frTrackPattern*>>& yMap,
+    const std::map<frLayerNum, dbTechLayerDir>& zMap,
     bool followGuide)
 {
   // initialize coord vectors
@@ -49,14 +48,17 @@ void FlexGridGraph::initGrids(
   zCoords_.clear();
   zHeights_.clear();
   layerRouteDirections_.clear();
+  xCoords_.reserve(xMap.size());
   for (auto& [k, v] : xMap) {
     xCoords_.push_back(k);
   }
+  yCoords_.reserve(yMap.size());
   for (auto& [k, v] : yMap) {
     yCoords_.push_back(k);
   }
   frCoord zHeight = 0;
-  // vector<frCoord> via2viaMinLenTmp(4, 0);
+  // std::vector<frCoord> via2viaMinLenTmp(4, 0);
+  zCoords_.reserve(zMap.size());
   for (auto& [k, v] : zMap) {
     zCoords_.push_back(k);
     zHeight += getTech()->getLayer(k)->getPitch() * VIACOST;
@@ -66,20 +68,23 @@ void FlexGridGraph::initGrids(
   // initialize all grids
   frMIdx xDim, yDim, zDim;
   getDim(xDim, yDim, zDim);
+  const int capacity = xDim * yDim * zDim;
+
   nodes_.clear();
-  nodes_.resize(xDim * yDim * zDim, Node());
+  nodes_.resize(capacity, Node());
   // new
   prevDirs_.clear();
   srcs_.clear();
   dsts_.clear();
-  prevDirs_.resize(xDim * yDim * zDim * 3, 0);
-  srcs_.resize(xDim * yDim * zDim, 0);
-  dsts_.resize(xDim * yDim * zDim, 0);
+
+  prevDirs_.resize(capacity * 3, 0);
+  srcs_.resize(capacity, 0);
+  dsts_.resize(capacity, 0);
   guides_.clear();
   if (followGuide) {
-    guides_.resize(xDim * yDim * zDim, 0);
+    guides_.resize(capacity, 0);
   } else {
-    guides_.resize(xDim * yDim * zDim, 1);
+    guides_.resize(capacity, 1);
   }
 }
 
@@ -150,8 +155,8 @@ bool FlexGridGraph::isWorkerBorder(frMIdx v, bool isVert)
 }
 bool FlexGridGraph::hasAlignedUpDefTrack(
     frLayerNum layerNum,
-    const map<frLayerNum, frTrackPattern*>& xSubMap,
-    const map<frLayerNum, frTrackPattern*>& ySubMap) const
+    const std::map<frLayerNum, frTrackPattern*>& xSubMap,
+    const std::map<frLayerNum, frTrackPattern*>& ySubMap) const
 {
   for (frLayerNum lNum = layerNum + 2;
        lNum < (int) getTech()->getLayers().size();
@@ -172,9 +177,9 @@ bool FlexGridGraph::hasAlignedUpDefTrack(
 
 void FlexGridGraph::initEdges(
     const frDesign* design,
-    map<frCoord, map<frLayerNum, frTrackPattern*>>& xMap,
-    map<frCoord, map<frLayerNum, frTrackPattern*>>& yMap,
-    const map<frLayerNum, dbTechLayerDir>& zMap,
+    std::map<frCoord, std::map<frLayerNum, frTrackPattern*>>& xMap,
+    std::map<frCoord, std::map<frLayerNum, frTrackPattern*>>& yMap,
+    const std::map<frLayerNum, dbTechLayerDir>& zMap,
     const Rect& bbox,
     bool initDR)
 {
@@ -318,7 +323,7 @@ void FlexGridGraph::initEdges(
           if (yTrack != ySubMap.end() && yTrack->second != nullptr)
             break;
         }
-        // didnt find default track, then create tracks if possible
+        // didn't find default track, then create tracks if possible
         if (!restrictedRouting && nextLNum >= VIA_ACCESS_LAYERNUM) {
           dbTechLayerDir prefDir
               = design->getTech()->getLayer(nextLNum)->getDir();
@@ -351,22 +356,20 @@ void FlexGridGraph::initEdges(
 }
 
 // initialization: update grid graph topology, does not assign edge cost
-void FlexGridGraph::init(const frDesign* design,
-                         const Rect& routeBBox,
-                         const Rect& extBBox,
-                         map<frCoord, map<frLayerNum, frTrackPattern*>>& xMap,
-                         map<frCoord, map<frLayerNum, frTrackPattern*>>& yMap,
-                         bool initDR,
-                         bool followGuide)
+void FlexGridGraph::init(
+    const frDesign* design,
+    const Rect& routeBBox,
+    const Rect& extBBox,
+    std::map<frCoord, std::map<frLayerNum, frTrackPattern*>>& xMap,
+    std::map<frCoord, std::map<frLayerNum, frTrackPattern*>>& yMap,
+    bool initDR,
+    bool followGuide)
 {
   auto* via_data = getDRWorker()->getViaData();
   halfViaEncArea_ = &via_data->halfViaEncArea;
-  via2viaMinLen_ = &via_data->via2viaMinLen;
-  via2turnMinLen_ = &via_data->via2turnMinLen;
-  via2viaMinLenNew_ = &via_data->via2viaMinLenNew;
 
   // get tracks intersecting with the Maze bbox
-  map<frLayerNum, dbTechLayerDir> zMap;
+  std::map<frLayerNum, dbTechLayerDir> zMap;
   initTracks(design, xMap, yMap, zMap, extBBox);
   initGrids(xMap, yMap, zMap, followGuide);  // buildGridGraph
   initEdges(
@@ -377,9 +380,9 @@ void FlexGridGraph::init(const frDesign* design,
 // get all tracks intersecting with the Maze bbox, left/bottom are inclusive
 void FlexGridGraph::initTracks(
     const frDesign* design,
-    map<frCoord, map<frLayerNum, frTrackPattern*>>& xMap,
-    map<frCoord, map<frLayerNum, frTrackPattern*>>& yMap,
-    map<frLayerNum, dbTechLayerDir>& zMap,
+    std::map<frCoord, std::map<frLayerNum, frTrackPattern*>>& xMap,
+    std::map<frCoord, std::map<frLayerNum, frTrackPattern*>>& yMap,
+    std::map<frLayerNum, dbTechLayerDir>& zMap,
     const Rect& bbox)
 {
   for (auto& layer : getTech()->getLayers()) {
@@ -451,7 +454,7 @@ void FlexGridGraph::resetPrevNodeDir()
 // print the grid graph with edge and vertex for debug purpose
 void FlexGridGraph::print() const
 {
-  ofstream mazeLog(OUT_MAZE_FILE.c_str());
+  std::ofstream mazeLog(OUT_MAZE_FILE.c_str());
   if (mazeLog.is_open()) {
     // print edges
     Rect gridBBox;
@@ -463,11 +466,11 @@ void FlexGridGraph::print() const
     getDim(xDim, yDim, zDim);
 
     if (xDim == 0 || yDim == 0 || zDim == 0) {
-      cout << "Error: dimension == 0\n";
+      std::cout << "Error: dimension == 0\n";
       return;
     } else {
-      cout << "extBBox (xDim, yDim, zDim) = (" << xDim << ", " << yDim << ", "
-           << zDim << ")\n";
+      std::cout << "extBBox (xDim, yDim, zDim) = (" << xDim << ", " << yDim
+                << ", " << zDim << ")\n";
     }
 
     Point p;
@@ -476,8 +479,8 @@ void FlexGridGraph::print() const
         for (frMIdx zIdx = 0; zIdx < zDim; ++zIdx) {
           if (hasEdge(xIdx, yIdx, zIdx, frDirEnum::N)) {
             if (yIdx + 1 >= yDim) {
-              cout << "Error: no edge (" << xIdx << ", " << yIdx << ", " << zIdx
-                   << ", N) " << yDim << endl;
+              std::cout << "Error: no edge (" << xIdx << ", " << yIdx << ", "
+                        << zIdx << ", N) " << yDim << std::endl;
               continue;
             }
             mazeLog << "Edge: " << getPoint(p, xIdx, yIdx).x() << " "
@@ -487,8 +490,8 @@ void FlexGridGraph::print() const
           }
           if (hasEdge(xIdx, yIdx, zIdx, frDirEnum::E)) {
             if (xIdx + 1 >= xDim) {
-              cout << "Error: no edge (" << xIdx << ", " << yIdx << ", " << zIdx
-                   << ", E) " << xDim << endl;
+              std::cout << "Error: no edge (" << xIdx << ", " << yIdx << ", "
+                        << zIdx << ", E) " << xDim << std::endl;
               continue;
             }
             mazeLog << "Edge: " << getPoint(p, xIdx, yIdx).x() << " "
@@ -498,8 +501,8 @@ void FlexGridGraph::print() const
           }
           if (hasEdge(xIdx, yIdx, zIdx, frDirEnum::U)) {
             if (zIdx + 1 >= zDim) {
-              cout << "Error: no edge (" << xIdx << ", " << yIdx << ", " << zIdx
-                   << ", U) " << zDim << endl;
+              std::cout << "Error: no edge (" << xIdx << ", " << yIdx << ", "
+                        << zIdx << ", U) " << zDim << std::endl;
               continue;
             }
             mazeLog << "Edge: " << getPoint(p, xIdx, yIdx).x() << " "
@@ -511,6 +514,6 @@ void FlexGridGraph::print() const
       }
     }
   } else {
-    cout << "Error: Fail to open maze log\n";
+    std::cout << "Error: Fail to open maze log\n";
   }
 }

@@ -38,7 +38,6 @@
 #include <array>
 #include <map>
 #include <memory>
-#include <regex>
 
 #include "odb/db.h"
 #include "utl/Logger.h"
@@ -56,8 +55,6 @@ using odb::dbNet;
 using odb::dbRegion;
 
 using utl::Logger;
-
-using std::regex;
 
 enum ExtensionMode
 {
@@ -78,11 +75,13 @@ class VoltageDomain;
 class Grid;
 class PowerCell;
 class PDNRenderer;
+class SRoute;
 
 class PdnGen
 {
  public:
   PdnGen();
+  ~PdnGen();
 
   void init(dbDatabase* db, Logger* logger);
 
@@ -132,7 +131,8 @@ class PdnGen
       const std::array<int, 4>& halo,
       bool pg_pins_to_boundary,
       bool default_grid,
-      const std::vector<odb::dbTechLayer*>& generate_obstructions);
+      const std::vector<odb::dbTechLayer*>& generate_obstructions,
+      bool is_bump);
   void makeExistingGrid(
       const std::string& name,
       const std::vector<odb::dbTechLayer*>& generate_obstructions);
@@ -191,6 +191,21 @@ class PdnGen
 
   void repairVias(const std::set<odb::dbNet*>& nets);
 
+  void createSrouteWires(const char* net,
+                         const char* outerNet,
+                         odb::dbTechLayer* layer0,
+                         odb::dbTechLayer* layer1,
+                         int cut_pitch_x,
+                         int cut_pitch_y,
+                         const std::vector<odb::dbTechViaGenerateRule*>& vias,
+                         const std::vector<odb::dbTechVia*>& techvias,
+                         int max_rows,
+                         int max_columns,
+                         const std::vector<odb::dbTechLayer*>& ongrid,
+                         std::vector<int> metalWidths,
+                         std::vector<int> metalspaces,
+                         const std::vector<odb::dbInst*>& insts);
+
  private:
   void trimShapes();
   void cleanupVias();
@@ -208,6 +223,7 @@ class PdnGen
   odb::dbDatabase* db_;
   utl::Logger* logger_;
 
+  std::unique_ptr<SRoute> sroute_;
   std::unique_ptr<PDNRenderer> debug_renderer_;
 
   std::unique_ptr<VoltageDomain> core_domain_;

@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -127,13 +127,13 @@ TimingArcAttrs::setModeValue(const char *value)
 }
 
 TimingModel *
-TimingArcAttrs::model(RiseFall *rf) const
+TimingArcAttrs::model(const RiseFall *rf) const
 {
   return models_[rf->index()];
 }
 
 void
-TimingArcAttrs::setModel(RiseFall *rf,
+TimingArcAttrs::setModel(const RiseFall *rf,
 			 TimingModel *model)
 {
   models_[rf->index()] = model;
@@ -149,10 +149,8 @@ float
 TimingArc::driveResistance() const
 {
   GateTimingModel *model = dynamic_cast<GateTimingModel*>(model_);
-  if (model) {
-    LibertyCell *cell = set_->libertyCell();
-    return model->driveResistance(cell, nullptr);
-  }
+  if (model)
+    return model->driveResistance(nullptr);
   else
     return 0.0;
 }
@@ -162,11 +160,9 @@ TimingArc::intrinsicDelay() const
 {
   GateTimingModel *model = dynamic_cast<GateTimingModel*>(model_);
   if (model) {
-    LibertyCell *cell = set_->libertyCell();
     ArcDelay arc_delay;
     Slew slew;
-    model->gateDelay(cell, nullptr, 0.0, 0.0, 0.0, false,
-                     arc_delay, slew);
+    model->gateDelay(nullptr, 0.0, 0.0, 0.0, false, arc_delay, slew);
     return arc_delay;
   }
   else
@@ -239,7 +235,8 @@ TimingArcIndex
 TimingArcSet::addTimingArc(TimingArc *arc)
 {
   TimingArcIndex arc_index = arcs_.size();
-  if (arc_index > timing_arc_index_max)
+  // Rise/fall to rise/fall.
+  if (arc_index > RiseFall::index_count * RiseFall::index_count)
     criticalError(243, "timing arc max index exceeded\n");
   arcs_.push_back(arc);
 
@@ -583,8 +580,8 @@ TimingArc::setIndex(unsigned index)
   index_ = index;
 }
 
-TimingArc *
-TimingArc::cornerArc(int ap_index)
+const TimingArc *
+TimingArc::cornerArc(int ap_index) const
 {
   if (ap_index < static_cast<int>(corner_arcs_.size())) {
     TimingArc *corner_arc = corner_arcs_[ap_index];

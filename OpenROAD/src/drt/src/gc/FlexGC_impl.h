@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_FLEXGC_IMPL_H_
-#define _FR_FLEXGC_IMPL_H_
+#pragma once
 
 #include <memory>
 
@@ -171,6 +170,7 @@ class FlexGCWorker::Impl
 
   FlexGCWorkerRegionQuery& getWorkerRegionQuery() { return rq_; }
 
+  void modifyMarkers();
   // init
   gcNet* getNet(frBlockObject* obj);
   gcNet* getNet(frNet* net);
@@ -218,6 +218,13 @@ class FlexGCWorker::Impl
   void initRegionQuery();
 
   void checkMetalSpacing();
+  void checkMetalSpacing_wrongDir_getQueryBox(gcSegment* edge,
+                                              frCoord spcVal,
+                                              box_t& queryBox);
+  frCoord getPrl(gcSegment* edge,
+                 gcSegment* ptr,
+                 const gtl::orientation_2d& orient) const;
+  void checkMetalSpacing_wrongDir(gcPin* pin, frLayer* layer);
   frCoord checkMetalSpacing_getMaxSpcVal(frLayerNum layerNum,
                                          bool checkNDRs = true);
   void myBloat(const gtl::rectangle_data<frCoord>& rect,
@@ -278,8 +285,8 @@ class FlexGCWorker::Impl
                                     gcRect* rect,
                                     frLef58CornerSpacingConstraint* con);
 
-  void checkMetalShape();
-  void checkMetalShape_main(gcPin* pin);
+  void checkMetalShape(bool allow_patching = false);
+  void checkMetalShape_main(gcPin* pin, bool allow_patching);
   void checkMetalShape_minWidth(const gtl::rectangle_data<frCoord>& rect,
                                 frLayerNum layerNum,
                                 gcNet* net,
@@ -302,6 +309,10 @@ class FlexGCWorker::Impl
   void checkMetalEndOfLine();
   void checkMetalEndOfLine_main(gcPin* pin);
   void checkMetalEndOfLine_eol(gcSegment* edge, frConstraint* constraint);
+  void checkMetalEndOfLine_eol_TN(gcSegment* edge, frConstraint* constraint);
+  bool qualifiesAsEol(gcSegment* edge,
+                      frConstraint* constraint,
+                      bool& hasRoute);
   void getMetalEolExtQueryRegion(gcSegment* edge,
                                  const gtl::rectangle_data<frCoord>& extRect,
                                  frCoord spacing,
@@ -369,7 +380,19 @@ class FlexGCWorker::Impl
       gtl::rectangle_data<frCoord>& queryRect,
       frCoord& eolNonPrlSpacing,
       frCoord& endPrlSpacing,
-      frCoord& endPrl);
+      frCoord& endPrl,
+      bool isEolEdge = true);
+
+  void checkMetalEndOfLine_eol_hasEol_check(
+      gcSegment* edge,
+      gcSegment* ptr,
+      const gtl::rectangle_data<frCoord>& queryRect,
+      frConstraint* constraint,
+      frCoord endPrlSpacing,
+      frCoord eolNonPrlSpacing,
+      frCoord endPrl,
+      bool hasRoute);
+
   void checkMetalEndOfLine_eol_hasEol_helper(gcSegment* edge1,
                                              gcSegment* edge2,
                                              frConstraint* constraint);
@@ -434,6 +457,11 @@ class FlexGCWorker::Impl
   void checkLef58CutSpacing_main(gcRect* rect,
                                  frLef58CutSpacingConstraint* con,
                                  bool skipSameNet = false);
+  void checkLef58CutSpacing_spc_parallelOverlap(
+      gcRect* rect1,
+      gcRect* rect2,
+      frLef58CutSpacingConstraint* con,
+      const gtl::rectangle_data<frCoord>& markerRect);
   void checkLef58CutSpacing_main(gcRect* rect1,
                                  gcRect* rect2,
                                  frLef58CutSpacingConstraint* con);
@@ -459,6 +487,9 @@ class FlexGCWorker::Impl
       gcRect* ptr1,
       gcRect* ptr2,
       frLef58CutSpacingConstraint* con);
+  // LEF58_KEEPOUTZONE
+  void checKeepOutZone_main(gcRect* rect, frLef58KeepOutZoneConstraint* con);
+
   frCoord checkLef58CutSpacing_getMaxSpcVal(frLef58CutSpacingConstraint* con);
   void checkMetalShape_lef58MinStep(gcPin* pin);
   void checkMetalShape_lef58MinStep_noBetweenEol(gcPin* pin,
@@ -487,6 +518,8 @@ class FlexGCWorker::Impl
                                            odb::dbTechLayerAreaRule* db_rule,
                                            bool& check_rect_width);
   void checkMetalShape_addPatch(gcPin* pin, int min_area);
+  void checkMetalShape_patchOwner_helper(drPatchWire* patch,
+                                         const std::vector<drNet*>* dr_nets);
 
   void checkMetalWidthViaTable();
   void checkMetalWidthViaTable_main(gcRect* rect);
@@ -503,5 +536,3 @@ class FlexGCWorker::Impl
   bool isWrongDir(gcSegment* edge);
 };
 }  // namespace fr
-
-#endif

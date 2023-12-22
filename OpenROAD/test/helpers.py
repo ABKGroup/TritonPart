@@ -29,22 +29,24 @@ def diff_files(file1, file2):
     num_lines2 = len(lines2)
     for i in range(min(num_lines1, num_lines2)):
         if lines1[i] != lines2[i]:
-            print(f"Differences found at line {i+1}.")
-            print(lines1[i][:-1])
-            print(lines2[i][:-1])
+            utl.report(f"Differences found at line {i+1}.")
+            utl.report(lines1[i][:-1])
+            utl.report(lines2[i][:-1])
             return 1
 
     if num_lines1 != num_lines2:
-        print(f"Number of lines differs {num_lines1} vs {num_lines2}.")
+        utl.report(f"Number of lines differs {num_lines1} vs {num_lines2}.")
         return 1
 
-    print("No differences found.")
+    utl.report("No differences found.")
     return 0
 
 # Output voltage file is specified as ...
 utl.suppress_message(utl.PSM, 2)
 # Output current file specified ...
 utl.suppress_message(utl.PSM, 3)
+# Error file is specified as ...
+utl.suppress_message(utl.PSM, 83)
 # Output spice file is specified as
 utl.suppress_message(utl.PSM, 5)
 # SPICE file is written at
@@ -63,3 +65,10 @@ utl.suppress_message(utl.PPL, 60)
 # suppress tap info messages
 utl.suppress_message(utl.TAP, 100)
 utl.suppress_message(utl.TAP, 101)
+
+# suppress par messages with files' names
+utl.suppress_message(utl.PAR, 6)
+utl.suppress_message(utl.PAR, 38)
+
+# suppress ord message with number of threads
+utl.suppress_message(utl.ORD, 30)

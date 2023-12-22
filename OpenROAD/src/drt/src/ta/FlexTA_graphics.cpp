@@ -33,10 +33,8 @@ namespace fr {
 
 FlexTAGraphics::FlexTAGraphics(frDebugSettings* settings,
                                frDesign* design,
-                               odb::dbDatabase* db,
-                               Logger* logger)
-    : logger_(logger),
-      settings_(settings),
+                               odb::dbDatabase* db)
+    : settings_(settings),
       gui_(gui::Gui::get()),
       top_block_(design->getTopBlock()),
       net_(nullptr)
@@ -73,7 +71,6 @@ void FlexTAGraphics::drawIrouteGuide(frNet* net,
       if (connFig->typeId() == frcPathSeg) {
         auto seg = static_cast<frPathSeg*>(connFig);
         if (seg->getLayerNum() == layerNum) {
-          auto bbox = seg->getBBox();
           painter.drawRect(seg->getBBox());
         }
       }

@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include "DcalcAnalysisPt.hh"
 #include "GraphDelayCalc.hh"
 #include "DmpCeff.hh"
+#include "Network.hh"
 
 namespace sta {
 
@@ -33,21 +34,10 @@ class DmpCeffElmoreDelayCalc : public DmpCeffDelayCalc
 {
 public:
   DmpCeffElmoreDelayCalc(StaState *sta);
-  virtual ArcDelayCalc *copy();
-  virtual void gateDelay(const LibertyCell *drvr_cell,
-			 TimingArc *arc,
-			 const Slew &in_slew,
-			 float load_cap,
-			 Parasitic *drvr_parasitic,
-			 float related_out_cap,
-			 const Pvt *pvt,
-			 const DcalcAnalysisPt *dcalc_ap,
-			 // Return values.
-			 ArcDelay &gate_,
-			 Slew &drvr_slew);
-  virtual void loadDelay(const Pin *load_pin,
-			 ArcDelay &wire_delay,
-			 Slew &load_slew);
+  ArcDelayCalc *copy() override;
+  void loadDelay(const Pin *load_pin,
+                 ArcDelay &wire_delay,
+                 Slew &load_slew) override;
 };
 
 ArcDelayCalc *
@@ -68,25 +58,6 @@ DmpCeffElmoreDelayCalc::copy()
 }
 
 void
-DmpCeffElmoreDelayCalc::gateDelay(const LibertyCell *drvr_cell,
-				  TimingArc *arc,
-				  const Slew &in_slew,
-				  float load_cap,
-				  Parasitic *drvr_parasitic,
-				  float related_out_cap,
-				  const Pvt *pvt,
-				  const DcalcAnalysisPt *dcalc_ap,
-				  // Return values.
-				  ArcDelay &gate_delay,
-				  Slew &drvr_slew)
-{
-  DmpCeffDelayCalc::gateDelay(drvr_cell, arc, in_slew,
-			      load_cap, drvr_parasitic, related_out_cap,
-			      pvt, dcalc_ap,
-			      gate_delay, drvr_slew);
-}
-
-void
 DmpCeffElmoreDelayCalc::loadDelay(const Pin *load_pin,
 				  ArcDelay &wire_delay,
 				  Slew &load_slew)
@@ -98,17 +69,8 @@ DmpCeffElmoreDelayCalc::loadDelay(const Pin *load_pin,
   if (drvr_parasitic_)
     parasitics_->findElmore(drvr_parasitic_, load_pin, elmore, elmore_exists);
   if (elmore_exists) {
-    if (input_port_) {
-      // Input port with no external driver.
-      if (parasitics_->isReducedParasiticNetwork(drvr_parasitic_))
-	dspfWireDelaySlew(load_pin, elmore, wire_delay1, load_slew1);
-      else {
-	// The elmore delay on an input port is used for the wire
-	// delay and the load slew is the same as the driver slew.
-	wire_delay1 = elmore;
-	load_slew1 = drvr_slew_;
-      }
-    }
+    if (input_port_)
+      dspfWireDelaySlew(load_pin, elmore, wire_delay1, load_slew1);
     else
       loadDelaySlew(load_pin, elmore, wire_delay1, load_slew1);
   }
@@ -125,30 +87,29 @@ class DmpCeffTwoPoleDelayCalc : public DmpCeffDelayCalc
 {
 public:
   DmpCeffTwoPoleDelayCalc(StaState *sta);
-  virtual ArcDelayCalc *copy();
-  virtual Parasitic *findParasitic(const Pin *drvr_pin,
-				   const RiseFall *rf,
-				   const DcalcAnalysisPt *dcalc_ap);
-  virtual ReducedParasiticType reducedParasiticType() const;
-  virtual void inputPortDelay(const Pin *port_pin,
-			      float in_slew,
-			      const RiseFall *rf,
-			      Parasitic *parasitic,
-			      const DcalcAnalysisPt *dcalc_ap);
-  virtual void gateDelay(const LibertyCell *drvr_cell,
-			 TimingArc *arc,
-			 const Slew &in_slew,
-			 float load_cap,
-			 Parasitic *drvr_parasitic,
-			 float related_out_cap,
-			 const Pvt *pvt,
-			 const DcalcAnalysisPt *dcalc_ap,
-			 // Return values.
-			 ArcDelay &gate_delay,
-			 Slew &drvr_slew);
-  virtual void loadDelay(const Pin *load_pin,
-			 ArcDelay &wire_delay,
-			 Slew &load_slew);
+  ArcDelayCalc *copy() override;
+  Parasitic *findParasitic(const Pin *drvr_pin,
+                           const RiseFall *rf,
+                           const DcalcAnalysisPt *dcalc_ap) override;
+  ReducedParasiticType reducedParasiticType() const override;
+  void inputPortDelay(const Pin *port_pin,
+                      float in_slew,
+                      const RiseFall *rf,
+                      const Parasitic *parasitic,
+                      const DcalcAnalysisPt *dcalc_ap) override;
+  void gateDelay(const TimingArc *arc,
+                 const Slew &in_slew,
+                 float load_cap,
+                 const Parasitic *drvr_parasitic,
+                 float related_out_cap,
+                 const Pvt *pvt,
+                 const DcalcAnalysisPt *dcalc_ap,
+                 // Return values.
+                 ArcDelay &gate_delay,
+                 Slew &drvr_slew) override;
+  void loadDelay(const Pin *load_pin,
+                 ArcDelay &wire_delay,
+                 Slew &load_slew) override;
 
 private:
   void loadDelay(Parasitic *pole_residue,
@@ -201,56 +162,53 @@ DmpCeffTwoPoleDelayCalc::findParasitic(const Pin *drvr_pin,
 				       const RiseFall *rf,
 				       const DcalcAnalysisPt *dcalc_ap)
 {
-  // set_load has precidence over parasitics.
-  if (!sdc_->drvrPinHasWireCap(drvr_pin)) {
-    Parasitic *parasitic = nullptr;
+  Parasitic *parasitic = nullptr;
+  const Corner *corner = dcalc_ap->corner();
+  // set_load net has precidence over parasitics.
+  if (!sdc_->drvrPinHasWireCap(drvr_pin, corner)) {
     const ParasiticAnalysisPt *parasitic_ap = dcalc_ap->parasiticAnalysisPt();
     if (parasitics_->haveParasitics()) {
       // Prefer PiPoleResidue.
-      parasitic = parasitics_->findPiPoleResidue(drvr_pin, rf,
-						 parasitic_ap);
-      if (parasitic)
-	return parasitic;
-
-      parasitic = parasitics_->findPiElmore(drvr_pin, rf, parasitic_ap);
-      if (parasitic)
-	return parasitic;
-
-      Parasitic *parasitic_network =
-	parasitics_->findParasiticNetwork(drvr_pin, parasitic_ap);
-      if (parasitic_network) {
-	parasitics_->reduceToPiPoleResidue2(parasitic_network, drvr_pin,
-					    dcalc_ap->operatingConditions(),
-					    dcalc_ap->corner(),
-					    dcalc_ap->constraintMinMax(),
-					    parasitic_ap);
-	parasitic = parasitics_->findPiPoleResidue(drvr_pin, rf, parasitic_ap);
-	reduced_parasitic_drvrs_.push_back(drvr_pin);
-	return parasitic;
+      parasitic = parasitics_->findPiPoleResidue(drvr_pin, rf, parasitic_ap);
+      if (parasitic == nullptr) {
+        parasitic = parasitics_->findPiElmore(drvr_pin, rf, parasitic_ap);
+        if (parasitic == nullptr) {
+          Parasitic *parasitic_network =
+            parasitics_->findParasiticNetwork(drvr_pin, parasitic_ap);
+          if (parasitic_network) {
+            parasitics_->reduceToPiPoleResidue2(parasitic_network, drvr_pin,
+                                                dcalc_ap->operatingConditions(),
+                                                corner,
+                                                dcalc_ap->constraintMinMax(),
+                                                parasitic_ap);
+            parasitic = parasitics_->findPiPoleResidue(drvr_pin, rf, parasitic_ap);
+            reduced_parasitic_drvrs_.push_back(drvr_pin);
+          }
+        }
       }
     }
-
-    const MinMax *cnst_min_max = dcalc_ap->constraintMinMax();
-    Wireload *wireload = sdc_->wireload(cnst_min_max);
-    if (wireload) {
-      float pin_cap, wire_cap, fanout;
-      bool has_wire_cap;
-      graph_delay_calc_->netCaps(drvr_pin, rf, dcalc_ap,
-				 pin_cap, wire_cap, fanout, has_wire_cap);
-      parasitic = parasitics_->estimatePiElmore(drvr_pin, rf, wireload,
-						fanout, pin_cap,
-						dcalc_ap->operatingConditions(),
-						dcalc_ap->corner(),
-						cnst_min_max,
-						parasitic_ap);
-      // Estimated parasitics are not recorded in the "database", so
-      // it for deletion after the drvr pin delay calc is finished.
-      if (parasitic)
-	unsaved_parasitics_.push_back(parasitic);
-      return parasitic;
+    else {
+      const MinMax *cnst_min_max = dcalc_ap->constraintMinMax();
+      Wireload *wireload = sdc_->wireload(cnst_min_max);
+      if (wireload) {
+        float pin_cap, wire_cap, fanout;
+        bool has_wire_cap;
+        graph_delay_calc_->netCaps(drvr_pin, rf, dcalc_ap,
+                                   pin_cap, wire_cap, fanout, has_wire_cap);
+        parasitic = parasitics_->estimatePiElmore(drvr_pin, rf, wireload,
+                                                  fanout, pin_cap,
+                                                  dcalc_ap->operatingConditions(),
+                                                  corner,
+                                                  cnst_min_max,
+                                                  parasitic_ap);
+        // Estimated parasitics are not recorded in the "database", so
+        // save it for deletion after the drvr pin delay calc is finished.
+        if (parasitic)
+          unsaved_parasitics_.push_back(parasitic);
+      }
     }
   }
-  return nullptr;
+  return parasitic;
 }
 
 ReducedParasiticType
@@ -263,7 +221,7 @@ void
 DmpCeffTwoPoleDelayCalc::inputPortDelay(const Pin *port_pin,
 					float in_slew,
 					const RiseFall *rf,
-					Parasitic *parasitic,
+					const Parasitic *parasitic,
 					const DcalcAnalysisPt *dcalc_ap)
 {
   parasitic_is_pole_residue_ = parasitics_->isPiPoleResidue(parasitic);
@@ -271,11 +229,10 @@ DmpCeffTwoPoleDelayCalc::inputPortDelay(const Pin *port_pin,
 }
 
 void
-DmpCeffTwoPoleDelayCalc::gateDelay(const LibertyCell *drvr_cell,
-				   TimingArc *arc,
+DmpCeffTwoPoleDelayCalc::gateDelay(const TimingArc *arc,
 				   const Slew &in_slew,
 				   float load_cap,
-				   Parasitic *drvr_parasitic,
+				   const Parasitic *drvr_parasitic,
 				   float related_out_cap,
 				   const Pvt *pvt,
 				   const DcalcAnalysisPt *dcalc_ap,
@@ -283,15 +240,13 @@ DmpCeffTwoPoleDelayCalc::gateDelay(const LibertyCell *drvr_cell,
 				   ArcDelay &gate_delay,
 				   Slew &drvr_slew)
 {
+  gateDelayInit(arc, in_slew, drvr_parasitic);
   parasitic_is_pole_residue_ = parasitics_->isPiPoleResidue(drvr_parasitic);
-  const LibertyLibrary *drvr_library = drvr_cell->libertyLibrary();
-  const RiseFall *rf = arc->toEdge()->asRiseFall();
-  vth_ = drvr_library->outputThreshold(rf);
-  vl_ = drvr_library->slewLowerThreshold(rf);
-  vh_ = drvr_library->slewUpperThreshold(rf);
-  slew_derate_ = drvr_library->slewDerateFromLibrary();
-  DmpCeffDelayCalc::gateDelay(drvr_cell, arc, in_slew,
-			      load_cap, drvr_parasitic,
+  vth_ = drvr_library_->outputThreshold(drvr_rf_);
+  vl_ = drvr_library_->slewLowerThreshold(drvr_rf_);
+  vh_ = drvr_library_->slewUpperThreshold(drvr_rf_);
+  slew_derate_ = drvr_library_->slewDerateFromLibrary();
+  DmpCeffDelayCalc::gateDelay(arc, in_slew, load_cap, drvr_parasitic,
 			      related_out_cap, pvt, dcalc_ap,
 			      gate_delay, drvr_slew);
 }
@@ -301,7 +256,7 @@ DmpCeffTwoPoleDelayCalc::loadDelay(const Pin *load_pin,
 				   ArcDelay &wire_delay,
 				   Slew &load_slew)
 {
-  // NEED to handle PiElmore parasitic.
+  // Should handle PiElmore parasitic.
   ArcDelay wire_delay1 = 0.0;
   Slew load_slew1 = drvr_slew_;
   Parasitic *pole_residue = 0;
@@ -320,14 +275,7 @@ DmpCeffTwoPoleDelayCalc::loadDelay(const Pin *load_pin,
 	if (input_port_) {
 	  float elmore = 1.0F / p1;
 	  // Input port with no external driver.
-	  if (parasitics_->isReducedParasiticNetwork(drvr_parasitic_))
-	    dspfWireDelaySlew(load_pin, elmore, wire_delay1, load_slew1);
-	  else {
-	    // For RSPF on an input port the elmore delay is used for the
-	    // wire delay and the load slew is the same as the driver slew.
-	    wire_delay1 = elmore;
-	    load_slew1 = drvr_slew_;
-	  }
+          dspfWireDelaySlew(load_pin, elmore, wire_delay1, load_slew1);
 	}
 	else {
 	  if (pole_count >= 2)

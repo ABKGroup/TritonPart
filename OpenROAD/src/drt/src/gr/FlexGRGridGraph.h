@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FLEX_GR_GRID_GRAPH_H_
-#define _FLEX_GR_GRID_GRAPH_H_
+#pragma once
 
 #define GRGRIDGRAPHHISTCOSTSIZE 8
 #define GRSUPPLYSIZE 8
@@ -108,7 +107,7 @@ class FlexGRGridGraph
 
   Point& getPoint(frMIdx x, frMIdx y, Point& in) const
   {
-    in.set(xCoords_[x], yCoords_[y]);
+    in = {xCoords_[x], yCoords_[y]};
     return in;
   }
 
@@ -804,7 +803,7 @@ class FlexGRGridGraph
                     const frDirEnum& dir);
   frCost getNextPathCost(const FlexGRWavefrontGrid& currGrid,
                          const frDirEnum& dir);
-  frDirEnum getLastDir(const std::bitset<WAVEFRONTBITSIZE>& buffer);
+  frDirEnum getLastDir(const std::bitset<GRWAVEFRONTBITSIZE>& buffer);
   void traceBackPath(const FlexGRWavefrontGrid& currGrid,
                      std::vector<FlexMazeIdx>& path,
                      std::vector<FlexMazeIdx>& root,
@@ -826,5 +825,3 @@ class FlexGRGridGraph
   friend class FlexGRWorker;
 };
 }  // namespace fr
-
-#endif

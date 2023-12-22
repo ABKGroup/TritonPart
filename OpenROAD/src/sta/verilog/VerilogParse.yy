@@ -1,7 +1,7 @@
 %{
 
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "PortDirection.hh"
 #include "verilog/VerilogReaderPvt.hh"
@@ -394,7 +394,7 @@ inst_named_pins:
 inst_named_pin:
 //      Scalar port.
 	'.' ID '(' ')'
-	{ $$ = sta::verilog_reader->makeNetNamedPortRefScalarNet($2, NULL); }
+	{ $$ = sta::verilog_reader->makeNetNamedPortRefScalarNet($2); }
 |	'.' ID '(' ID ')'
 	{ $$ = sta::verilog_reader->makeNetNamedPortRefScalarNet($2, $4); }
 |	'.' ID '(' ID '[' INT ']' ')'

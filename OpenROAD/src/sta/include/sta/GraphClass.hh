@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,6 +15,8 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
+
+#include <limits>
 
 #include "ObjectId.hh"
 #include "Set.hh"
@@ -44,6 +46,8 @@ typedef int Level;
 typedef int DcalcAPIndex;
 typedef int TagGroupIndex;
 typedef Vector<GraphLoop*> GraphLoopSeq;
+
+static constexpr int level_max = std::numeric_limits<Level>::max();
 
 // 16,777,215 tags
 static const int tag_group_index_bits = 24;

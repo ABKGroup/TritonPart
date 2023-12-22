@@ -3,7 +3,7 @@
 %{
 
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -71,6 +71,13 @@ make_net_cmd(const char *name,
   Net *net = cmdEditNetwork()->makeNet(name, parent);
   // Sta notification unnecessary.
   return net;
+}
+
+void
+make_port_pin_cmd(const char *port_name,
+                  const char *direction)
+{
+  Sta::sta()->makePortPin(port_name, direction);
 }
 
 void

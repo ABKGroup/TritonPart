@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,11 +16,14 @@
 
 #pragma once
 
+#include <limits>
+
 #include "Vector.hh"
 #include "Set.hh"
 #include "Map.hh"
 #include "UnorderedMap.hh"
 #include "StringSet.hh"
+#include "MinMaxValues.hh"
 #include "Delay.hh"
 #include "NetworkClass.hh"
 #include "GraphClass.hh"
@@ -56,6 +59,8 @@ class MinPulseWidthCheck;
 class MinPeriodCheck;
 class MaxSkewCheck;
 class CharPtrLess;
+class SearchPred;
+class BfsFwdIterator;
 
 // Tag compare using tag matching (tagMatch) critera.
 class TagMatchLess
@@ -97,7 +102,7 @@ protected:
 };
 
 typedef int PathAPIndex;
-typedef unsigned TagIndex;
+typedef uint32_t TagIndex;
 typedef Vector<Tag*> TagSeq;
 typedef Vector<MinPulseWidthCheck*> MinPulseWidthCheckSeq;
 typedef Vector<MinPeriodCheck*> MinPeriodCheckSeq;
@@ -111,6 +116,7 @@ typedef Vector<PathVertex> PathVertexSeq;
 typedef Vector<Slack> SlackSeq;
 typedef Delay Crpr;
 typedef Vector<PathRef> PathRefSeq;
+typedef MinMaxValues<Delay> ClkDelays[RiseFall::index_count][RiseFall::index_count];
 
 enum class ReportPathFormat { full,
 			      full_clock,
@@ -122,9 +128,10 @@ enum class ReportPathFormat { full,
 			      json
 };
 
-static const int tag_index_bits = 24;
-static const TagIndex tag_index_max = (1 << tag_index_bits) - 1;
+static const TagIndex tag_index_max = std::numeric_limits<uint32_t>::max();
 static const TagIndex tag_index_null = tag_index_max;
-static const int path_ap_index_bit_count = 4;
+static const int path_ap_index_bit_count = 8;
+// One path analysis point per corner min/max.
+static const int corner_count_max = (1 << path_ap_index_bit_count) / 2;
 
 } // namespace

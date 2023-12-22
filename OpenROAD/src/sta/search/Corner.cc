@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -105,8 +105,7 @@ Corners::copy(Corners *corners)
   clear();
   int index = 0;
   for (Corner *orig : corners->corners_) {
-    const char *name = orig->name();
-    Corner *corner = new Corner(name, index);
+    Corner *corner = new Corner(orig->name(), index);
     corners_.push_back(corner);
     // Use the copied name in the map.
     corner_map_[corner->name()] = corner;
@@ -120,17 +119,10 @@ Corners::copy(Corners *corners)
     parasitic_analysis_pts_.push_back(ap);
   }
 
-  int i = 0;
-  for (Corner *orig : corners->corners_) {
+  for (size_t i = 0; i < corners->corners_.size(); i++) {
+    Corner *orig = corners->corners_[i];
     Corner *corner = corners_[i];
-    auto &orig_aps = orig->parasitic_analysis_pts_;
-    auto &corner_aps = corner->parasitic_analysis_pts_;
-    corner_aps.resize(orig_aps.size());
-    for (ParasiticAnalysisPt *orig_ap : orig_aps) {
-      int ap_index = orig_ap->index();
-      corner_aps.push_back(parasitic_analysis_pts_[ap_index]);
-    }
-    i++;
+    corner->parasitic_analysis_pts_ = orig->parasitic_analysis_pts_;
   }
 }
 
@@ -467,10 +459,10 @@ Corner::addLiberty(LibertyLibrary *lib,
   liberty_[min_max->index()].push_back(lib);
 }
 
-LibertySeq *
-Corner::libertyLibraries(const MinMax *min_max)
+const LibertySeq &
+Corner::libertyLibraries(const MinMax *min_max) const
 {
-  return &liberty_[min_max->index()];
+  return liberty_[min_max->index()];
 }
 
 int

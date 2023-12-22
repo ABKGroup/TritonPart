@@ -1,5 +1,5 @@
 # OpenSTA, Static Timing Analyzer
-# Copyright (c) 2022, Parallax Software, Inc.
+# Copyright (c) 2023, Parallax Software, Inc.
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.14)
 cmake_policy(SET CMP0086 NEW)
 endif()
 
-project(STA VERSION 2.3.3
+project(STA VERSION 2.4.0
   LANGUAGES CXX
 )
 
@@ -66,14 +66,14 @@ set(STA_SOURCE
   dcalc/ArnoldiReduce.cc
   dcalc/DcalcAnalysisPt.cc
   dcalc/DelayCalc.cc
+  dcalc/DelayCalcBase.cc
   dcalc/DmpCeff.cc
   dcalc/DmpDelayCalc.cc
   dcalc/GraphDelayCalc.cc
-  dcalc/GraphDelayCalc1.cc
   dcalc/LumpedCapDelayCalc.cc
   dcalc/NetCaps.cc
-  dcalc/RCDelayCalc.cc
-  dcalc/SimpleRCDelayCalc.cc
+  dcalc/ParallelDelayCalc.cc
+  dcalc/SlewDegradeDelayCalc.cc
   dcalc/UnitDelayCalc.cc
   
   graph/DelayFloat.cc
@@ -97,6 +97,7 @@ set(STA_SOURCE
   liberty/Sequential.cc
   liberty/TableModel.cc
   liberty/TimingArc.cc
+  liberty/TimingModel.cc
   liberty/TimingRole.cc
   liberty/Units.cc
   liberty/Wireload.cc
@@ -221,17 +222,20 @@ set(STA_SOURCE
 set(STA_TCL_FILES
   tcl/Init.tcl
   tcl/Util.tcl
+  tcl/CmdArgs.tcl
+  tcl/CmdUtil.tcl
   tcl/Graph.tcl
   tcl/Liberty.tcl
   tcl/Link.tcl
   tcl/Network.tcl
   tcl/NetworkEdit.tcl
+  tcl/Property.tcl
   tcl/Sdc.tcl
   tcl/Search.tcl
-  tcl/Cmds.tcl
-  tcl/Variables.tcl
   tcl/Sta.tcl
   tcl/Splash.tcl
+  tcl/Variables.tcl
+  tcl/WritePathSpice.tcl
   dcalc/DelayCalc.tcl
   parasitics/Parasitics.tcl
   power/Power.tcl
@@ -432,14 +436,14 @@ if (USE_CUDD)
   find_library(CUDD_LIB
     NAME cudd
     PATHS ${CUDD_DIR}
-    PATH_SUFFIXES lib lib/cudd
+    PATH_SUFFIXES lib lib/cudd cudd/.libs
     )
   if (CUDD_LIB)
     message(STATUS "CUDD library: ${CUDD_LIB}")
     get_filename_component(CUDD_LIB_DIR "${CUDD_LIB}" PATH)
     get_filename_component(CUDD_LIB_PARENT1 "${CUDD_LIB_DIR}" PATH)
     find_file(CUDD_HEADER cudd.h
-      PATHS ${CUDD_LIB_PARENT1}/include ${CUDD_LIB_PARENT1}/include/cudd)
+      PATHS ${CUDD_LIB_PARENT1} ${CUDD_LIB_PARENT1}/include ${CUDD_LIB_PARENT1}/include/cudd)
     if (CUDD_HEADER)
       get_filename_component(CUDD_INCLUDE "${CUDD_HEADER}" PATH)
       message(STATUS "CUDD header: ${CUDD_HEADER}")
@@ -470,7 +474,10 @@ configure_file(${STA_HOME}/util/StaConfig.hh.cmake
 # compatibility with configure
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${STA_HOME}/app)
 
-add_library(OpenSTA
+add_library(OpenSTA)
+
+target_sources(OpenSTA
+  PRIVATE
   ${STA_SOURCE}
 
   ${STA_TCL_INIT}
@@ -490,6 +497,23 @@ add_library(OpenSTA
   ${BISON_VerilogParser_OUTPUTS}
 )
 
+target_link_libraries(OpenSTA
+  ${TCL_LIBRARY}
+  ${CMAKE_THREAD_LIBS_INIT}
+  )
+
+if (TCL_READLINE_LIBRARY)
+  target_link_libraries(OpenSTA ${TCL_READLINE_LIBRARY})
+endif()
+
+if (ZLIB_LIBRARIES)
+  target_link_libraries(OpenSTA ${ZLIB_LIBRARIES})
+endif()
+
+if (CUDD_LIB)
+  target_link_libraries(OpenSTA ${CUDD_LIB})
+endif()
+
 target_include_directories(OpenSTA
   PUBLIC
   include
@@ -502,11 +526,14 @@ target_include_directories(OpenSTA
   ${CUDD_INCLUDE}
   )
 
+# common to gcc/clang
+set(CXX_FLAGS -Wall -Wextra -pedantic -Wcast-qual -Wredundant-decls -Wformat-security)
+
 target_compile_options(OpenSTA
   PRIVATE
-  $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -pedantic -Wcast-qual -Wredundant-decls -Wformat-security>
-  $<$<CXX_COMPILER_ID:AppleClang>:-Wall -Wextra -pedantic -Wcast-qual -Wredundant-decls -Wformat-security -Wno-gnu-zero-variadic-macro-arguments>
-  $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -pedantic -Wcast-qual -Wredundant-decls -Wformat-security -Wno-gnu-zero-variadic-macro-arguments>
+  $<$<CXX_COMPILER_ID:GNU>:${CXX_FLAGS}>
+  $<$<CXX_COMPILER_ID:Clang>:${CXX_FLAGS} -Wno-gnu-zero-variadic-macro-arguments>
+  $<$<CXX_COMPILER_ID:AppleClang>:${CXX_FLAGS} -Wno-gnu-zero-variadic-macro-arguments>
   )
 
 # Disable compiler specific extensions like gnu++11.
@@ -528,21 +555,7 @@ add_executable(sta app/Main.cc)
 target_link_libraries(sta
   sta_swig
   OpenSTA
-  ${TCL_LIBRARY}
-  ${CMAKE_THREAD_LIBS_INIT}
   )
-
-if (TCL_READLINE_LIBRARY)
-  target_link_libraries(sta ${TCL_READLINE_LIBRARY})
-endif()
-
-if (ZLIB_LIBRARIES)
-  target_link_libraries(sta ${ZLIB_LIBRARIES})
-endif()
-
-if (CUDD_LIB)
-  target_link_libraries(sta ${CUDD_LIB})
-endif()
 
 message(STATUS "STA executable: ${STA_HOME}/app/sta")
 

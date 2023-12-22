@@ -43,7 +43,14 @@ list(APPEND CMAKE_INSTALL_RPATH
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/src/cmake")
 
+# The location used by etc/DependencyInstaller.sh
+list(APPEND CMAKE_PREFIX_PATH
+  "/opt/or-tools/lib64/cmake"
+  "/opt/or-tools/lib/cmake"
+)
+
 include("openroad")
+
 
 if(USE_SYSTEM_OPENSTA)
   if(NOT OPENSTA_HOME)
@@ -56,6 +63,7 @@ endif()
 set(ODB_HOME ${PROJECT_SOURCE_DIR}/src/odb)
 set(DBSTA_HOME ${PROJECT_SOURCE_DIR}/src/dbSta)
 set(RESIZER_HOME ${PROJECT_SOURCE_DIR}/src/rsz)
+set(GUI_HOME ${PROJECT_SOURCE_DIR}/src/gui)
 
 set(OPENROAD_SOURCE
   Design.cc
@@ -159,7 +167,7 @@ endif()
 
 find_package(SWIG 3.0 REQUIRED)
 if (SWIG_VERSION VERSION_GREATER_EQUAL "4.1.0")
-  message(WARNING "Using SWIG >= ${SWIG_VERSION} -flatstaticmethod flag for python")
+  message(STATUS "Using SWIG >= ${SWIG_VERSION} -flatstaticmethod flag for python")
 endif()
 include(UseSWIG)
 
@@ -177,6 +185,7 @@ endif()
 
 add_compile_options(
   -Wall
+  -Wmissing-field-initializers
   -Wredundant-decls
   -Wformat-security
   -Wno-sign-compare
@@ -184,7 +193,14 @@ add_compile_options(
   $<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>
   # Apple clang 14.0.0 deprecates sprintf, which generates 900 warnings.
   $<$<CXX_COMPILER_ID:AppleClang>:-Wno-deprecated-declarations>
+  $<$<BOOL:${ASAN}>:-fsanitize=address>
+  $<$<BOOL:${ASAN}>:-fno-omit-frame-pointer>
+  $<$<BOOL:${ASAN}>:-g>
 )
+
+if (ASAN)
+  add_link_options(-fsanitize=address)
+endif()
 
 ################################################################
 
@@ -257,9 +273,11 @@ add_subdirectory(par)
 add_subdirectory(ant)
 add_subdirectory(gui)
 add_subdirectory(drt)
+add_subdirectory(upf)
 add_subdirectory(utl)
 add_subdirectory(dst)
 add_subdirectory(pdn)
+add_subdirectory(dft)
 
 ################################################################
 
@@ -317,20 +335,22 @@ target_link_libraries(openroad
   mpl
   psm
   ant
-  par
+  upf
   utl
   pdn
+  dft
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  # mpl2 aborts with link error on darwin so do not link it.
-  target_link_libraries(openroad mpl2)
+  # mpl2 aborts with link error on darwin and par causes abseil link error at startup on apple silicon so do not link it.
+  target_link_libraries(openroad mpl2 par)
   target_compile_definitions(openroad PRIVATE ENABLE_MPL2)
+  target_compile_definitions(openroad PRIVATE ENABLE_PAR)
 else()
-  message(STATUS "Removing MPL2 to avoid run time fatal error.")
+  message(STATUS "Removing MPL2 and PAR to avoid run time fatal error.")
 endif()
 
 # tclReadline
@@ -394,11 +414,20 @@ if (Python3_FOUND AND BUILD_PYTHON)
     drt_py
     dpo_py
     fin_py
-    par_py
     rcx_py
     rmp_py
     stt_py
+    psm_py
+    pdn_py
+    dft_py
   )
+
+  if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    # par_py causes abseil link error at startup on apple silicon so do not link it.
+    target_link_libraries(openroad par_py)
+  else()
+    message(STATUS "Removing PAR_PY to avoid run time fatal error.")
+  endif()
 else()
   message(STATUS "Python3 disabled")
 endif()

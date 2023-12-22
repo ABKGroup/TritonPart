@@ -35,6 +35,7 @@
 
 #pragma once
 
+#include "AbstractMakeWireParasitics.h"
 #include "FastRoute.h"
 #include "Grid.h"
 #include "Net.h"
@@ -62,57 +63,91 @@ namespace utl {
 class Logger;
 }
 
+namespace rsz {
+class Resizer;
+}
+
 namespace grt {
 
-class MakeWireParasitics
+class MakeWireParasitics : public AbstractMakeWireParasitics
 {
  public:
   MakeWireParasitics(utl::Logger* logger,
+                     rsz::Resizer* resizer,
                      sta::dbSta* sta,
                      odb::dbTech* tech,
                      GlobalRouter* grouter);
   void estimateParasitcs(odb::dbNet* net,
                          std::vector<Pin>& pins,
-                         GRoute& route);
+                         GRoute& route) const;
+  void estimateParasitcs(odb::dbNet* net, GRoute& route) const override;
+
+  void clearParasitics() override;
   // Return GRT layer lengths in dbu's for db_net's route indexed by routing
   // layer.
-  std::vector<int> routeLayerLengths(odb::dbNet* db_net);
+  std::vector<int> routeLayerLengths(odb::dbNet* db_net) const;
+  // Return the Slack of a given net
+  float getNetSlack(odb::dbNet* net) override;
 
  private:
   typedef std::map<RoutePt, sta::ParasiticNode*> NodeRoutePtMap;
 
-  sta::Pin* staPin(Pin& pin);
-  void makeRouteParasitics(odb::dbNet* net, GRoute& route);
-  sta::ParasiticNode* ensureParasiticNode(int x, int y, int layer);
-  void makeParasiticsToPins(std::vector<Pin>& pins);
-  void makeParasiticsToPin(Pin& pin);
-  void reduceParasiticNetwork();
+  sta::Pin* staPin(Pin& pin) const;
+  void makeRouteParasitics(odb::dbNet* net,
+                           GRoute& route,
+                           sta::Net* sta_net,
+                           sta::Corner* corner,
+                           sta::ParasiticAnalysisPt* analysis_point,
+                           sta::Parasitic* parasitic,
+                           NodeRoutePtMap& node_map) const;
+  sta::ParasiticNode* ensureParasiticNode(int x,
+                                          int y,
+                                          int layer,
+                                          NodeRoutePtMap& node_map,
+                                          sta::Parasitic* parasitic,
+                                          sta::Net* net) const;
+  void makeParasiticsToPins(std::vector<Pin>& pins,
+                            NodeRoutePtMap& node_map,
+                            sta::Corner* corner,
+                            sta::ParasiticAnalysisPt* analysis_point,
+                            sta::Parasitic* parasitic) const;
+  void makeParasiticsToPin(Pin& pin,
+                           NodeRoutePtMap& node_map,
+                           sta::Corner* corner,
+                           sta::ParasiticAnalysisPt* analysis_point,
+                           sta::Parasitic* parasitic) const;
+  void makePartialParasiticsToPins(std::vector<Pin>& pins,
+                                   NodeRoutePtMap& node_map,
+                                   sta::Corner* corner,
+                                   sta::ParasiticAnalysisPt* analysis_point,
+                                   sta::Parasitic* parasitic,
+                                   odb::dbNet* net) const;
+  void makePartialParasiticsToPin(Pin& pin,
+                                  NodeRoutePtMap& node_map,
+                                  sta::Corner* corner,
+                                  sta::ParasiticAnalysisPt* analysis_point,
+                                  sta::Parasitic* parasitic,
+                                  odb::dbNet* net) const;
   void layerRC(int wire_length_dbu,
                int layer,
+               sta::Corner* corner,
                // Return values.
                float& res,
-               float& cap);
-  float getCutLayerRes(unsigned below_layer_id);
-  double dbuToMeters(int dbu);
+               float& cap) const;
+  float getCutLayerRes(odb::dbTechLayer* cut_layer,
+                       sta::Corner* corner,
+                       int num_cuts = 1) const;
+  double dbuToMeters(int dbu) const;
 
   // Variables common to all nets.
   GlobalRouter* grouter_;
   odb::dbTech* tech_;
   utl::Logger* logger_;
+  rsz::Resizer* resizer_;
   sta::dbSta* sta_;
   sta::dbNetwork* network_;
   sta::Parasitics* parasitics_;
-  sta::Corner* corner_;
   sta::MinMax* min_max_;
-  sta::ParasiticAnalysisPt* analysis_point_;
-
-  // Net variables
-  sta::Net* sta_net_;
-  sta::Parasitic* parasitic_;
-  // Counter for internal parasitic node IDs.
-  int node_id_;
-  // x/y/layer -> parasitic node
-  NodeRoutePtMap node_map_;
 };
 
 }  // namespace grt

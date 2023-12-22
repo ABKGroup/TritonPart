@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
 #include "LibertyWriter.hh"
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <algorithm>
 
 #include "Units.hh"
@@ -46,7 +46,7 @@ protected:
   void writeHeader();
   void writeFooter();
   void writeTableTemplates();
-  void writeTableTemplate(TableTemplate *tbl_template);
+  void writeTableTemplate(const TableTemplate *tbl_template);
   void writeBusDcls();
   void writeCells();
   void writeCell(const LibertyCell *cell);
@@ -60,7 +60,7 @@ protected:
   void writeTableModel0(const TableModel *model);
   void writeTableModel1(const TableModel *model);
   void writeTableModel2(const TableModel *model);
-  void writeTableAxis(TableAxisPtr axis,
+  void writeTableAxis(const TableAxis *axis,
                       int index);
 
   const char *asString(bool value);
@@ -123,26 +123,21 @@ LibertyWriter::writeHeader()
   fprintf(stream_, "  delay_model                    : table_lookup;\n");
   fprintf(stream_, "  simulation                     : false;\n");
   const Unit *cap_unit = library_->units()->capacitanceUnit();
-  fprintf(stream_, "  capacitive_load_unit (1,%s%s);\n",
-          cap_unit->scaleAbreviation(),
-          cap_unit->suffix());
+  fprintf(stream_, "  capacitive_load_unit (1,%s);\n",
+          cap_unit->scaledSuffix());
   fprintf(stream_, "  leakage_power_unit             : 1pW;\n");
   const Unit *current_unit = library_->units()->currentUnit();
-  fprintf(stream_, "  current_unit                   : \"1%s%s\";\n",
-          current_unit->scaleAbreviation(),
-          current_unit->suffix());
+  fprintf(stream_, "  current_unit                   : \"1%s\";\n",
+          current_unit->scaledSuffix());
   const Unit *res_unit = library_->units()->resistanceUnit();
-  fprintf(stream_, "  pulling_resistance_unit        : \"1%s%s\";\n",
-          res_unit->scaleAbreviation(),
-          res_unit->suffix());
+  fprintf(stream_, "  pulling_resistance_unit        : \"1%s\";\n",
+          res_unit->scaledSuffix());
   const Unit *time_unit = library_->units()->timeUnit();
-  fprintf(stream_, "  time_unit                      : \"1%s%s\";\n",
-          time_unit->scaleAbreviation(),
-          time_unit->suffix());
+  fprintf(stream_, "  time_unit                      : \"1%s\";\n",
+          time_unit->scaledSuffix());
   const Unit *volt_unit = library_->units()->voltageUnit();
-  fprintf(stream_, "  voltage_unit                   : \"1%s%s\";\n",
-          volt_unit->scaleAbreviation(),
-          volt_unit->suffix());
+  fprintf(stream_, "  voltage_unit                   : \"1%s\";\n",
+          volt_unit->scaledSuffix());
   fprintf(stream_, "  library_features(report_delay_calculation);\n");
   fprintf(stream_, "\n");
 
@@ -202,11 +197,11 @@ LibertyWriter::writeTableTemplates()
 }
 
 void
-LibertyWriter::writeTableTemplate(TableTemplate *tbl_template)
+LibertyWriter::writeTableTemplate(const TableTemplate *tbl_template)
 {
-  TableAxisPtr axis1 = tbl_template->axis1();
-  TableAxisPtr axis2 = tbl_template->axis2();
-  TableAxisPtr axis3 = tbl_template->axis3();
+  const TableAxis *axis1 = tbl_template->axis1();
+  const TableAxis *axis2 = tbl_template->axis2();
+  const TableAxis *axis3 = tbl_template->axis3();
   // skip scalar templates
   if (axis1) {
     fprintf(stream_, "  lu_table_template(%s) {\n", tbl_template->name());
@@ -229,7 +224,7 @@ LibertyWriter::writeTableTemplate(TableTemplate *tbl_template)
 }
 
 void
-LibertyWriter::writeTableAxis(TableAxisPtr axis,
+LibertyWriter::writeTableAxis(const TableAxis *axis,
                               int index)
 {
   fprintf(stream_, "    index_%d (\"", index);
@@ -278,6 +273,8 @@ LibertyWriter::writeCell(const LibertyCell *cell)
     fprintf(stream_, "    area : %.3f \n", area);
   if (cell->isMacro())
     fprintf(stream_, "    is_macro : true;\n");
+  if (cell->interfaceTiming())
+    fprintf(stream_, "    interface_timing : true;\n");
 
   LibertyCellPortIterator port_iter(cell);
   while (port_iter.hasNext()) {
@@ -367,7 +364,8 @@ void
 LibertyWriter::writeTimingArcSet(const TimingArcSet *arc_set)
 {
   fprintf(stream_, "      timing() {\n");
-  fprintf(stream_, "        related_pin : \"%s\";\n", arc_set->from()->name());
+  if (arc_set->from())
+    fprintf(stream_, "        related_pin : \"%s\";\n", arc_set->from()->name());
   TimingSense sense = arc_set->sense();
   if (sense != TimingSense::unknown
       && sense != TimingSense::non_unate)
@@ -401,11 +399,14 @@ LibertyWriter::writeTimingModels(const TimingArc *arc,
     fprintf(stream_, "	}\n");
 
     const TableModel *slew_model = gate_model->slewModel();
-    template_name = slew_model->tblTemplate()->name();
-    fprintf(stream_, "	%s_transition(%s) {\n", rf->name(), template_name);
-    writeTableModel(slew_model);
-    fprintf(stream_, "	}\n");
-  } else if (check_model) {
+    if (slew_model) {
+      template_name = slew_model->tblTemplate()->name();
+      fprintf(stream_, "	%s_transition(%s) {\n", rf->name(), template_name);
+      writeTableModel(slew_model);
+      fprintf(stream_, "	}\n");
+    }
+  }
+  else if (check_model) {
     const TableModel *model = check_model->model();
     const char *template_name = model->tblTemplate()->name();
     fprintf(stream_, "	%s_constraint(%s) {\n", rf->name(), template_name);
@@ -572,11 +573,15 @@ LibertyWriter::timingTypeString(const TimingArcSet *arc_set)
     else
       return "non_seq_hold_falling";
   }
+  else if (role == TimingRole::clockTreePathMin())
+    return "min_clock_tree_path";
+  else if (role == TimingRole::clockTreePathMax())
+    return "max_clock_tree_path";
   else {
     report_->error(703, "%s/%s/%s timing arc type %s not supported.",
                    library_->name(),
-                   arc_set->from()->libertyCell()->name(),
-                   arc_set->from()->name(),
+                   arc_set->to()->libertyCell()->name(),
+                   arc_set->to()->name(),
                    role->asString());
     return nullptr;
   }

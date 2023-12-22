@@ -44,8 +44,6 @@ target_sources(psm
   node.cpp
   gmat.cpp
   ir_solver.cpp
-  get_power.cpp
-  get_voltage.cpp
   pdnsim.cpp
   MakePDNSim.cpp
   heatMap.cpp
@@ -63,11 +61,38 @@ target_link_libraries(psm
     odb
     OpenSTA
     dbSta
+    rsz_lib
     Eigen3::Eigen
     gui
+    pad
 )
 
 messages(
   TARGET psm
   OUTPUT_DIR ..
 )
+
+if (Python3_FOUND AND BUILD_PYTHON)
+  swig_lib(NAME          psm_py
+           NAMESPACE     psm
+           LANGUAGE      python
+           I_FILE        pdnsim-py.i
+           SWIG_INCLUDES ${PROJECT_SOURCE_DIR}/../include
+                         ${ODB_HOME}/src/swig/common
+                         ${ODB_HOME}/src/swig/python
+                         ${ODB_HOME}/include
+           SCRIPTS       ${CMAKE_CURRENT_BINARY_DIR}/psm_py.py
+  )
+
+  target_include_directories(psm_py
+    PUBLIC
+      ../include
+  )
+
+  target_link_libraries(psm_py
+    PUBLIC
+      odb
+      psm
+  )
+
+endif()

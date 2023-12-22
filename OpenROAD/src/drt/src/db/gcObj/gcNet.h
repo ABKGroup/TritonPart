@@ -26,18 +26,18 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _GC_NET_H_
-#define _GC_NET_H_
+#pragma once
 
 #include <memory>
 
 #include "db/gcObj/gcBlockObject.h"
 #include "db/gcObj/gcPin.h"
+#include "db/obj/frBlockage.h"
+#include "db/obj/frInstBlockage.h"
 #include "db/obj/frNet.h"
 
 namespace fr {
 class frNet;
-using namespace std;
 class gcNet : public gcBlockObject
 {
  public:
@@ -159,6 +159,30 @@ class gcNet : public gcBlockObject
   }
   bool hasOwner() const { return owner_; }
   frBlockObject* getOwner() const { return owner_; }
+  bool isBlockage() const
+  {
+    return hasOwner()
+           && (owner_->typeId() == frcInstBlockage
+               || owner_->typeId() == frcInst
+               || owner_->typeId() == frcBlockage);
+  }
+  frCoord getDesignRuleWidth() const
+  {
+    if (hasOwner()) {
+      switch (owner_->typeId()) {
+        case frcInstBlockage:
+          return static_cast<frInstBlockage*>(owner_)
+              ->getBlockage()
+              ->getDesignRuleWidth();
+        case frcBlockage:
+          return static_cast<frBlockage*>(owner_)->getDesignRuleWidth();
+        default:
+          return -1;
+      }
+    } else {
+      return -1;
+    }
+  }
   // others
   frBlockObjectEnum typeId() const override { return gccNet; }
 
@@ -177,12 +201,15 @@ class gcNet : public gcBlockObject
   {
     taperedRects[zIdx].push_back(bx);
   }
-  const vector<Rect>& getTaperedRects(int z) const { return taperedRects[z]; }
+  const std::vector<Rect>& getTaperedRects(int z) const
+  {
+    return taperedRects[z];
+  }
   void addNonTaperedRect(const Rect& bx, int zIdx)
   {
     nonTaperedRects[zIdx].push_back(bx);
   }
-  const vector<Rect>& getNonTaperedRects(int z) const
+  const std::vector<Rect>& getNonTaperedRects(int z) const
   {
     return nonTaperedRects[z];
   }
@@ -191,14 +218,14 @@ class gcNet : public gcBlockObject
                          gcPin* pin,
                          gcNet* net)
   {
-    unique_ptr<gcRect> sp = make_unique<gcRect>();
+    std::unique_ptr<gcRect> sp = std::make_unique<gcRect>();
     sp->setLayerNum(lNum);
     sp->addToNet(net);
     sp->addToPin(pin);
     sp->setRect(bx);
     specialSpacingRects.push_back(std::move(sp));
   }
-  const vector<unique_ptr<gcRect>>& getSpecialSpcRects() const
+  const std::vector<std::unique_ptr<gcRect>>& getSpecialSpcRects() const
   {
     return specialSpacingRects;
   }
@@ -215,6 +242,19 @@ class gcNet : public gcBlockObject
     }
     return false;
   }
+  gcCorner* getPolyCornerAt(frCoord x, frCoord y, frLayerNum ln) const
+  {
+    for (auto& pin : pins_[ln]) {
+      for (auto& corners : pin->getPolygonCorners()) {
+        for (auto& corner : corners) {
+          if (corner->x() == x && corner->y() == y) {
+            return corner.get();
+          }
+        }
+      }
+    }
+    return nullptr;
+  }
 
  private:
   std::vector<gtl::polygon_90_set_data<frCoord>>
@@ -227,14 +267,12 @@ class gcNet : public gcBlockObject
       routeRectangles_;  // only cut layer
   std::vector<std::vector<std::unique_ptr<gcPin>>> pins_;
   frBlockObject* owner_;
-  vector<vector<Rect>> taperedRects;     //(only routing layer)
-  vector<vector<Rect>> nonTaperedRects;  //(only routing layer)
+  std::vector<std::vector<Rect>> taperedRects;     //(only routing layer)
+  std::vector<std::vector<Rect>> nonTaperedRects;  //(only routing layer)
   // A non-tapered rect within a tapered max rectangle still require nondefault
   // spacing. This list hold these rectangles
-  vector<unique_ptr<gcRect>> specialSpacingRects;
+  std::vector<std::unique_ptr<gcRect>> specialSpacingRects;
 
   void init();
 };
 }  // namespace fr
-
-#endif

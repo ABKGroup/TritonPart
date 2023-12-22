@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
 #include "VerilogReader.hh"
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "Debug.hh"
 #include "Report.hh"
@@ -36,12 +36,9 @@ namespace sta {
 VerilogReader *verilog_reader;
 static const char *unconnected_net_name = reinterpret_cast<const char*>(1);
 
-static const char *
+static string
 verilogBusBitName(const char *bus_name,
-		  int index);
-static const char *
-verilogBusBitNameTmp(const char *bus_name,
-		     int index);
+                  int index);
 static int
 hierarchyLevel(Net *net,
 	       Network *network);
@@ -253,28 +250,31 @@ VerilogReader::module(Cell *cell)
 }
 
 void
-VerilogReader::makeModule(const char *name,
+VerilogReader::makeModule(const char *module_vname,
 			  VerilogNetSeq *ports,
 			  VerilogStmtSeq *stmts,
 			  int line)
 {
-  Cell *cell = network_->findCell(library_, name);
+  string module_name = moduleVerilogToSta(module_vname);
+  Cell *cell = network_->findCell(library_, module_name.c_str());
   if (cell) {
     VerilogModule *module = module_map_[cell];
     delete module;
     module_map_.erase(cell);
     network_->deleteCell(cell);
   }
-  VerilogModule *module = new VerilogModule(name, ports, stmts,
+  VerilogModule *module = new VerilogModule(module_name.c_str(),
+                                            ports, stmts,
 					    filename_, line, this);
-  cell = network_->makeCell(library_, name, false, filename_);
+  cell = network_->makeCell(library_, module_name.c_str(), false, filename_);
   module_map_[cell] = module;
   makeCellPorts(cell, module, ports);
   module_count_++;
+  stringDelete(module_vname);
 }
 
 void
-VerilogReader::makeModule(const char *name,
+VerilogReader::makeModule(const char *module_name,
 			  VerilogStmtSeq *port_dcls,
 			  VerilogStmtSeq *stmts,
 			  int line)
@@ -285,8 +285,7 @@ VerilogReader::makeModule(const char *name,
     if (dcl->isDeclaration()) {
       VerilogDcl *dcl1 = dynamic_cast<VerilogDcl*>(dcl);
       for (VerilogDclArg *arg : *dcl1->args()) {
-	const char *port_name = stringCopy(arg->netName());
-	VerilogNetNamed *port = new VerilogNetScalar(port_name);
+	VerilogNetNamed *port = new VerilogNetScalar(arg->netName());
 	ports->push_back(port);
       }
       // Add the port declarations to the statements.
@@ -294,7 +293,7 @@ VerilogReader::makeModule(const char *name,
     }
   }
   delete port_dcls;
-  makeModule(name, ports, stmts, line);
+  makeModule(module_name, ports, stmts, line);
 }
 
 void
@@ -302,26 +301,25 @@ VerilogReader::makeCellPorts(Cell *cell,
 			     VerilogModule *module,
 			     VerilogNetSeq *ports)
 {
-  StringSet port_names;
+  set<string> port_names;
   for (VerilogNet *mod_port : *ports) {
-    const char *port_name = mod_port->name();
-    if (port_names.findKey(port_name) == nullptr) {
-      port_names.insert(stringCopy(port_name));
+    const string &port_name = mod_port->name();
+    if (port_names.find(port_name) == port_names.end()) {
+      port_names.insert(port_name);
       if (mod_port->isNamed()) {
 	if (mod_port->isNamedPortRef())
 	  makeNamedPortRefCellPorts(cell, module, mod_port, port_names);
 	else
-	  makeCellPort(cell, module, mod_port->name());
+	  makeCellPort(cell, module, mod_port->name().c_str());
       }
     }
     else
       warn(165, module->filename(), module->line(),
 	   "module %s repeated port name %s.",
 	   module->name(),
-	   port_name);
+	   port_name.c_str());
   }
   checkModuleDcls(module, port_names);
-  deleteContents(&port_names);
 }
 
 Port *
@@ -353,25 +351,25 @@ void
 VerilogReader::makeNamedPortRefCellPorts(Cell *cell,
 					 VerilogModule *module,
 					 VerilogNet *mod_port,
-					 StringSet &port_names)
+					 set<string> &port_names)
 {
   PortSeq *member_ports = new PortSeq;
   VerilogNetNameIterator *net_name_iter = mod_port->nameIterator(module,this);
   while (net_name_iter->hasNext()) {
     const char *net_name = net_name_iter->next();
-    port_names.insert(stringCopy(net_name));
+    port_names.insert(net_name);
     Port *port = makeCellPort(cell, module, net_name);
     member_ports->push_back(port);
   }
   delete net_name_iter;
   // Note that the bundle does NOT have a port declaration.
-  network_->makeBundlePort(cell, mod_port->name(), member_ports);
+  network_->makeBundlePort(cell, mod_port->name().c_str(), member_ports);
 }
 
 // Make sure each declaration appears in the module port list.
 void
 VerilogReader::checkModuleDcls(VerilogModule *module,
-			       StringSet &port_names)
+			       set<string> &port_names)
 {
   VerilogDclMap::ConstIterator dcl_iter(module->declarationMap());
   while (dcl_iter.hasNext()) {
@@ -382,7 +380,7 @@ VerilogReader::checkModuleDcls(VerilogModule *module,
     if (dir->isInput()
 	|| dir->isOutput()
 	|| dir->isBidirect()) {
-      if (port_names.findKey(port_name) == nullptr)
+      if (port_names.find(port_name) == port_names.end())
 	linkWarn(197, module->filename(), module->line(),
 		 "module %s declared signal %s is not in the port list.",
 		 module->name(),
@@ -456,10 +454,13 @@ VerilogReader::makeDclBus(PortDirection *dir,
 }
 
 VerilogDclArg *
-VerilogReader::makeDclArg(const char *net_name)
+VerilogReader::makeDclArg(const char *net_vname)
 {
   dcl_arg_count_++;
-  return new VerilogDclArg(net_name);
+  string net_name = netVerilogToSta(net_vname);
+  VerilogDclArg *dcl =new VerilogDclArg(net_name.c_str());
+  stringDelete(net_vname);
+  return dcl;
 }
 
 VerilogDclArg *
@@ -470,14 +471,19 @@ VerilogReader::makeDclArg(VerilogAssign *assign)
 }
 
 VerilogNetPartSelect *
-VerilogReader::makeNetPartSelect(const char *name,
+VerilogReader::makeNetPartSelect(const char *net_vname,
 				 int from_index,
 				 int to_index)
 {
   net_part_select_count_++;
   if (report_stmt_stats_)
-    net_bus_names_ += strlen(name) + 1;
-  return new VerilogNetPartSelect(name, from_index, to_index);
+    net_bus_names_ += strlen(net_vname) + 1;
+  string net_name = netVerilogToSta(net_vname);
+  VerilogNetPartSelect *select = new VerilogNetPartSelect(net_name.c_str(),
+                                                          from_index,
+                                                          to_index);
+  stringDelete(net_vname);
+  return select;
 }
 
 VerilogNetConstant *
@@ -488,22 +494,28 @@ VerilogReader::makeNetConstant(const char *constant)
 }
 
 VerilogNetScalar *
-VerilogReader::makeNetScalar(const char *name)
+VerilogReader::makeNetScalar(const char *net_vname)
 {
   net_scalar_count_++;
   if (report_stmt_stats_)
-    net_scalar_names_ += strlen(name) + 1;
-  return new VerilogNetScalar(name);
+    net_scalar_names_ += strlen(net_vname) + 1;
+  string net_name = netVerilogToSta(net_vname);
+  VerilogNetScalar *scalar = new VerilogNetScalar(net_name.c_str());
+  stringDelete(net_vname);
+  return scalar;
 }
 
 VerilogNetBitSelect *
-VerilogReader::makeNetBitSelect(const char *name,
+VerilogReader::makeNetBitSelect(const char *net_vname,
 				int index)
 {
   net_bit_select_count_++;
   if (report_stmt_stats_)
-    net_bus_names_ += strlen(name) + 1;
-  return new VerilogNetBitSelect(name, index);
+    net_bus_names_ += strlen(net_vname) + 1;
+  string net_name = netVerilogToSta(net_vname);
+  VerilogNetBitSelect *select = new VerilogNetBitSelect(net_name.c_str(), index);
+  stringDelete(net_vname);
+  return select;
 }
 
 VerilogAssign *
@@ -516,12 +528,14 @@ VerilogReader::makeAssign(VerilogNet *lhs,
 }
 
 VerilogInst *
-VerilogReader::makeModuleInst(const char *module_name,
-			      const char *inst_name,
+VerilogReader::makeModuleInst(const char *module_vname,
+			      const char *inst_vname,
 			      VerilogNetSeq *pins,
 			      const int line)
 {
-  Cell *cell = network_->findAnyCell(module_name);
+  string module_name = moduleVerilogToSta(module_vname);
+  string inst_name = instanceVerilogToSta(inst_vname);
+  Cell *cell = network_->findAnyCell(module_name.c_str());
   LibertyCell *liberty_cell = nullptr;
   if (cell)
     liberty_cell = network_->libertyCell(cell);
@@ -536,7 +550,7 @@ VerilogReader::makeModuleInst(const char *module_name,
     for (VerilogNet *vnet : *pins) {
       VerilogNetPortRefScalarNet *vpin =
 	dynamic_cast<VerilogNetPortRefScalarNet*>(vnet);
-      const char *port_name = vpin->name();
+      const char *port_name = vpin->name().c_str();
       const char *net_name = vpin->netName();
       // Steal the net name string.
       vpin->setNetName(nullptr);
@@ -556,24 +570,29 @@ VerilogReader::makeModuleInst(const char *module_name,
       delete vpin;
       net_port_ref_scalar_net_count_--;
     }
-    VerilogInst *inst = new VerilogLibertyInst(liberty_cell, inst_name,
+    VerilogInst *inst = new VerilogLibertyInst(liberty_cell, inst_name.c_str(),
 					       net_names, line);
-    stringDelete(module_name);
     delete pins;
     if (report_stmt_stats_) {
-      inst_names_ += strlen(inst_name) + 1;
+      inst_names_ += inst_name.size() + 1;
       inst_lib_count_++;
       inst_lib_net_arrays_ += port_count;
     }
+    stringDelete(module_vname);
+    stringDelete(inst_vname);
     return inst;
   }
   else {
-    VerilogInst *inst = new VerilogModuleInst(module_name, inst_name, pins, line);
+    VerilogInst *inst = new VerilogModuleInst(module_name.c_str(),
+                                              inst_name.c_str(),
+                                              pins, line);
     if (report_stmt_stats_) {
-      inst_module_names_ += strlen(module_name) + 1;
-      inst_names_ += strlen(inst_name) + 1;
+      inst_module_names_ += module_name.size() + 1;
+      inst_names_ += inst_name.size() + 1;
       inst_mod_count_++;
     }
+    stringDelete(module_vname);
+    stringDelete(inst_vname);
     return inst;
   }
 }
@@ -586,7 +605,7 @@ VerilogReader::hasScalarNamedPortRefs(LibertyCell *liberty_cell,
       && pins->size() > 0
       && (*pins)[0]->isNamedPortRef()) {
     for (VerilogNet *vpin : *pins) {
-      const char *port_name = vpin->name();
+      const char *port_name = vpin->name().c_str();
       LibertyPort *port = liberty_cell->findLibertyPort(port_name);
       if (port) {
 	if (!(port->size() == 1
@@ -603,60 +622,95 @@ VerilogReader::hasScalarNamedPortRefs(LibertyCell *liberty_cell,
 }
 
 VerilogNetPortRef *
-VerilogReader::makeNetNamedPortRefScalarNet(const char *port_name,
-					    const char *net_name)
+VerilogReader::makeNetNamedPortRefScalarNet(const char *port_vname)
 {
   net_port_ref_scalar_net_count_++;
-  if (report_stmt_stats_) {
-    if (net_name)
-      net_scalar_names_ += strlen(net_name) + 1;
-    port_names_ += strlen(port_name) + 1;
-  }
-  return new VerilogNetPortRefScalarNet(port_name, net_name);
+  if (report_stmt_stats_)
+    port_names_ += strlen(port_vname) + 1;
+  string port_name = portVerilogToSta(port_vname);
+  VerilogNetPortRef *ref = new VerilogNetPortRefScalarNet(port_name.c_str());
+  stringDelete(port_vname);
+  return ref;
 }
 
 VerilogNetPortRef *
-VerilogReader::makeNetNamedPortRefBitSelect(const char *port_name,
-					    const char *bus_name,
+VerilogReader::makeNetNamedPortRefScalarNet(const char *port_vname,
+					    const char *net_vname)
+{
+  net_port_ref_scalar_net_count_++;
+  if (report_stmt_stats_) {
+    if (net_vname)
+      net_scalar_names_ += strlen(net_vname) + 1;
+    port_names_ += strlen(port_vname) + 1;
+  }
+  string port_name = portVerilogToSta(port_vname);
+  string net_name = netVerilogToSta(net_vname);
+  VerilogNetPortRef *ref = new VerilogNetPortRefScalarNet(port_name.c_str(),
+                                                          net_name.c_str());
+  stringDelete(port_vname);
+  stringDelete(net_vname);
+  return ref;
+}
+
+VerilogNetPortRef *
+VerilogReader::makeNetNamedPortRefBitSelect(const char *port_vname,
+					    const char *bus_vname,
 					    int index)
 {
   net_port_ref_scalar_net_count_++;
-  const char *net_name = verilogBusBitName(bus_name, index);
+  string bus_name = portVerilogToSta(bus_vname);
+  string net_name = verilogBusBitName(bus_name.c_str(), index);
   if (report_stmt_stats_) {
-    net_scalar_names_ += strlen(net_name) + 1;
-    port_names_ += strlen(port_name) + 1;
+    net_scalar_names_ += net_name.length() + 1;
+    port_names_ += strlen(port_vname) + 1;
   }
-  stringDelete(bus_name);
-  return new VerilogNetPortRefScalarNet(port_name, net_name);
+  string port_name = portVerilogToSta(port_vname);
+  VerilogNetPortRef *ref = new VerilogNetPortRefScalarNet(port_name.c_str(),
+                                                          net_name.c_str());
+  stringDelete(port_vname);
+  stringDelete(bus_vname);
+  return ref;
 }
 
 VerilogNetPortRef *
-VerilogReader::makeNetNamedPortRefScalar(const char *port_name,
+VerilogReader::makeNetNamedPortRefScalar(const char *port_vname,
 					 VerilogNet *net)
 {
   net_port_ref_scalar_count_++;
   if (report_stmt_stats_)
-    port_names_ += strlen(port_name) + 1;
-  return new VerilogNetPortRefScalar(port_name, net);
+    port_names_ += strlen(port_vname) + 1;
+  string port_name = portVerilogToSta(port_vname);
+  VerilogNetPortRef *ref = new VerilogNetPortRefScalar(port_name.c_str(), net);
+  stringDelete(port_vname);
+  return ref;
 }
 
 VerilogNetPortRef *
-VerilogReader::makeNetNamedPortRefBit(const char *port_name,
+VerilogReader::makeNetNamedPortRefBit(const char *port_vname,
 				      int index,
 				      VerilogNet *net)
 {
   net_port_ref_bit_count_++;
-  return new VerilogNetPortRefBit(port_name, index, net);
+  string port_name = portVerilogToSta(port_vname);
+  VerilogNetPortRef *ref = new VerilogNetPortRefBit(port_name.c_str(),
+                                                    index, net);
+  stringDelete(port_vname);
+  return ref;
 }
 
 VerilogNetPortRef *
-VerilogReader::makeNetNamedPortRefPart(const char *port_name,
+VerilogReader::makeNetNamedPortRefPart(const char *port_vname,
 				       int from_index,
 				       int to_index,
 				       VerilogNet *net)
 {
   net_port_ref_part_count_++;
-  return new VerilogNetPortRefPart(port_name, from_index, to_index, net);
+  string port_name = portVerilogToSta(port_vname);
+  VerilogNetPortRef *ref = new VerilogNetPortRefPart(port_name.c_str(),
+                                                     from_index,
+                                                     to_index, net);
+  stringDelete(port_vname);
+  return ref;
 }
 
 VerilogNetConcat *
@@ -741,20 +795,20 @@ VerilogReader::warn(int id,
   va_end(args);
 }
 
-const char *
+string
 VerilogReader::verilogName(VerilogModuleInst *mod_inst)
 {
   return sta::instanceVerilogName(mod_inst->instanceName(),
 				  network_->pathEscape());
 }
 
-const char *
+string
 VerilogReader::instanceVerilogName(const char *inst_name)
 {
   return sta::netVerilogName(inst_name, network_->pathEscape());
 }
 
-const char *
+string
 VerilogReader::netVerilogName(const char *net_name)
 {
   return sta::netVerilogName(net_name, network_->pathEscape());
@@ -769,7 +823,7 @@ VerilogModule::VerilogModule(const char *name,
 			     int line,
 			     VerilogReader *reader) :
   VerilogStmt(line),
-  name_(name),
+  name_(stringCopy(name)),
   filename_(filename),
   ports_(ports),
   stmts_(stmts)
@@ -827,11 +881,13 @@ VerilogModule::parseDcl(VerilogDcl *dcl,
           // supply0/supply1 dcl can be used as modifier for
           // input/output/inout dcls.
           dcl_map_[net_name] = dcl;
-        else if (!dcl->direction()->isInternal())
+        else if (!dcl->direction()->isInternal()) {
+          string net_vname = reader->netVerilogName(net_name);
           reader->warn(18, filename_, dcl->line(),
                        "signal %s previously declared on line %d.",
-                       reader->netVerilogName(net_name),
+                       net_vname.c_str(),
                        existing_dcl->line());
+        }
       }
       else
         dcl_map_[net_name] = dcl;
@@ -855,9 +911,10 @@ VerilogModule::checkInstanceName(VerilogInst *inst,
 	stringDelete(replacement_name);
       replacement_name = stringPrint("%s_%d", inst_name, i);
     } while (inst_names.findKey(replacement_name));
+    string inst_vname = reader->instanceVerilogName(inst_name);
     reader->warn(19, filename_, inst->line(),
 		 "instance name %s duplicated - renamed to %s.",
-		 reader->instanceVerilogName(inst_name),
+		 inst_vname.c_str(),
 		 replacement_name);
     inst_name = replacement_name;
     inst->setInstanceName(inst_name);
@@ -879,9 +936,9 @@ VerilogStmt::VerilogStmt(int line) :
 }
 
 VerilogInst::VerilogInst(const char *inst_name,
-				 const int line) :
+                         const int line) :
   VerilogStmt(line),
-  inst_name_(inst_name)
+  inst_name_(stringCopy(inst_name))
 {
 }
 
@@ -902,7 +959,7 @@ VerilogModuleInst::VerilogModuleInst(const char *module_name,
 				     VerilogNetSeq *pins,
 				     int line) :
   VerilogInst(inst_name, line),
-  module_name_(module_name),
+  module_name_(stringCopy(module_name)),
   pins_(pins)
 {
 }
@@ -1020,7 +1077,7 @@ VerilogDclBus::size() const
 }
 
 VerilogDclArg::VerilogDclArg(const char *net_name) :
-  net_name_(net_name),
+  net_name_(stringCopy(net_name)),
   assign_(nullptr)
 {
 }
@@ -1043,7 +1100,7 @@ VerilogDclArg::netName()
   if (net_name_)
     return net_name_;
   else if (assign_)
-    return assign_->lhs()->name();
+    return assign_->lhs()->name().c_str();
   else
     return nullptr;
 }
@@ -1077,6 +1134,7 @@ class VerilogOneNetNameIterator : public VerilogNetNameIterator
 {
 public:
   explicit VerilogOneNetNameIterator(const char *name);
+  explicit VerilogOneNetNameIterator(string name);
   virtual bool hasNext();
   virtual const char *next();
 
@@ -1117,6 +1175,7 @@ protected:
   int from_index_;
   int to_index_;
   int index_;
+  string bit_name_;
 };
 
 VerilogBusNetNameIterator::VerilogBusNetNameIterator(const char *bus_name,
@@ -1141,26 +1200,21 @@ VerilogBusNetNameIterator::hasNext()
 const char *
 VerilogBusNetNameIterator::next()
 {
-  const char *bit_name = verilogBusBitNameTmp(bus_name_, index_);
+  bit_name_ = verilogBusBitName(bus_name_, index_);
   if (to_index_ > from_index_)
     index_++;
   else
     index_--;
-  return bit_name;
+  return bit_name_.c_str();
 }
 
-static const char *
-verilogBusBitNameTmp(const char *bus_name,
-		     int index)
-{
-  return stringPrintTmp("%s[%d]", bus_name, index);
-}
-
-static const char *
+static string
 verilogBusBitName(const char *bus_name,
-		  int index)
+                  int index)
 {
-  return stringPrint("%s[%d]", bus_name, index);
+  string bus_bit_name;
+  stringPrint(bus_bit_name, "%s[%d]", bus_name, index);
+  return bus_bit_name;
 }
 
 class VerilogConstantNetNameIterator : public VerilogNetNameIterator
@@ -1263,7 +1317,15 @@ VerilogNetConcatNameIterator::next()
 
 ////////////////////////////////////////////////////////////////
 
+const string VerilogNetUnnamed::null_;
+
 VerilogNetNamed::VerilogNetNamed(const char *name) :
+  VerilogNet(),
+  name_(name)
+{
+}
+
+VerilogNetNamed::VerilogNetNamed(const string &name) :
   VerilogNet(),
   name_(name)
 {
@@ -1271,7 +1333,6 @@ VerilogNetNamed::VerilogNetNamed(const char *name) :
 
 VerilogNetNamed::~VerilogNetNamed()
 {
-  stringDelete(name_);
 }
 
 void
@@ -1300,7 +1361,7 @@ verilogNetScalarSize(const char *name,
 int
 VerilogNetScalar::size(VerilogModule *module)
 {
-  return verilogNetScalarSize(name_, module);
+  return verilogNetScalarSize(name_.c_str(), module);
 }
 
 static VerilogNetNameIterator *
@@ -1325,20 +1386,14 @@ VerilogNetNameIterator *
 VerilogNetScalar::nameIterator(VerilogModule *module,
 			       VerilogReader *)
 {
-  return verilogNetScalarNameIterator(name_, module);
+  return verilogNetScalarNameIterator(name_.c_str(), module);
 }
 
 VerilogNetBitSelect::VerilogNetBitSelect(const char *name,
 					 int index) :
-  VerilogNetNamed(name),
+  VerilogNetNamed(verilogBusBitName(name, index)),
   index_(index)
 {
-}
-
-const char *
-VerilogNetBitSelect::name()
-{
-  return verilogBusBitNameTmp(name_, index_);
 }
 
 int
@@ -1351,7 +1406,7 @@ VerilogNetNameIterator *
 VerilogNetBitSelect::nameIterator(VerilogModule *,
 				  VerilogReader *)
 {
-  return new VerilogOneNetNameIterator(verilogBusBitNameTmp(name_, index_));
+  return new VerilogOneNetNameIterator(name_.c_str());
 }
 
 VerilogNetPartSelect::VerilogNetPartSelect(const char *name,
@@ -1376,7 +1431,7 @@ VerilogNetNameIterator *
 VerilogNetPartSelect::nameIterator(VerilogModule *,
 				   VerilogReader *)
 {
-  return new VerilogBusNetNameIterator(name_, from_index_, to_index_);
+  return new VerilogBusNetNameIterator(name_.c_str(), from_index_, to_index_);
 }
 
 VerilogNetConstant::VerilogNetConstant(const char *constant,
@@ -1554,11 +1609,16 @@ VerilogNetPortRef::VerilogNetPortRef(const char *name) :
 {
 }
 
-VerilogNetPortRefScalarNet::
-VerilogNetPortRefScalarNet(const char *name,
-			   const char *net_name) :
+VerilogNetPortRefScalarNet::VerilogNetPortRefScalarNet(const char *name) :
   VerilogNetPortRef(name),
-  net_name_(net_name)
+  net_name_(nullptr)
+{
+}
+
+VerilogNetPortRefScalarNet::VerilogNetPortRefScalarNet(const char *name,
+                                                       const char *net_name) :
+  VerilogNetPortRef(name),
+  net_name_(stringCopy(net_name))
 {
 }
 
@@ -1623,14 +1683,8 @@ VerilogNetPortRefBit::VerilogNetPortRefBit(const char *name,
 					   int index,
 					   VerilogNet *net) :
   VerilogNetPortRefScalar(name, net),
-  index_(index)
+  bit_name_(verilogBusBitName(name, index))
 {
-}
-
-const char *
-VerilogNetPortRefBit::name()
-{
-  return verilogBusBitNameTmp(name_, index_);
 }
 
 VerilogNetPortRefPart::VerilogNetPortRefPart(const char *name,
@@ -1642,8 +1696,8 @@ VerilogNetPortRefPart::VerilogNetPortRefPart(const char *name,
 {
 }
 
-const char *
-VerilogNetPortRefPart::name()
+const string &
+VerilogNetPortRefPart::name() const
 {
   return name_;
 }
@@ -1725,12 +1779,12 @@ VerilogReader::linkNetwork(const char *top_cell_name,
 	return top_instance;
     }
     else {
-      report->error(190, "%s is not a verilog module.", top_cell_name);
+      report->error(274, "%s is not a verilog module.", top_cell_name);
       return nullptr;
     }
   }
   else {
-    report->error(191, "%s is not a verilog module.", top_cell_name);
+    report->error(275, "%s is not a verilog module.", top_cell_name);
     return nullptr;
   }
 }
@@ -1785,18 +1839,19 @@ VerilogReader::makeModuleInstNetwork(VerilogModuleInst *mod_inst,
   const char *module_name = mod_inst->moduleName();
   Cell *cell = network_->findAnyCell(module_name);
   if (cell == nullptr) {
+    string inst_vname = verilogName(mod_inst);
     if (make_black_boxes) {
       cell = makeBlackBox(mod_inst, parent_module);
-      linkWarn(198, filename_, mod_inst->line(),
+      linkWarn(198, parent_module->filename(), mod_inst->line(),
 	       "module %s not found. Creating black box for %s.",
 	       mod_inst->moduleName(),
-	       verilogName(mod_inst));
+	       inst_vname.c_str());
     }
     else
-      linkError(199, filename_, mod_inst->line(),
+      linkError(199, parent_module->filename(), mod_inst->line(),
 		"module %s not found for instance %s.",
 		mod_inst->moduleName(),
-		verilogName(mod_inst));
+		inst_vname.c_str());
   }
   if (cell) {
     LibertyCell *lib_cell = network_->libertyCell(cell);
@@ -1840,20 +1895,22 @@ VerilogReader::makeNamedInstPins(Cell *cell,
 				 VerilogBindingTbl *parent_bindings,
 				 bool is_leaf)
 {
+  string inst_vname = verilogName(mod_inst);
   VerilogNetSeq::Iterator pin_iter(mod_inst->pins());
   while (pin_iter.hasNext()) {
     VerilogNetPortRef *vpin = dynamic_cast<VerilogNetPortRef*>(pin_iter.next());
-    const char *port_name = vpin->name();
+    const char *port_name = vpin->name().c_str();
     Port *port = network_->findPort(cell, port_name);
     if (port) {
       if (vpin->hasNet()
-	  && network_->size(port) != vpin->size(parent_module))
+	  && network_->size(port) != vpin->size(parent_module)) {
 	linkWarn(200, parent_module->filename(), mod_inst->line(),
 		 "instance %s port %s size %d does not match net size %d.",
-		 verilogName(mod_inst),
+		 inst_vname.c_str(),
 		 network_->name(port),
 		 network_->size(port),
 		 vpin->size(parent_module));
+      }
       else {
 	VerilogNetNameIterator *net_name_iter =
 	  vpin->nameIterator(parent_module, this);
@@ -1879,11 +1936,12 @@ VerilogReader::makeNamedInstPins(Cell *cell,
       if (lib_cell)
         pg_port = lib_cell->findPgPort(port_name);
       // Do not warn about connections to pg ports (which are ignored).
-      if (pg_port == nullptr)
+      if (pg_port == nullptr) {
         linkWarn(201, parent_module->filename(), mod_inst->line(),
                  "instance %s port %s not found.",
-                 verilogName(mod_inst),
+                 inst_vname.c_str(),
                  port_name);
+      }
     }
   }
 }
@@ -1903,13 +1961,15 @@ VerilogReader::makeOrderedInstPins(Cell *cell,
   while (pin_iter.hasNext() && port_iter->hasNext()) {
     VerilogNet *net = pin_iter.next();
     Port *port = port_iter->next();
-    if (network_->size(port) != net->size(parent_module))
+    if (network_->size(port) != net->size(parent_module)) {
+      string inst_vname = verilogName(mod_inst);
       linkWarn(202, parent_module->filename(), mod_inst->line(),
 	       "instance %s port %s size %d does not match net size %d.",
-	       verilogName(mod_inst),
+	       inst_vname.c_str(),
 	       network_->name(port),
 	       network_->size(port),
 	       net->size(parent_module));
+    }
     else {
       VerilogNetNameIterator *net_name_iter=net->nameIterator(parent_module,
 							      this);
@@ -1999,9 +2059,8 @@ VerilogReader::makeLibertyInst(VerilogLibertyInst *lib_inst,
 	if (dcl && dcl->isBus()) {
 	  VerilogDclBus *dcl_bus = dynamic_cast<VerilogDclBus *>(dcl);
 	  // Bus is only 1 bit wide.
-	  const char *bus_name = verilogBusBitNameTmp(net_name,
-						      dcl_bus->fromIndex());
-	  net = parent_bindings->ensureNetBinding(bus_name, parent, network_);
+	  string bus_name = verilogBusBitName(net_name, dcl_bus->fromIndex());
+	  net = parent_bindings->ensureNetBinding(bus_name.c_str(), parent, network_);
 	}
 	else
 	  net = parent_bindings->ensureNetBinding(net_name, parent, network_);
@@ -2038,7 +2097,7 @@ VerilogReader::makeBlackBoxNamedPorts(Cell *cell,
   VerilogNetSeq::Iterator pin_iter(mod_inst->pins());
   while (pin_iter.hasNext()) {
     VerilogNetNamed *vpin = dynamic_cast<VerilogNetNamed*>(pin_iter.next());
-    const char *port_name = vpin->name();
+    const char *port_name = vpin->name().c_str();
     size_t size = vpin->size(parent_module);
     Port *port = (size == 1)
       ? network_->makePort(cell, port_name)
@@ -2228,8 +2287,8 @@ void verilogFlushBuffer();
 int
 VerilogParse_error(const char *msg)
 {
+  verilogFlushBuffer();
   sta::verilog_reader->report()->fileError(164, sta::verilog_reader->filename(),
 					   sta::verilog_reader->line(), "%s", msg);
-  verilogFlushBuffer();
   return 0;
 }

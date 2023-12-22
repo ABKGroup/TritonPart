@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,15 +19,16 @@
 #include "Map.hh"
 #include "SdcClass.hh"
 #include "StaState.hh"
+#include "Transition.hh"
 #include "SearchClass.hh"
 
 namespace sta {
 
 class ClkSkew;
 
-typedef Map<Clock*, ClkSkew*> ClkSkewMap;
+typedef Map<const Clock*, ClkSkew*> ClkSkewMap;
 
-// Find and report min clock skews.
+// Find and report clock skews between source/target registers.
 class ClkSkews : public StaState
 {
 public:
@@ -37,10 +38,13 @@ public:
 		     const Corner *corner,
 		     const SetupHold *setup_hold,
 		     int digits);
-  // Find worst clock skew.
+  // Find worst clock skew between src/target registers.
   float findWorstClkSkew(const Corner *corner,
                          const SetupHold *setup_hold);
-
+  void findClkDelays(const Clock *clk,
+                     // Return values.
+                     ClkDelays &delays);
+  
 protected:
   void findClkSkew(ClockSet *clks,
 		   const Corner *corner,

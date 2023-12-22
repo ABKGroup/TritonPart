@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,9 +17,10 @@
 #pragma once
 
 #include <stdio.h>
-#include <stdarg.h>
+#include <cstdarg>
 #include <string>
 #include <mutex>
+
 #include "Machine.hh" // __attribute__
 
 struct Tcl_Interp;

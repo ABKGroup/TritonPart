@@ -3,6 +3,9 @@ OpenSTA Timing Analyzer Release Notes
 
 This file summarizes user visible changes for each release.
 
+Release 2.4.0 2023/01/19
+-------------------------
+
 The report_parasitics_annotation command reports SPEF annotation completeness.
 
   report_parasitics_annotation [-report_unannotated]
@@ -11,6 +14,15 @@ The read_power_activities command reads a verilog vcd file and extracts
 pin activities for power analysis.
 
   read_power_activities -vcd filename
+
+The report_cell command has been removed; use report_instance.
+
+The read_liberty command latch inference (see OpenSTA.pdf) is now disabled by default.
+The -no_latch_infer flag is deprecated.
+To enable latch inference, use the -infer_latches flag.
+
+The report fanout and capacitance fields are now shown on output pin lines rather
+than net lines.
 
 Release 2.3.3 2022/09/24
 -------------------------

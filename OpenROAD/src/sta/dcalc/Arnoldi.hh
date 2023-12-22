@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
 namespace sta {
 
 struct delay_work;
-class rcmodel;
 
 class GateTableModel;
 class Pin;
@@ -71,7 +70,7 @@ public:
 
 struct timing_table
 {
-  GateTableModel *table;
+  const GateTableModel *table;
   const LibertyCell *cell;
   const Pvt *pvt;
   float in_slew;

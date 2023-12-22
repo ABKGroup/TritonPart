@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2016, Cadence Design Systems
+// Copyright 2012 - 2019, Cadence Design Systems
 //
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8.
@@ -22,7 +22,7 @@
 //
 //  $Author: dell $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2020/09/29 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -48,23 +48,21 @@
 
 #include "lefrData.hpp"
 
-using namespace std;
-
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
 #include "lef_parser.hpp"
 
 extern YYSTYPE lefyylval;
 
-inline string strip_case(const char* str)
+inline std::string strip_case(const char* str)
 {
-  string result(str);
+  std::string result(str);
 
   if (lefData->namesCaseSensitive) {
     return result;
   };
 
-  for (string::iterator p = result.begin(); result.end() != p; ++p) {
+  for (std::string::iterator p = result.begin(); result.end() != p; ++p) {
     *p = toupper(*p);
   }
 
@@ -73,7 +71,7 @@ inline string strip_case(const char* str)
 
 inline int lefGetKeyword(const char* name, int* result)
 {
-  map<const char*, int, lefCompareCStrings>::iterator search
+  std::map<const char*, int, lefCompareCStrings>::iterator search
       = lefSettings->Keyword_set.find(name);
   if (search != lefSettings->Keyword_set.end()) {
     *result = search->second;
@@ -85,7 +83,7 @@ inline int lefGetKeyword(const char* name, int* result)
 
 inline int lefGetStringDefine(const char* name, const char** value)
 {
-  map<string, string, lefCompareStrings>::iterator search
+  std::map<std::string, std::string, lefCompareStrings>::iterator search
       = lefData->defines_set.find(strip_case(name));
 
   if (search != lefData->defines_set.end()) {
@@ -97,7 +95,7 @@ inline int lefGetStringDefine(const char* name, const char** value)
 
 inline int lefGetIntDefine(const char* name, int* value)
 {
-  map<string, int, lefCompareStrings>::iterator search
+  std::map<std::string, int, lefCompareStrings>::iterator search
       = lefData->defineb_set.find(strip_case(name));
 
   if (search != lefData->defineb_set.end()) {
@@ -109,7 +107,7 @@ inline int lefGetIntDefine(const char* name, int* value)
 
 inline int lefGetDoubleDefine(const char* name, double* value)
 {
-  map<string, double, lefCompareStrings>::iterator search
+  std::map<std::string, double, lefCompareStrings>::iterator search
       = lefData->define_set.find(strip_case(name));
 
   if (search != lefData->define_set.end()) {
@@ -121,7 +119,7 @@ inline int lefGetDoubleDefine(const char* name, double* value)
 
 inline int lefGetAlias(const char* name, const char** value)
 {
-  map<string, string, lefCompareStrings>::iterator search
+  std::map<std::string, std::string, lefCompareStrings>::iterator search
       = lefData->alias_set.find(strip_case(name));
 
   if (search != lefData->alias_set.end()) {
@@ -283,7 +281,7 @@ char* qStrCopy(char* string)
 
 void lefAddStringDefine(const char* token, const char* str)
 {
-  string tmpStr((lefData->lefDefIf == TRUE) ? "" : "\"");
+  std::string tmpStr((lefData->lefDefIf == TRUE) ? "" : "\"");
 
   tmpStr += str;
 
@@ -456,7 +454,7 @@ static int GetToken(char** buffer, int* bufferSize)
 
       // 7/23/2003 - pcr 606558 - do not allow \n in a string instead
       // of ;
-      if (ch == '\n') {
+      if ((ch == '\n')) {
         print_nlines(++lefData->lef_nlines);
         // 2/2/2007 - PCR 909714, allow string to go more than 1 line
         //            continue to parse
@@ -554,7 +552,7 @@ void lefuc_array(char* source, char* dest)
 
 void lefStoreAlias()
 {
-  string so_far;  // contains alias contents as we build it
+  std::string so_far;  // contains alias contents as we build it
 
   int tokenSize = 10240;
   char* aname = (char*) malloc(tokenSize);
@@ -731,7 +729,9 @@ int lefsublex()
     return 0;
   }
 
-  if (lefData->ge56almostDone && (strcmp(lefData->current_token, "END") == 0)) {
+  if (lefData->ge56almostDone
+      && (strcmp(lefData->current_token, "END") == 0
+          || strcmp(lefData->current_token, "BEGINEXT") == 0)) {
     // Library has BEGINEXT and also end with END LIBRARY
     // Use END LIBRARY to indicate the end of the library
     lefData->ge56almostDone = 0;
@@ -739,10 +739,10 @@ int lefsublex()
 
   if ((lefData->doneLib && lefData->versionNum < 5.6)
       ||  // END LIBRARY is passed for pre 5.6
-      (lefData->ge56almostDone && (strcmp(lefData->current_token, "END")))
-      ||  // after EXT, not
-      // follow by END
-      (lefData->ge56done)) {  // END LIBRARY is passed for >= 5.6
+      ((lefData->ge56almostDone && strcmp(lefData->current_token, "END")
+        && strcmp(lefData->current_token, "BEGINEXT"))
+       ||                     // after EXT, not follow by END
+       lefData->ge56done)) {  // END LIBRARY is passed for >= 5.6
     fc = EOF;
     lefInfo(3000, "There are still data after the END LIBRARY");
     return 0;
@@ -1346,7 +1346,7 @@ void* lefMalloc(size_t lef_size)
 {
   void* mallocVar;
 
-  if (lefSettings && lefSettings->MallocFunction)
+  if (lefSettings->MallocFunction)
     return (*lefSettings->MallocFunction)(lef_size);
   else {
     mallocVar = (void*) malloc(lef_size);
@@ -1369,7 +1369,7 @@ void* lefRealloc(void* name, size_t lef_size)
 
 void lefFree(void* name)
 {
-  if (lefSettings && lefSettings->FreeFunction)
+  if (lefSettings->FreeFunction)
     (*lefSettings->FreeFunction)(name);
   else
     free(name);

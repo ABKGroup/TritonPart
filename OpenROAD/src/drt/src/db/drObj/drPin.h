@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _DR_PIN_H
-#define _DR_PIN_H
+#pragma once
 
 #include "db/drObj/drAccessPattern.h"
 #include "db/drObj/drBlockObject.h"
@@ -37,7 +36,6 @@
 
 namespace fr {
 class drNet;
-using namespace std;
 class drPin : public drBlockObject
 {
  public:
@@ -70,8 +68,12 @@ class drPin : public drBlockObject
                   std::numeric_limits<frMIdx>::min());
     for (auto& ap : getAccessPatterns()) {
       FlexMazeIdx mi = ap->getMazeIdx();
-      l.set(min(l.x(), mi.x()), min(l.y(), mi.y()), min(l.z(), mi.z()));
-      h.set(max(h.x(), mi.x()), max(h.y(), mi.y()), max(h.z(), mi.z()));
+      l.set(std::min(l.x(), mi.x()),
+            std::min(l.y(), mi.y()),
+            std::min(l.z(), mi.z()));
+      h.set(std::max(h.x(), mi.x()),
+            std::max(h.y(), mi.y()),
+            std::max(h.z(), mi.z()));
     }
     return {l, h};
   }
@@ -97,5 +99,3 @@ class drPin : public drBlockObject
   friend class boost::serialization::access;
 };
 }  // namespace fr
-
-#endif

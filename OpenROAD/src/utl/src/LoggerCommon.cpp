@@ -55,31 +55,37 @@ void report(const char* msg)
 void info(utl::ToolId tool, int id, const char* msg)
 {
   Logger* logger = getLogger();
-  logger->info(tool, id, msg);
+  logger->info(tool, id, "{}", msg);
 }
 
 void warn(utl::ToolId tool, int id, const char* msg)
 {
   Logger* logger = getLogger();
-  logger->warn(tool, id, msg);
+  logger->warn(tool, id, "{}", msg);
 }
 
 void error(utl::ToolId tool, int id, const char* msg)
 {
   Logger* logger = getLogger();
-  logger->error(tool, id, msg);
+  logger->error(tool, id, "{}", msg);
 }
 
 void critical(utl::ToolId tool, int id, const char* msg)
 {
   Logger* logger = getLogger();
-  logger->critical(tool, id, msg);
+  logger->critical(tool, id, "{}", msg);
 }
 
 void open_metrics(const char* metrics_filename)
 {
   Logger* logger = getLogger();
   logger->addMetricsSink(metrics_filename);
+}
+
+void close_metrics(const char* metrics_filename)
+{
+  Logger* logger = getLogger();
+  logger->removeMetricsSink(metrics_filename);
 }
 
 void metric(const char* metric, const char* value)
@@ -94,7 +100,7 @@ void metric_integer(const char* metric, const int value)
   logger->metric(metric, value);
 }
 
-void metric_float(const char* metric, const float value)
+void metric_float(const char* metric, const double value)
 {
   Logger* logger = getLogger();
   logger->metric(metric, value);
@@ -118,16 +124,22 @@ void push_metrics_stage(const char* fmt)
   logger->pushMetricsStage(fmt);
 }
 
-void pop_metrics_stage()
+std::string pop_metrics_stage()
 {
   Logger* logger = getLogger();
-  logger->popMetricsStage();
+  return logger->popMetricsStage();
 }
 
 void suppress_message(utl::ToolId tool, int id)
 {
   Logger* logger = getLogger();
   logger->suppressMessage(tool, id);
+}
+
+void unsuppress_message(utl::ToolId tool, int id)
+{
+  Logger* logger = getLogger();
+  logger->unsuppressMessage(tool, id);
 }
 
 }  // namespace utl

@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "PatternMatch.hh"
-#include <string.h>
+#include <cstring>
 #include <tcl.h>
 
 namespace sta {
@@ -57,6 +57,18 @@ PatternMatch::PatternMatch(const char *pattern,
     compileRegexp();
 }
 
+PatternMatch::PatternMatch(const string &pattern,
+			   const PatternMatch *inherit_from) :
+  pattern_(pattern.c_str()),
+  is_regexp_(inherit_from->is_regexp_),
+  nocase_(inherit_from->nocase_),
+  interp_(inherit_from->interp_),
+  regexp_(nullptr)
+{
+  if (is_regexp_)
+    compileRegexp();
+}
+
 void
 PatternMatch::compileRegexp()
 {
@@ -87,6 +99,12 @@ PatternMatch::hasWildcards() const
     return regexpWildcards(pattern_);
   else
     return patternWildcards(pattern_);
+}
+
+bool
+PatternMatch::match(const string &str) const
+{
+  return match(str.c_str());
 }
 
 bool

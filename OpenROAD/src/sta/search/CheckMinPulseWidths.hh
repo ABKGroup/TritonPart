@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -78,8 +78,8 @@ public:
   Arrival openDelay(const StaState *sta) const;
   Arrival closeDelay(const StaState *sta) const;
   float closeOffset(const StaState *sta) const;
-  ClockEdge *openClkEdge(const StaState *sta) const;
-  ClockEdge *closeClkEdge(const StaState *sta) const;
+  const ClockEdge *openClkEdge(const StaState *sta) const;
+  const ClockEdge *closeClkEdge(const StaState *sta) const;
   Crpr commonClkPessimism(const StaState *sta) const;
 
 protected:

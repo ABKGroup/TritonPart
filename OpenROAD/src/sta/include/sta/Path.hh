@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -47,8 +47,8 @@ public:
   virtual Tag *tag(const StaState *sta) const = 0;
   virtual TagIndex tagIndex(const StaState *sta) const;
   virtual ClkInfo *clkInfo(const StaState *sta) const;
-  virtual ClockEdge *clkEdge(const StaState *sta) const;
-  virtual Clock *clock(const StaState *sta) const;
+  virtual const ClockEdge *clkEdge(const StaState *sta) const;
+  virtual const Clock *clock(const StaState *sta) const;
   virtual bool isClock(const StaState *sta) const;
   virtual const RiseFall *transition(const StaState *sta) const = 0;
   virtual int rfIndex(const StaState *sta) const;

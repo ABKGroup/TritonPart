@@ -26,67 +26,23 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FLEX_WF_H
-#define _FLEX_WF_H
+#pragma once
 
 #include <bitset>
 #include <memory>
 #include <queue>
-#include <vector>
 
 #include "dr/FlexMazeTypes.h"
 #include "frBaseTypes.h"
 #include "global.h"
-//#include <boost/pool/pool_alloc.hpp>
 
 namespace fr {
 class FlexWavefrontGrid
 {
  public:
-  FlexWavefrontGrid()
-      : xIdx_(-1),
-        yIdx_(-1),
-        zIdx_(-1),
-        pathCost_(0),
-        cost_(0),
-        layerPathArea_(0),
-        vLengthX_(std::numeric_limits<frCoord>::max()),
-        vLengthY_(std::numeric_limits<frCoord>::max()),
-        dist_(0),
-        prevViaUp_(false),
-        tLength_(std::numeric_limits<frCoord>::max()),
-        backTraceBuffer_()
-  {
-  }
   FlexWavefrontGrid(int xIn,
                     int yIn,
                     int zIn,
-                    frCoord layerPathAreaIn,
-                    frCoord vLengthXIn,
-                    frCoord vLengthYIn,
-                    bool prevViaUpIn,
-                    frCoord tLengthIn,
-                    frCoord distIn,
-                    frCost pathCostIn,
-                    frCost costIn /*, frDirEnum preTurnDirIn*/)
-      : xIdx_(xIn),
-        yIdx_(yIn),
-        zIdx_(zIn),
-        pathCost_(pathCostIn),
-        cost_(costIn),
-        layerPathArea_(layerPathAreaIn),
-        vLengthX_(vLengthXIn),
-        vLengthY_(vLengthYIn),
-        dist_(distIn),
-        prevViaUp_(prevViaUpIn),
-        tLength_(tLengthIn),
-        backTraceBuffer_()
-  {
-  }
-  FlexWavefrontGrid(int xIn,
-                    int yIn,
-                    int zIn,
-                    frCoord layerPathAreaIn,
                     frCoord vLengthXIn,
                     frCoord vLengthYIn,
                     bool prevViaUpIn,
@@ -94,13 +50,12 @@ class FlexWavefrontGrid
                     frCoord distIn,
                     frCost pathCostIn,
                     frCost costIn,
-                    std::bitset<WAVEFRONTBITSIZE> backTraceBufferIn)
+                    const std::bitset<WAVEFRONTBITSIZE>& backTraceBufferIn = {})
       : xIdx_(xIn),
         yIdx_(yIn),
         zIdx_(zIn),
         pathCost_(pathCostIn),
         cost_(costIn),
-        layerPathArea_(layerPathAreaIn),
         vLengthX_(vLengthXIn),
         vLengthY_(vLengthYIn),
         dist_(distIn),
@@ -113,18 +68,15 @@ class FlexWavefrontGrid
   {
     if (cost_ != b.cost_) {
       return cost_ > b.cost_;  // prefer smaller cost
-    } else {
-      if (dist_ != b.dist_) {
-        return dist_ > b.dist_;  // prefer routing close to pin gravity center
-                                 // (centerPt)
-      } else {
-        if (zIdx_ != b.zIdx_) {
-          return zIdx_ < b.zIdx_;  // prefer upper layer
-        } else {
-          return pathCost_ < b.pathCost_;  // prefer larger pathcost, DFS-style
-        }
-      }
     }
+    if (dist_ != b.dist_) {
+      return dist_ > b.dist_;  // prefer routing close to pin gravity center
+                               // (centerPt)
+    }
+    if (zIdx_ != b.zIdx_) {
+      return zIdx_ < b.zIdx_;  // prefer upper layer
+    }
+    return pathCost_ < b.pathCost_;  // prefer larger pathcost, DFS-style
   }
   // getters
   frMIdx x() const { return xIdx_; }
@@ -132,11 +84,10 @@ class FlexWavefrontGrid
   frMIdx z() const { return zIdx_; }
   frCost getPathCost() const { return pathCost_; }
   frCost getCost() const { return cost_; }
-  std::bitset<WAVEFRONTBITSIZE> getBackTraceBuffer() const
+  const std::bitset<WAVEFRONTBITSIZE>& getBackTraceBuffer() const
   {
     return backTraceBuffer_;
   }
-  frCoord getLayerPathArea() const { return layerPathArea_; }
   frCoord getLength() const { return vLengthX_; }
   void getVLength(frCoord& vLengthXIn, frCoord& vLengthYIn) const
   {
@@ -146,8 +97,6 @@ class FlexWavefrontGrid
   bool isPrevViaUp() const { return prevViaUp_; }
   frCoord getTLength() const { return tLength_; }
   // setters
-  void addLayerPathArea(frCoord in) { layerPathArea_ += in; }
-  void resetLayerPathArea() { layerPathArea_ = 0; }
 
   void resetLength()
   {
@@ -181,7 +130,6 @@ class FlexWavefrontGrid
   frMIdx xIdx_, yIdx_, zIdx_;
   frCost pathCost_;  // path cost
   frCost cost_;      // path + est cost
-  frCoord layerPathArea_;
   frCoord vLengthX_;
   frCoord vLengthY_;
   frCoord dist_;  // to maze center
@@ -200,7 +148,6 @@ class myPriorityQueue : public std::priority_queue<FlexWavefrontGrid>
     this->c.clear();
     this->c.shrink_to_fit();
   }
-  void init(int val) { this->c.reserve(val); }
 };
 
 class FlexWavefront
@@ -218,5 +165,3 @@ class FlexWavefront
   myPriorityQueue wavefrontPQ_;
 };
 }  // namespace fr
-
-#endif

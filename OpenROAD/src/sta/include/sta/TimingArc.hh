@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -105,8 +105,8 @@ public:
   void setModeName(const char *name);
   const char *modeValue() const { return mode_value_; }
   void setModeValue(const char *value);
-  TimingModel *model(RiseFall *rf) const;
-  void setModel(RiseFall *rf,
+  TimingModel *model(const RiseFall *rf) const;
+  void setModel(const RiseFall *rf,
 		TimingModel *model);
   float ocvArcDepth() const { return ocv_arc_depth_; }
   void setOcvArcDepth(float depth);
@@ -239,7 +239,7 @@ public:
   unsigned index() const { return index_; }
   TimingModel *model(const OperatingConditions *op_cond) const;
   TimingModel *model() const { return model_; }
-  TimingArc *cornerArc(int ap_index);
+  const TimingArc *cornerArc(int ap_index) const;
   void setCornerArc(TimingArc *corner_arc,
 		    int ap_index);
   float driveResistance() const;

@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,16 +21,17 @@
 
 namespace sta {
 
-GateLinearModel::GateLinearModel(float intrinsic,
+GateLinearModel::GateLinearModel(LibertyCell *cell,
+                                 float intrinsic,
 				 float resistance) :
+  GateTimingModel(cell),
   intrinsic_(intrinsic),
   resistance_(resistance)
 {
 }
 
 void
-GateLinearModel::gateDelay(const LibertyCell *,
-			   const Pvt *,
+GateLinearModel::gateDelay(const Pvt *,
 			   float,
 			   float load_cap,
 			   float,
@@ -43,35 +44,33 @@ GateLinearModel::gateDelay(const LibertyCell *,
   drvr_slew = 0.0;
 }
 
-void
-GateLinearModel::reportGateDelay(const LibertyCell *cell,
-				 const Pvt *,
+string
+GateLinearModel::reportGateDelay(const Pvt *,
 				 float,
 				 float load_cap,
 				 float,
 				 bool,
-				 int digits,
-				 string *result) const
+				 int digits) const
 {
-  const LibertyLibrary *library = cell->libertyLibrary();
+  const LibertyLibrary *library = cell_->libertyLibrary();
   const Units *units = library->units();
   const Unit *time_unit = units->timeUnit();
   const Unit *res_unit = units->resistanceUnit();
   const Unit *cap_unit = units->capacitanceUnit();
-  *result += "Delay = ";
-  *result += time_unit->asString(intrinsic_, digits);
-  *result += " + ";
-  *result += res_unit->asString(resistance_, digits);
-  *result += " * ";
-  *result += cap_unit->asString(load_cap, digits);
-  *result += " = ";
+  string result = "Delay = ";
+  result += time_unit->asString(intrinsic_, digits);
+  result += " + ";
+  result += res_unit->asString(resistance_, digits);
+  result += " * ";
+  result += cap_unit->asString(load_cap, digits);
+  result += " = ";
   float delay = intrinsic_ + resistance_ * load_cap;
-  *result += time_unit->asString(delay, digits);
+  result += time_unit->asString(delay, digits);
+  return result;
 }
 
 float
-GateLinearModel::driveResistance(const LibertyCell *,
-				 const Pvt *) const
+GateLinearModel::driveResistance(const Pvt *) const
 {
   return resistance_;
 }
@@ -81,14 +80,15 @@ GateLinearModel::setIsScaled(bool)
 {
 }
 
-CheckLinearModel::CheckLinearModel(float intrinsic) :
+CheckLinearModel::CheckLinearModel(LibertyCell *cell,
+                                   float intrinsic) :
+  CheckTimingModel(cell),
   intrinsic_(intrinsic)
 {
 }
 
 void
-CheckLinearModel::checkDelay(const LibertyCell *,
-			     const Pvt *,
+CheckLinearModel::checkDelay(const Pvt *,
 			     float,
 			     float,
 			     float,
@@ -98,22 +98,21 @@ CheckLinearModel::checkDelay(const LibertyCell *,
   margin = intrinsic_;
 }
 
-void
-CheckLinearModel::reportCheckDelay(const LibertyCell *cell,
-				   const Pvt *,
+string
+CheckLinearModel::reportCheckDelay(const Pvt *,
 				   float,
 				   const char *,
 				   float,
 				   float,
 				   bool,
-				   int digits,
-				   string *result) const
+				   int digits) const
 {
-  const LibertyLibrary *library = cell->libertyLibrary();
+  const LibertyLibrary *library = cell_->libertyLibrary();
   const Units *units = library->units();
   const Unit *time_unit = units->timeUnit();
-  *result += "Check = ";
-  *result += time_unit->asString(intrinsic_, digits);
+  string result = "Check = ";
+  result += time_unit->asString(intrinsic_, digits);
+  return result;
 }
 
 void

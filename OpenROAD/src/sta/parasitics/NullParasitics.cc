@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ NullParasitics::deleteDrvrReducedParasitics(const Pin *)
 }
 
 float
-NullParasitics::capacitance(Parasitic *) const
+NullParasitics::capacitance(const Parasitic *) const
 {
   return 0.0;
 }
@@ -97,13 +97,13 @@ NullParasitics::makePiElmore(const Pin *,
 }
 
 bool
-NullParasitics::isPiElmore(Parasitic *) const
+NullParasitics::isPiElmore(const Parasitic *) const
 {
   return false;
 }
 
 bool
-NullParasitics::isReducedParasiticNetwork(Parasitic *) const
+NullParasitics::isReducedParasiticNetwork(const Parasitic *) const
 {
   return false;
 }
@@ -115,7 +115,7 @@ NullParasitics::setIsReducedParasiticNetwork(Parasitic *,
 }
 
 void
-NullParasitics::piModel(Parasitic *,
+NullParasitics::piModel(const Parasitic *,
 			float &,
 			float &,
 			float &) const
@@ -131,7 +131,7 @@ NullParasitics::setPiModel(Parasitic *,
 }
 
 void
-NullParasitics::findElmore(Parasitic *,
+NullParasitics::findElmore(const Parasitic *,
 			   const Pin *,
 			   float &,
 			   bool &) const
@@ -146,13 +146,13 @@ NullParasitics::setElmore(Parasitic *,
 }
 
 bool
-NullParasitics::isPiModel(Parasitic*) const
+NullParasitics::isPiModel(const Parasitic*) const
 {
   return false;
 }
 
 bool
-NullParasitics::isPiPoleResidue(Parasitic* ) const
+NullParasitics::isPiPoleResidue(const Parasitic* ) const
 {
   return false;
 }
@@ -212,7 +212,7 @@ NullParasitics::poleResidue(const Parasitic *,
 }
 
 bool
-NullParasitics::isParasiticNetwork(Parasitic *) const
+NullParasitics::isParasiticNetwork(const Parasitic *) const
 {
   return false;
 }
@@ -240,7 +240,7 @@ NullParasitics::makeParasiticNetwork(const Net *,
 }
 
 bool
-NullParasitics::includesPinCaps(Parasitic *) const
+NullParasitics::includesPinCaps(const Parasitic *) const
 {
   return false;
 }
@@ -327,7 +327,7 @@ NullParasitics::connectionPin(const ParasiticNode *) const
 }
 
 ParasiticNode *
-NullParasitics::findNode(Parasitic *,
+NullParasitics::findNode(const Parasitic *,
 			 const Pin *) const
 {
   return nullptr;
@@ -391,7 +391,7 @@ NullParasitics::otherNode(const ParasiticDevice *,
 }
 
 void
-NullParasitics::reduceTo(Parasitic *,
+NullParasitics::reduceTo(const Parasitic *,
 			 const Net *,
 			 ReducedParasiticType ,
 			 const OperatingConditions *,
@@ -402,7 +402,7 @@ NullParasitics::reduceTo(Parasitic *,
 }
 
 void
-NullParasitics::reduceToPiElmore(Parasitic *,
+NullParasitics::reduceToPiElmore(const Parasitic *,
 				 const Net *,
 				 const OperatingConditions *,
 				 const Corner *,
@@ -412,7 +412,7 @@ NullParasitics::reduceToPiElmore(Parasitic *,
 }
 
 void
-NullParasitics::reduceToPiElmore(Parasitic *,
+NullParasitics::reduceToPiElmore(const Parasitic *,
 				 const Pin *,
 				 const OperatingConditions *,
 				 const Corner *,
@@ -422,7 +422,7 @@ NullParasitics::reduceToPiElmore(Parasitic *,
 }
 
 void
-NullParasitics::reduceToPiPoleResidue2(Parasitic *, const Net *,
+NullParasitics::reduceToPiPoleResidue2(const Parasitic *, const Net *,
 				       const OperatingConditions *,
 				       const Corner *,
 				       const MinMax *,
@@ -431,7 +431,7 @@ NullParasitics::reduceToPiPoleResidue2(Parasitic *, const Net *,
 }
 
 void
-NullParasitics::reduceToPiPoleResidue2(Parasitic *,
+NullParasitics::reduceToPiPoleResidue2(const Parasitic *,
 				       const Pin *,
 				       const OperatingConditions *,
 				       const Corner *,

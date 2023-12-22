@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,9 +16,9 @@
 
 #include "WriteSdc.hh"
 
-#include <stdio.h>
+#include <cstdio>
 #include <algorithm>
-#include <time.h>
+#include <ctime>
 
 #include "Zlib.hh"
 #include "Report.hh"
@@ -46,6 +46,7 @@
 #include "Sdc.hh"
 #include "Fuzzy.hh"
 #include "StaState.hh"
+#include "Corner.hh"
 #include "WriteSdcPvt.hh"
 
 namespace sta {
@@ -465,10 +466,9 @@ WriteSdc::writeGeneratedClock(Clock *clk) const
 }
 
 void
-WriteSdc::writeClockPins(Clock *clk) const
+WriteSdc::writeClockPins(const Clock *clk) const
 {
-  // Sort pins.
-  PinSet &pins = clk->pins();
+  const PinSet &pins = clk->pins();
   if (!pins.empty()) {
     if (pins.size() > 1)
       gzprintf(stream_, "\\\n    ");
@@ -477,16 +477,16 @@ WriteSdc::writeClockPins(Clock *clk) const
 }
 
 void
-WriteSdc::writeClockSlews(Clock *clk) const
+WriteSdc::writeClockSlews(const Clock *clk) const
 {
   WriteGetClock write_clk(clk, this);
-  RiseFallMinMax *slews = clk->slews();
-  if (slews->hasValue())
-    writeRiseFallMinMaxTimeCmd("set_clock_transition", slews, write_clk);
+  const RiseFallMinMax slews = clk->slews();
+  if (slews.hasValue())
+    writeRiseFallMinMaxTimeCmd("set_clock_transition", &slews, write_clk);
 }
 
 void
-WriteSdc::writeClockUncertainty(Clock *clk) const
+WriteSdc::writeClockUncertainty(const Clock *clk) const
 {
   float setup;
   bool setup_exists;
@@ -505,7 +505,7 @@ WriteSdc::writeClockUncertainty(Clock *clk) const
 }
 
 void
-WriteSdc::writeClockUncertainty(Clock *clk,
+WriteSdc::writeClockUncertainty(const Clock *clk,
 				const char *setup_hold,
 				float value) const
 {
@@ -587,9 +587,7 @@ WriteSdc::writeClockLatencies() const
 void
 WriteSdc::writeClockInsertions() const
 {
-  ClockInsertions::Iterator insert_iter(sdc_->clockInsertions());
-  while (insert_iter.hasNext()) {
-    ClockInsertion *insert = insert_iter.next();
+  for (ClockInsertion *insert : sdc_->clockInsertions()) {
     const Pin *pin = insert->pin();
     const Clock *clk = insert->clock();
     if (pin && clk) {
@@ -720,14 +718,10 @@ WriteSdc::writeOutputDelays() const
   for (OutputDelay *output_delay : sdc_->outputDelays())
     delays.push_back(output_delay);
 
-  PortDelayLess port_delay_less(sdc_network_);
-  sort(delays, port_delay_less);
+  sort(delays, PortDelayLess(sdc_network_));
 
-  PortDelaySeq::Iterator delay_iter(delays);
-  while (delay_iter.hasNext()) {
-    PortDelay *output_delay = delay_iter.next();
+  for (PortDelay *output_delay : delays) 
     writePortDelay(output_delay, false, "set_output_delay");
-  }
 }
 
 void
@@ -804,7 +798,7 @@ WriteSdc::writePortDelay(PortDelay *port_delay,
 {
   gzprintf(stream_, "%s ", sdc_cmd);
   writeTime(delay);
-  ClockEdge *clk_edge = port_delay->clkEdge();
+  const ClockEdge *clk_edge = port_delay->clkEdge();
   if (clk_edge) {
     writeClockKey(clk_edge->clock());
     if (clk_edge->transition() == RiseFall::fall())
@@ -813,7 +807,7 @@ WriteSdc::writePortDelay(PortDelay *port_delay,
   gzprintf(stream_, "%s%s -add_delay ",
 	  transRiseFallFlag(rf),
 	  minMaxFlag(min_max));
-  Pin *ref_pin = port_delay->refPin();
+  const Pin *ref_pin = port_delay->refPin();
   if (ref_pin) {
     gzprintf(stream_, "-reference_pin ");
     writeGetPin(ref_pin, true);
@@ -907,24 +901,21 @@ bool
 ClockGroupLess::operator()(const ClockGroup *clk_group1,
 			   const ClockGroup *clk_group2) const
 {
-  ClockSet *clk_set1 = clk_group1->clks();
-  ClockSet *clk_set2 = clk_group2->clks();
-  size_t size1 = clk_set1->size();
-  size_t size2 = clk_set2->size();
+  size_t size1 = clk_group1->size();
+  size_t size2 = clk_group2->size();
   if (size1 < size2)
     return true;
   else if (size1 > size2)
     return false;
   else {
-    ClockSeq clks1, clks2;
-    ClockSet::Iterator clk_iter1(clk_set1);
-    while (clk_iter1.hasNext())
-      clks1.push_back(clk_iter1.next());
+    ClockSeq clks1;
+    for (Clock *clk1 : *clk_group1)
+      clks1.push_back(clk1);
     sort(clks1, ClockNameLess());
 
-    ClockSet::Iterator clk_iter2(clk_set2);
-    while (clk_iter2.hasNext())
-      clks2.push_back(clk_iter2.next());
+    ClockSeq clks2;
+    for (Clock *clk2 : *clk_group2)
+      clks2.push_back(clk2);
     sort(clks2, ClockNameLess());
 
     ClockSeq::Iterator clk_iter3(clks1);
@@ -946,7 +937,7 @@ ClockGroupLess::operator()(const ClockGroup *clk_group1,
 void
 WriteSdc::writeClockGroups() const
 {
-  for (auto name_groups : sdc_->clk_groups_name_map_) {
+  for (auto &name_groups : sdc_->clk_groups_name_map_) {
     ClockGroups *clk_groups = name_groups.second;
     writeClockGroups(clk_groups);
   }
@@ -978,7 +969,7 @@ WriteSdc::writeClockGroups(ClockGroups *clk_groups) const
     if (!first)
       gzprintf(stream_, "\\\n");
     gzprintf(stream_, " -group ");
-    writeGetClocks(clk_group->clks());
+    writeGetClocks(clk_group);
     first = false;
   }
   writeCmdComment(clk_groups);
@@ -1001,25 +992,19 @@ WriteSdc::writeDisables() const
 void
 WriteSdc::writeDisabledCells() const
 {
-  DisabledCellPortsSeq disables;
-  sortDisabledCellPortsMap(sdc_->disabledCellPorts(), disables);
-  DisabledCellPortsSeq::Iterator disabled_iter(disables);
-  while (disabled_iter.hasNext()) {
-    DisabledCellPorts *disable = disabled_iter.next();
-    LibertyCell *cell = disable->cell();
+  DisabledCellPortsSeq disables = sortByName(sdc_->disabledCellPorts());
+  for (const DisabledCellPorts *disable : disables) {
+    const LibertyCell *cell = disable->cell();
     if (disable->all()) {
       gzprintf(stream_, "set_disable_timing ");
       writeGetLibCell(cell);
       gzprintf(stream_, "\n");
     }
     if (disable->fromTo()) {
-      LibertyPortPairSeq pairs;
-      sortLibertyPortPairSet(disable->fromTo(), pairs);
-      LibertyPortPairSeq::Iterator pair_iter(pairs);
-      while (pair_iter.hasNext()) {
-	LibertyPortPair *from_to = pair_iter.next();
-	const LibertyPort *from = from_to->first;
-	const LibertyPort *to = from_to->second;
+      LibertyPortPairSeq from_tos = sortByName(disable->fromTo());
+      for (const LibertyPortPair &from_to : from_tos) {
+	const LibertyPort *from = from_to.first;
+	const LibertyPort *to = from_to.second;
 	gzprintf(stream_, "set_disable_timing -from {%s} -to {%s} ",
 		from->name(),
 		to->name());
@@ -1028,11 +1013,8 @@ WriteSdc::writeDisabledCells() const
       }
     }
     if (disable->from()) {
-      LibertyPortSeq from;
-      sortLibertyPortSet(disable->from(), from);
-      LibertyPortSeq::Iterator from_iter(from);
-      while (from_iter.hasNext()) {
-	LibertyPort *from_port = from_iter.next();
+      LibertyPortSeq from = sortByName(disable->from());
+      for (const LibertyPort *from_port : from) {
 	gzprintf(stream_, "set_disable_timing -from {%s} ",
 		from_port->name());
 	writeGetLibCell(cell);
@@ -1040,11 +1022,8 @@ WriteSdc::writeDisabledCells() const
       }
     }
     if (disable->to()) {
-      LibertyPortSeq to;
-      sortLibertyPortSet(disable->to(), to);
-      LibertyPortSeq::Iterator to_iter(to);
-      while (to_iter.hasNext()) {
-	LibertyPort *to_port = to_iter.next();
+      LibertyPortSeq to = sortByName(disable->to());
+      for (const LibertyPort *to_port : to) {
 	gzprintf(stream_, "set_disable_timing -to {%s} ",
 		to_port->name());
 	writeGetLibCell(cell);
@@ -1064,11 +1043,8 @@ WriteSdc::writeDisabledCells() const
 void
 WriteSdc::writeDisabledPorts() const
 {
-  PortSeq ports;
-  sortPortSet(sdc_->disabledPorts(), sdc_network_, ports);
-  PortSeq::Iterator port_iter(ports);
-  while (port_iter.hasNext()) {
-    Port *port = port_iter.next();
+  const PortSeq ports = sortByName(sdc_->disabledPorts(), sdc_network_);
+  for (const Port *port : ports) {
     gzprintf(stream_, "set_disable_timing ");
     writeGetPort(port);
     gzprintf(stream_, "\n");
@@ -1078,11 +1054,8 @@ WriteSdc::writeDisabledPorts() const
 void
 WriteSdc::writeDisabledLibPorts() const
 {
-  LibertyPortSeq ports;
-  sortLibertyPortSet(sdc_->disabledLibPorts(), ports);
-  LibertyPortSeq::Iterator port_iter(ports);
-  while (port_iter.hasNext()) {
-    LibertyPort *port = port_iter.next();
+  LibertyPortSeq ports = sortByName(sdc_->disabledLibPorts());
+  for (LibertyPort *port : ports) {
     gzprintf(stream_, "set_disable_timing ");
     writeGetLibPin(port);
     gzprintf(stream_, "\n");
@@ -1092,12 +1065,9 @@ WriteSdc::writeDisabledLibPorts() const
 void
 WriteSdc::writeDisabledInstances() const
 {
-  DisabledInstancePortsSeq disables;
-  sortDisabledInstancePortsMap(sdc_->disabledInstancePorts(),
-			       sdc_network_, disables);
-  DisabledInstancePortsSeq::Iterator disabled_iter(disables);
-  while (disabled_iter.hasNext()) {
-    DisabledInstancePorts *disable = disabled_iter.next();
+  DisabledInstancePortsSeq disables = sortByPathName(sdc_->disabledInstancePorts(),
+                                                     sdc_network_);
+  for (DisabledInstancePorts *disable : disables) {
     Instance *inst = disable->instance();
     if (disable->all()) {
       gzprintf(stream_, "set_disable_timing ");
@@ -1105,13 +1075,10 @@ WriteSdc::writeDisabledInstances() const
       gzprintf(stream_, "\n");
     }
     else if (disable->fromTo()) {
-      LibertyPortPairSeq pairs;
-      sortLibertyPortPairSet(disable->fromTo(), pairs);
-      LibertyPortPairSeq::Iterator pair_iter(pairs);
-      while (pair_iter.hasNext()) {
-	LibertyPortPair *from_to = pair_iter.next();
-	const LibertyPort *from_port = from_to->first;
-	const LibertyPort *to_port = from_to->second;
+      LibertyPortPairSeq from_tos = sortByName(disable->fromTo());
+      for (LibertyPortPair &from_to : from_tos) {
+	const LibertyPort *from_port = from_to.first;
+	const LibertyPort *to_port = from_to.second;
 	gzprintf(stream_, "set_disable_timing -from {%s} -to {%s} ",
 		from_port->name(),
 		to_port->name());
@@ -1120,11 +1087,8 @@ WriteSdc::writeDisabledInstances() const
       }
     }
     if (disable->from()) {
-      LibertyPortSeq from;
-      sortLibertyPortSet(disable->from(), from);
-      LibertyPortSeq::Iterator from_iter(from);
-      while (from_iter.hasNext()) {
-	LibertyPort *from_port = from_iter.next();
+      LibertyPortSeq from = sortByName(disable->from());
+      for (const LibertyPort *from_port : from) {
 	gzprintf(stream_, "set_disable_timing -from {%s} ",
 		from_port->name());
 	writeGetInstance(inst);
@@ -1132,11 +1096,8 @@ WriteSdc::writeDisabledInstances() const
       }
     }
     if (disable->to()) {
-      LibertyPortSeq to;
-      sortLibertyPortSet(disable->to(), to);
-      LibertyPortSeq::Iterator to_iter(to);
-      while (to_iter.hasNext()) {
-	LibertyPort *to_port = to_iter.next();
+      LibertyPortSeq to = sortByName(disable->to());
+      for (const LibertyPort *to_port : to) {
 	gzprintf(stream_, "set_disable_timing -to {%s} ",
 		to_port->name());
 	writeGetInstance(inst);
@@ -1149,11 +1110,8 @@ WriteSdc::writeDisabledInstances() const
 void
 WriteSdc::writeDisabledPins() const
 {
-  PinSeq pins;
-  sortPinSet(sdc_->disabledPins(), sdc_network_, pins);
-  PinSeq::Iterator pin_iter(pins);
-  while (pin_iter.hasNext()) {
-    Pin *pin = pin_iter.next();
+  PinSeq pins = sortByPathName(sdc_->disabledPins(), sdc_network_);
+  for (const Pin *pin : pins) {
     gzprintf(stream_, "set_disable_timing ");
     writeGetPin(pin, false);
     gzprintf(stream_, "\n");
@@ -1164,15 +1122,10 @@ void
 WriteSdc::writeDisabledEdges() const
 {
   EdgeSeq edges;
-  EdgeSet::Iterator edge_iter(sdc_->disabledEdges());
-  while (edge_iter.hasNext()) {
-    Edge *edge = edge_iter.next();
+  for (Edge *edge : *sdc_->disabledEdges())
     edges.push_back(edge);
-  }
   sortEdges(&edges, sdc_network_, graph_);
-  EdgeSeq::Iterator edge_iter2(edges);
-  while (edge_iter2.hasNext()) {
-    Edge *edge = edge_iter2.next();
+  for (Edge *edge : edges) {
     EdgeSet matches;
     findMatchingEdges(edge, matches);
     if (matches.size() == 1)
@@ -1201,9 +1154,7 @@ bool
 WriteSdc::edgeSenseIsUnique(Edge *edge,
 			    EdgeSet &matches) const
 {
-  EdgeSet::Iterator match_iter(matches);
-  while (match_iter.hasNext()) {
-    Edge *match = match_iter.next();
+  for (Edge *match : matches) {
     if (match != edge
 	&& match->sense() == edge->sense())
       return false;
@@ -1236,10 +1187,10 @@ void
 WriteSdc::writeExceptions() const
 {
   ExceptionPathSeq exceptions;
-  sortExceptions(sdc_->exceptions(), exceptions, sdc_network_);
-  ExceptionPathSeq::Iterator except_iter(exceptions);
-  while (except_iter.hasNext()) {
-    ExceptionPath *exception = except_iter.next();
+  for (ExceptionPath *exception : *sdc_->exceptions())
+    exceptions.push_back(exception);
+  sort(exceptions, ExceptionPathLess(network_));
+  for (ExceptionPath *exception : exceptions) {
     if (!exception->isFilter()
 	&& !exception->isLoop())
       writeException(exception);
@@ -1253,11 +1204,8 @@ WriteSdc::writeException(ExceptionPath *exception) const
   if (exception->from())
     writeExceptionFrom(exception->from());
   if (exception->thrus()) {
-    ExceptionThruSeq::Iterator thru_iter(exception->thrus());
-    while (thru_iter.hasNext()) {
-      ExceptionThru *thru = thru_iter.next();
+    for (ExceptionThru *thru : *exception->thrus())
       writeExceptionThru(thru);
-    }
   }
   if (exception->to())
     writeExceptionTo(exception->to());
@@ -1354,11 +1302,8 @@ WriteSdc::writeExceptionFromTo(ExceptionFromTo *from_to,
     gzprintf(stream_, "[list ");
   bool first = true;
   if (from_to->pins()) {
-    PinSeq pins;
-    sortPinSet(from_to->pins(), sdc_network_, pins);
-    PinSeq::Iterator pin_iter(pins);
-    while (pin_iter.hasNext()) {
-      Pin *pin = pin_iter.next();
+    PinSeq pins = sortByPathName(from_to->pins(), sdc_network_);
+    for (const Pin *pin : pins) {
       if (multi_objs && !first)
 	gzprintf(stream_, "\\\n           ");
       writeGetPin(pin, map_hpin_to_drvr);
@@ -1368,11 +1313,8 @@ WriteSdc::writeExceptionFromTo(ExceptionFromTo *from_to,
   if (from_to->clks())
     writeGetClocks(from_to->clks(), multi_objs, first);
   if (from_to->instances()) {
-    InstanceSeq insts;
-    sortInstanceSet(from_to->instances(), sdc_network_, insts);
-    InstanceSeq::Iterator inst_iter(insts);
-    while (inst_iter.hasNext()) {
-      Instance *inst = inst_iter.next();
+    InstanceSeq insts = sortByPathName(from_to->instances(), sdc_network_);
+    for (const Instance *inst : insts) {
       if (multi_objs && !first)
 	gzprintf(stream_, "\\\n           ");
       writeGetInstance(inst);
@@ -1403,9 +1345,7 @@ WriteSdc::writeExceptionThru(ExceptionThru *thru) const
     gzprintf(stream_, "[list ");
   bool first = true;
   sort(pins, PinPathNameLess(network_));
-  PinSeq::Iterator pin_iter(pins);
-  while (pin_iter.hasNext()) {
-    Pin *pin = pin_iter.next();
+  for (const Pin *pin : pins) {
     if (multi_objs && !first)
       gzprintf(stream_, "\\\n           ");
     writeGetPin(pin);
@@ -1413,11 +1353,8 @@ WriteSdc::writeExceptionThru(ExceptionThru *thru) const
   }
 
   if (thru->nets()) {
-    NetSeq nets;
-    sortNetSet(thru->nets(), sdc_network_, nets);
-    NetSeq::Iterator net_iter(nets);
-    while (net_iter.hasNext()) {
-      Net *net = net_iter.next();
+    NetSeq nets = sortByPathName(thru->nets(), sdc_network_);
+    for (const Net *net : nets) {
       if (multi_objs && !first)
 	gzprintf(stream_, "\\\n           ");
       writeGetNet(net);
@@ -1425,11 +1362,8 @@ WriteSdc::writeExceptionThru(ExceptionThru *thru) const
     }
   }
   if (thru->instances()) {
-    InstanceSeq insts;
-    sortInstanceSet(thru->instances(), sdc_network_, insts);
-    InstanceSeq::Iterator inst_iter(insts);
-    while (inst_iter.hasNext()) {
-      Instance *inst = inst_iter.next();
+    InstanceSeq insts = sortByPathName(thru->instances(), sdc_network_);
+    for (const Instance *inst : insts) {
       if (multi_objs && !first)
 	gzprintf(stream_, "\\\n           ");
       writeGetInstance(inst);
@@ -1445,14 +1379,14 @@ WriteSdc::mapThruHpins(ExceptionThru *thru,
 		       PinSeq &pins) const
 {
   if (thru->pins()) {
-    for (Pin *pin : *thru->pins()) {
+    for (const Pin *pin : *thru->pins()) {
       // Map hierarical pins to load pins outside of outputs or inside of inputs.
       if (network_->isHierarchical(pin)) {
 	Instance *hinst = network_->instance(pin);
 	bool hpin_is_output = network_->direction(pin)->isAnyOutput();
 	PinConnectedPinIterator *cpin_iter = network_->connectedPinIterator(pin);
 	while (cpin_iter->hasNext()) {
-	  Pin *cpin = cpin_iter->next();
+	  const Pin *cpin = cpin_iter->next();
 	  if (network_->isLoad(cpin)
 	      && ((hpin_is_output
 		   && !network_->isInside(network_->instance(cpin), hinst))
@@ -1474,21 +1408,14 @@ void
 WriteSdc::writeDataChecks() const
 {
   Vector<DataCheck*> checks;
-  DataChecksMap::Iterator checks_iter(sdc_->data_checks_to_map_);
-  while (checks_iter.hasNext()) {
-    DataCheckSet *checks1 = checks_iter.next();
-    DataCheckSet::Iterator check_iter(checks1);
-    while (check_iter.hasNext()) {
-      DataCheck *check = check_iter.next();
+  for (auto pin_checks : sdc_->data_checks_to_map_) {
+    DataCheckSet *checks1 = pin_checks.second;
+    for (DataCheck *check : *checks1)
       checks.push_back(check);
-    }
   }
   sort(checks, DataCheckLess(sdc_network_));
-  Vector<DataCheck*>::Iterator check_iter(checks);
-  while (check_iter.hasNext()) {
-    DataCheck *check = check_iter.next();
+  for (DataCheck *check : checks)
     writeDataCheck(check);
-  }
 }
 
 void
@@ -1561,6 +1488,7 @@ WriteSdc::writeEnvironment() const
   writeConstants();
   writeCaseAnalysis();
   writeDeratings();
+  writeVoltages();
 }
 
 void
@@ -1583,29 +1511,28 @@ WriteSdc::writeWireload() const
 void
 WriteSdc::writeNetLoads() const
 {
-  if (sdc_->net_wire_cap_map_) {
-    for (auto net_cap : *sdc_->net_wire_cap_map_) {
-      Net *net = net_cap.first;
-      MinMaxFloatValues &caps = net_cap.second;
-      float min_cap, max_cap;
-      bool min_exists, max_exists;
-      caps.value(MinMax::min(), min_cap, min_exists);
-      caps.value(MinMax::max(), max_cap, max_exists);
-      if (min_exists && max_exists
-	  && min_cap == max_cap)
-	writeNetLoad(net, MinMaxAll::all(), min_cap);
-      else {
-	if (min_exists)
-	  writeNetLoad(net, MinMaxAll::min(), min_cap);
-	if (max_exists)
-	  writeNetLoad(net, MinMaxAll::max(), max_cap);
-      }
+  int corner_index = 0; // missing corner arg
+  for (auto net_cap : sdc_->net_wire_cap_maps_[corner_index]) {
+    const Net *net = net_cap.first;
+    MinMaxFloatValues &caps = net_cap.second;
+    float min_cap, max_cap;
+    bool min_exists, max_exists;
+    caps.value(MinMax::min(), min_cap, min_exists);
+    caps.value(MinMax::max(), max_cap, max_exists);
+    if (min_exists && max_exists
+        && min_cap == max_cap)
+      writeNetLoad(net, MinMaxAll::all(), min_cap);
+    else {
+      if (min_exists)
+        writeNetLoad(net, MinMaxAll::min(), min_cap);
+      if (max_exists)
+        writeNetLoad(net, MinMaxAll::max(), max_cap);
     }
   }
 }
 
 void
-WriteSdc::writeNetLoad(Net *net,
+WriteSdc::writeNetLoad(const Net *net,
 		       const MinMaxAll *min_max,
 		       float cap) const
 {
@@ -1629,9 +1556,10 @@ WriteSdc::writePortLoads() const
 }
 
 void
-WriteSdc::writePortLoads(Port *port) const
+WriteSdc::writePortLoads(const Port *port) const
 {
-  PortExtCap *ext_cap = sdc_->portExtCap(port);
+  const Corner *corner = corners_->findCorner(0); // missing corner arg
+  PortExtCap *ext_cap = sdc_->portExtCap(port, corner);
   if (ext_cap) {
     WriteGetPort write_port(port, this);
     writeRiseFallMinMaxCapCmd("set_load -pin_load",
@@ -1749,11 +1677,11 @@ WriteSdc::writeDrivingCell(Port *port,
 			   const RiseFall *rf,
 			   const MinMax *min_max) const
 {
-  LibertyCell *cell = drive_cell->cell();
-  LibertyPort *from_port = drive_cell->fromPort();
-  LibertyPort *to_port = drive_cell->toPort();
+  const LibertyCell *cell = drive_cell->cell();
+  const LibertyPort *from_port = drive_cell->fromPort();
+  const LibertyPort *to_port = drive_cell->toPort();
   float *from_slews = drive_cell->fromSlews();
-  LibertyLibrary *lib = drive_cell->library();
+  const LibertyLibrary *lib = drive_cell->library();
   gzprintf(stream_, "set_driving_cell");
   if (rf)
     gzprintf(stream_, " %s", transRiseFallFlag(rf));
@@ -1796,19 +1724,13 @@ WriteSdc::writeInputTransitions() const
 void
 WriteSdc::writeNetResistances() const
 {
-  NetResistanceMap *net_res_map = sdc_->netResistances();
   NetSeq nets;
-  NetResistanceMap::Iterator res_iter(net_res_map);
-  while (res_iter.hasNext()) {
-    Net *net;
-    MinMaxFloatValues values;
-    res_iter.next(net, values);
+  for (auto net_res : sdc_->netResistances()) {
+    const Net *net = net_res.first;
     nets.push_back(net);
   }
   sort(nets, NetPathNameLess(sdc_network_));
-  NetSeq::Iterator net_iter(nets);
-  while (net_iter.hasNext()) {
-    Net *net = net_iter.next();
+  for (const Net *net : nets) {
     float min_res, max_res;
     bool min_exists, max_exists;
     sdc_->resistance(net, MinMax::min(), min_res, min_exists);
@@ -1826,7 +1748,7 @@ WriteSdc::writeNetResistances() const
 }
 
 void
-WriteSdc::writeNetResistance(Net *net,
+WriteSdc::writeNetResistance(const Net *net,
 			     const MinMaxAll *min_max,
 			     float res) const
 {
@@ -1842,15 +1764,12 @@ WriteSdc::writeConstants() const
 {
   PinSeq pins;
   sortedLogicValuePins(sdc_->logicValues(), pins);
-  PinSeq::Iterator pin_iter(pins);
-  while (pin_iter.hasNext()) {
-    Pin *pin = pin_iter.next();
+  for (const Pin *pin : pins)
     writeConstant(pin);
-  }
 }
 
 void
-WriteSdc::writeConstant(Pin *pin) const
+WriteSdc::writeConstant(const Pin *pin) const
 {
   const char *cmd = setConstantCmd(pin);
   gzprintf(stream_, "%s ", cmd);
@@ -1859,7 +1778,7 @@ WriteSdc::writeConstant(Pin *pin) const
 }
 
 const char *
-WriteSdc::setConstantCmd(Pin *pin) const
+WriteSdc::setConstantCmd(const Pin *pin) const
 {
   LogicValue value;
   bool exists;
@@ -1884,16 +1803,13 @@ WriteSdc::writeCaseAnalysis() const
 {
   PinSeq pins;
   sortedLogicValuePins(sdc_->caseLogicValues(), pins);
-  PinSeq::Iterator pin_iter(pins);
-  while (pin_iter.hasNext()) {
-    Pin *pin = pin_iter.next();
+  for (const Pin *pin : pins)
     writeCaseAnalysis(pin);
-  }
 }
 
 
 void
-WriteSdc::writeCaseAnalysis(Pin *pin) const
+WriteSdc::writeCaseAnalysis(const Pin *pin) const
 {
   const char *value_str = caseAnalysisValueStr(pin);
   gzprintf(stream_, "set_case_analysis %s ", value_str);
@@ -1902,7 +1818,7 @@ WriteSdc::writeCaseAnalysis(Pin *pin) const
 }
 
 const char *
-WriteSdc::caseAnalysisValueStr(Pin *pin) const
+WriteSdc::caseAnalysisValueStr(const Pin *pin) const
 {
   LogicValue value;
   bool exists;
@@ -1924,15 +1840,12 @@ WriteSdc::caseAnalysisValueStr(Pin *pin) const
 }
 
 void
-WriteSdc::sortedLogicValuePins(LogicValueMap *value_map,
+WriteSdc::sortedLogicValuePins(LogicValueMap &value_map,
 			       PinSeq &pins) const
 {
-  LogicValueMap::ConstIterator value_iter(value_map);
-  while (value_iter.hasNext()) {
-    LogicValue value;
-    const Pin *pin;
-    value_iter.next(pin, value);
-    pins.push_back(const_cast<Pin*>(pin));
+  for (auto pin_value : value_map) {
+    const Pin *pin = pin_value.first;
+    pins.push_back(pin);
   }
   // Sort pins.
   sort(pins, PinPathNameLess(sdc_network_));
@@ -1947,11 +1860,9 @@ WriteSdc::writeDeratings() const
   if (factors)
     writeDerating(factors);
 
-  NetDeratingFactorsMap::Iterator net_iter(sdc_->net_derating_factors_);
-  while (net_iter.hasNext()) {
-    const Net *net;
-    DeratingFactorsNet *factors;
-    net_iter.next(net, factors);
+  for (auto net_derating : sdc_->net_derating_factors_) {
+    const Net *net = net_derating.first;
+    DeratingFactorsNet *factors = net_derating.second;
     WriteGetNet write_net(net, this);
     for (auto early_late : EarlyLate::range()) {
       writeDerating(factors, TimingDerateType::net_delay, early_late,
@@ -1959,20 +1870,16 @@ WriteSdc::writeDeratings() const
     }
   }
 
-  InstDeratingFactorsMap::Iterator inst_iter(sdc_->inst_derating_factors_);
-  while (inst_iter.hasNext()) {
-    const Instance *inst;
-    DeratingFactorsCell *factors;
-    inst_iter.next(inst, factors);
+  for (auto inst_derating : sdc_->inst_derating_factors_) {
+    const Instance *inst = inst_derating.first;
+    DeratingFactorsCell *factors = inst_derating.second;
     WriteGetInstance write_inst(inst, this);
     writeDerating(factors, &write_inst);
   }
 
-  CellDeratingFactorsMap::Iterator cell_iter(sdc_->cell_derating_factors_);
-  while (cell_iter.hasNext()) {
-    const LibertyCell *cell;
-    DeratingFactorsCell *factors;
-    cell_iter.next(cell, factors);
+  for (auto cell_derating : sdc_->cell_derating_factors_) {
+    const LibertyCell *cell = cell_derating.first;
+    DeratingFactorsCell *factors = cell_derating.second;
     WriteGetLibCell write_cell(cell, this);
     writeDerating(factors, &write_cell);
   }
@@ -2107,6 +2014,43 @@ timingDerateTypeKeyword(TimingDerateType type)
 ////////////////////////////////////////////////////////////////
 
 void
+WriteSdc::writeVoltages() const
+{
+  float voltage_max, voltage_min;
+  bool exists_max, exists_min;
+  sdc_->voltage(MinMax::max(), voltage_max, exists_max);
+  if (exists_max) {
+    sdc_->voltage(MinMax::min(), voltage_min, exists_min);
+    if (exists_min)
+      gzprintf(stream_, "set_voltage -min %.3f %.3f\n",
+               voltage_min,
+               voltage_max);
+    else
+      gzprintf(stream_, "set_voltage %.3f\n", voltage_max);
+  }
+
+  for (auto net_volt : sdc_->net_voltage_map_) {
+    const Net *net = net_volt.first;
+    MinMaxFloatValues &values = net_volt.second;
+    values.value(MinMax::max(), voltage_max, exists_max);
+    if (exists_max) {
+      values.value(MinMax::min(), voltage_min, exists_min);
+      if (exists_min)
+        gzprintf(stream_, "set_voltage -object_list %s -min %.3f %.3f\n",
+                 sdc_network_->pathName(net),
+                 voltage_min,
+                 voltage_max);
+      else
+        gzprintf(stream_, "set_voltage -object_list %s %.3f\n",
+                 sdc_network_->pathName(net),
+                 voltage_max);
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////
+
+void
 WriteSdc::writeDesignRules() const
 {
   writeCommentSection("Design Rules");
@@ -2121,30 +2065,23 @@ WriteSdc::writeDesignRules() const
 void
 WriteSdc::writeMinPulseWidths() const
 {
-  PinMinPulseWidthMap::Iterator
-    pin_iter(sdc_->pin_min_pulse_width_map_);
-  while (pin_iter.hasNext()) {
-    const Pin *pin;
-    RiseFallValues *min_widths;
-    pin_iter.next(pin, min_widths);
+  for (auto pin_widths : sdc_->pin_min_pulse_width_map_) {
+    const Pin *pin = pin_widths.first;
+    RiseFallValues *min_widths = pin_widths.second;
     WriteGetPin write_obj(pin, false, this);
     writeMinPulseWidths(min_widths, write_obj);
   }
-  InstMinPulseWidthMap::Iterator
-    inst_iter(sdc_->inst_min_pulse_width_map_);
-  while (inst_iter.hasNext()) {
-    const Instance *inst;
-    RiseFallValues *min_widths;
-    inst_iter.next(inst, min_widths);
+
+  for (auto inst_widths : sdc_->inst_min_pulse_width_map_) {
+    const Instance *inst = inst_widths.first;
+    RiseFallValues *min_widths = inst_widths.second;
     WriteGetInstance write_obj(inst, this);
     writeMinPulseWidths(min_widths, write_obj);
   }
-  ClockMinPulseWidthMap::Iterator
-    clk_iter(sdc_->clk_min_pulse_width_map_);
-  while (clk_iter.hasNext()) {
-    const Clock *clk;
-    RiseFallValues *min_widths;
-    clk_iter.next(clk, min_widths);
+
+  for (auto clk_widths : sdc_->clk_min_pulse_width_map_) {
+    const Clock *clk = clk_widths.first;
+    RiseFallValues *min_widths = clk_widths.second;
     WriteGetClock write_obj(clk, this);
     writeMinPulseWidths(min_widths, write_obj);
   }
@@ -2186,36 +2123,29 @@ WriteSdc::writeMinPulseWidth(const char *hi_low,
 void
 WriteSdc::writeLatchBorowLimits() const
 {
-  PinLatchBorrowLimitMap::Iterator
-    pin_iter(sdc_->pin_latch_borrow_limit_map_);
-  while (pin_iter.hasNext()) {
-    const Pin *pin;
-    float limit;
-    pin_iter.next(pin, limit);
+  for (auto pin_borrow : sdc_->pin_latch_borrow_limit_map_) {
+    const Pin *pin = pin_borrow.first;
+    float limit = pin_borrow.second;
     gzprintf(stream_, "set_max_time_borrow ");
     writeTime(limit);
     gzprintf(stream_, " ");
     writeGetPin(pin, false);
     gzprintf(stream_, "\n");
   }
-  InstLatchBorrowLimitMap::Iterator
-    inst_iter(sdc_->inst_latch_borrow_limit_map_);
-  while (inst_iter.hasNext()) {
-    const Instance *inst;
-    float limit;
-    inst_iter.next(inst, limit);
+
+  for (auto inst_borrow : sdc_->inst_latch_borrow_limit_map_) {
+    const Instance *inst = inst_borrow.first;
+    float limit = inst_borrow.second;
     gzprintf(stream_, "set_max_time_borrow ");
     writeTime(limit);
     gzprintf(stream_, " ");
     writeGetInstance(inst);
     gzprintf(stream_, "\n");
   }
-  ClockLatchBorrowLimitMap::Iterator
-    clk_iter(sdc_->clk_latch_borrow_limit_map_);
-  while (clk_iter.hasNext()) {
-    const Clock *clk;
-    float limit;
-    clk_iter.next(clk, limit);
+
+  for (auto clk_borrow : sdc_->clk_latch_borrow_limit_map_) {
+    const Clock *clk = clk_borrow.first;
+    float limit = clk_borrow.second;
     gzprintf(stream_, "set_max_time_borrow ");
     writeTime(limit);
     gzprintf(stream_, " ");
@@ -2262,9 +2192,7 @@ WriteSdc::writeClkSlewLimits() const
   const MinMax *min_max = MinMax::max();
   ClockSeq clks;
   sdc_->sortedClocks(clks);
-  ClockSeq::Iterator clk_iter(clks);
-  while (clk_iter.hasNext()) {
-    Clock *clk = clk_iter.next();
+  for (const Clock *clk : clks) {
     float rise_clk_limit, fall_clk_limit, rise_data_limit, fall_data_limit;
     bool rise_clk_exists, fall_clk_exists, rise_data_exists, fall_data_exists;
     clk->slewLimit(RiseFall::rise(), PathClkOrData::clk, min_max,
@@ -2338,11 +2266,9 @@ WriteSdc::writeCapLimits(const MinMax *min_max,
     gzprintf(stream_, " [current_design]\n");
   }
 
-  PortCapLimitMap::Iterator port_iter(sdc_->port_cap_limit_map_);
-  while (port_iter.hasNext()) {
-    Port *port;
-    MinMaxFloatValues values;
-    port_iter.next(port, values);
+  for (auto port_limit : sdc_->port_cap_limit_map_) {
+    const Port *port = port_limit.first;
+    MinMaxFloatValues values = port_limit.second;
     float cap;
     bool exists;
     values.value(min_max, cap, exists);
@@ -2355,11 +2281,9 @@ WriteSdc::writeCapLimits(const MinMax *min_max,
     }
   }
 
-  PinCapLimitMap::Iterator pin_iter(sdc_->pin_cap_limit_map_);
-  while (pin_iter.hasNext()) {
-    Pin *pin;
-    MinMaxFloatValues values;
-    pin_iter.next(pin, values);
+  for (auto pin_limit : sdc_->pin_cap_limit_map_) {
+    const Pin *pin = pin_limit.first;
+    MinMaxFloatValues values = pin_limit.second;
     float cap;
     bool exists;
     values.value(min_max, cap, exists);
@@ -2442,7 +2366,7 @@ WriteSdc::writeVariables() const
 ////////////////////////////////////////////////////////////////
 
 void
-WriteSdc::writeGetTimingArcsOfOjbects(LibertyCell *cell) const
+WriteSdc::writeGetTimingArcsOfOjbects(const LibertyCell *cell) const
 {
   gzprintf(stream_, "[%s -of_objects ", getTimingArcsCmd());
   writeGetLibCell(cell);
@@ -2514,11 +2438,8 @@ WriteSdc::writeGetClocks(ClockSet *clks,
 			 bool multiple,
 			 bool &first) const
 {
-  ClockSeq clks1;
-  sortClockSet(clks, clks1);
-  ClockSeq::Iterator clk_iter(clks1);
-  while (clk_iter.hasNext()) {
-    Clock *clk = clk_iter.next();
+  ClockSeq clks1 = sortByName(clks);
+  for (const Clock *clk : clks1) {
     if (multiple && !first)
       gzprintf(stream_, "\\\n           ");
     writeGetClock(clk);
@@ -2540,13 +2461,12 @@ WriteSdc::writeGetPort(const Port *port) const
 }
 
 void
-WriteSdc::writeGetPins(PinSet *pins,
+WriteSdc::writeGetPins(const PinSet *pins,
 		       bool map_hpin_to_drvr) const
 {
-  PinSeq pins1;
   if (map_hpins_) {
-    PinSet leaf_pins;
-    for (Pin *pin : *pins) {
+    PinSet leaf_pins(network_);;
+    for (const Pin *pin : *pins) {
       if (network_->isHierarchical(pin)) {
 	if (map_hpin_to_drvr)
 	  findLeafDriverPins(const_cast<Pin*>(pin), network_, &leaf_pins);
@@ -2556,11 +2476,13 @@ WriteSdc::writeGetPins(PinSet *pins,
       else
 	leaf_pins.insert(pin);
     }
-    sortPinSet(&leaf_pins, sdc_network_, pins1);
+    PinSeq pins1 = sortByPathName(&leaf_pins, sdc_network_);
+    writeGetPins1(&pins1);
   }
-  else
-    sortPinSet(pins, sdc_network_, pins1);
-  writeGetPins1(&pins1);
+  else {
+    PinSeq pins1 = sortByPathName(pins, sdc_network_);
+    writeGetPins1(&pins1);
+  }
 }
 
 void
@@ -2569,10 +2491,8 @@ WriteSdc::writeGetPins1(PinSeq *pins) const
   bool multiple = pins->size() > 1;
   if (multiple)
     gzprintf(stream_, "[list ");
-  PinSeq::Iterator pin_iter(pins);
   bool first = true;
-  while (pin_iter.hasNext()) {
-    Pin *pin = pin_iter.next();
+  for (const Pin *pin : *pins) {
     if (multiple && !first)
       gzprintf(stream_, "\\\n          ");
     writeGetPin(pin);
@@ -2596,7 +2516,7 @@ WriteSdc::writeGetPin(const Pin *pin,
 		      bool map_hpin_to_drvr) const
 {
   if (map_hpins_ && network_->isHierarchical(pin)) {
-    PinSet pins;
+    PinSet pins(network_);
     pins.insert(const_cast<Pin*>(pin));
     writeGetPins(&pins, map_hpin_to_drvr);
   }
@@ -2664,7 +2584,7 @@ WriteSdc::writeCommentSeparator() const
 
 void
 WriteSdc::writeRiseFallMinMaxTimeCmd(const char *sdc_cmd,
-				     RiseFallMinMax *values,
+				     const RiseFallMinMax *values,
 				     WriteSdcObject &write_object) const
 {
   writeRiseFallMinMaxCmd(sdc_cmd, values, units_->timeUnit()->scale(),
@@ -2673,7 +2593,7 @@ WriteSdc::writeRiseFallMinMaxTimeCmd(const char *sdc_cmd,
 
 void
 WriteSdc::writeRiseFallMinMaxCapCmd(const char *sdc_cmd,
-				    RiseFallMinMax *values,
+				    const RiseFallMinMax *values,
 				    WriteSdcObject &write_object) const
 {
   writeRiseFallMinMaxCmd(sdc_cmd, values, units_->capacitanceUnit()->scale(),
@@ -2682,7 +2602,7 @@ WriteSdc::writeRiseFallMinMaxCapCmd(const char *sdc_cmd,
 
 void
 WriteSdc::writeRiseFallMinMaxCmd(const char *sdc_cmd,
-				 RiseFallMinMax *values,
+				 const RiseFallMinMax *values,
 				 float scale,
 				 WriteSdcObject &write_object) const
 {
@@ -2898,10 +2818,8 @@ WriteSdc::writeFloatSeq(FloatSeq *floats,
 			float scale) const
 {
   gzprintf(stream_, "{");
-  FloatSeq::ConstIterator iter(floats);
   bool first = true;
-  while (iter.hasNext()) {
-    float flt = iter.next();
+  for (float flt : *floats) {
     if (!first)
       gzprintf(stream_, " ");
     writeFloat(flt * scale);
@@ -2914,10 +2832,8 @@ void
 WriteSdc::writeIntSeq(IntSeq *ints) const
 {
   gzprintf(stream_, "{");
-  IntSeq::ConstIterator iter(ints);
   bool first = true;
-  while (iter.hasNext()) {
-    int i = iter.next();
+  for (int i : *ints) {
     if (!first)
       gzprintf(stream_, " ");
     gzprintf(stream_, "%d", i);

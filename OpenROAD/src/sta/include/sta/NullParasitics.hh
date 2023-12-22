@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ public:
                                        const ParasiticAnalysisPt *ap);
   virtual void deleteDrvrReducedParasitics(const Pin *drvr_pin);
 
-  virtual float capacitance(Parasitic *parasitic) const;
+  virtual float capacitance(const Parasitic *parasitic) const;
 
   virtual Parasitic *
   findPiElmore(const Pin *drvr_pin,
@@ -47,23 +47,31 @@ public:
   virtual Parasitic *makePiElmore(const Pin *drvr_pin,
 				  const RiseFall *rf,
 				  const ParasiticAnalysisPt *ap,
-				  float c2, float rpi, float c1);
-  virtual bool isPiElmore(Parasitic *parasitic) const;
+				  float c2,
+                                  float rpi,
+                                  float c1);
+  virtual bool isPiElmore(const Parasitic *parasitic) const;
   virtual bool
-  isReducedParasiticNetwork(Parasitic *parasitic) const;
+  isReducedParasiticNetwork(const Parasitic *parasitic) const;
   virtual void setIsReducedParasiticNetwork(Parasitic *parasitic,
 					    bool is_reduced);
-  virtual void piModel(Parasitic *parasitic, float &c2, float &rpi,
+  virtual void piModel(const Parasitic *parasitic,
+                       float &c2,
+                       float &rpi,
 		       float &c1) const;
-  virtual void setPiModel(Parasitic *parasitic, float c2, float rpi,
+  virtual void setPiModel(Parasitic *parasitic,
+                          float c2,
+                          float rpi,
 			  float c1);
-  virtual void findElmore(Parasitic *parasitic, const Pin *load_pin,
-			  float &elmore, bool &exists) const;
+  virtual void findElmore(const Parasitic *parasitic,
+                          const Pin *load_pin,
+			  float &elmore,
+                          bool &exists) const;
   virtual void setElmore(Parasitic *parasitic, const Pin *load_pin,
 			 float elmore);
 
-  virtual bool isPiModel(Parasitic* parasitic) const;
-  virtual bool isPiPoleResidue(Parasitic* parasitic) const;
+  virtual bool isPiModel(const Parasitic* parasitic) const;
+  virtual bool isPiPoleResidue(const Parasitic* parasitic) const;
   virtual Parasitic *
   findPiPoleResidue(const Pin *drvr_pin,
 		    const RiseFall *rf,
@@ -83,7 +91,7 @@ public:
   virtual void poleResidue(const Parasitic *parasitic, int pole_index,
 			   ComplexFloat &pole, ComplexFloat &residue) const;
 
-  virtual bool isParasiticNetwork(Parasitic *parasitic) const;
+  virtual bool isParasiticNetwork(const Parasitic *parasitic) const;
   virtual Parasitic *findParasiticNetwork(const Net *net,
 					  const ParasiticAnalysisPt *ap) const;
   virtual Parasitic *
@@ -93,9 +101,9 @@ public:
   makeParasiticNetwork(const Net *net,
 		       bool pin_cap_included,
 		       const ParasiticAnalysisPt *ap);
-  virtual ParasiticDeviceIterator *deviceIterator(Parasitic *) { return nullptr; }
-  virtual ParasiticNodeIterator *nodeIterator(Parasitic *) { return nullptr; }
-  virtual bool includesPinCaps(Parasitic *parasitic) const;
+  virtual ParasiticDeviceIterator *deviceIterator(const Parasitic *) { return nullptr; }
+  virtual ParasiticNodeIterator *nodeIterator(const Parasitic *) { return nullptr; }
+  virtual bool includesPinCaps(const Parasitic *parasitic) const;
   virtual void deleteParasiticNetwork(const Net *net,
 				      const ParasiticAnalysisPt *ap);
   virtual void deleteParasiticNetworks(const Net *net);
@@ -124,7 +132,7 @@ public:
 
   virtual const char *name(const ParasiticNode *node);
   virtual const Pin *connectionPin(const ParasiticNode *node) const;
-  virtual ParasiticNode *findNode(Parasitic *parasitic,
+  virtual ParasiticNode *findNode(const Parasitic *parasitic,
 				  const Pin *pin) const;
   virtual float nodeGndCap(const ParasiticNode *node,
 			   const ParasiticAnalysisPt *ap) const;
@@ -140,33 +148,33 @@ public:
   virtual ParasiticNode *otherNode(const ParasiticDevice *device,
 				   ParasiticNode *node) const;
   // Reduce parasitic network to reduce_to model.
-  virtual void reduceTo(Parasitic *parasitic,
+  virtual void reduceTo(const Parasitic *parasitic,
 			const Net *net,
 			ReducedParasiticType reduce_to,
 			const OperatingConditions *op_cond,
 			const Corner *corner,
 			const MinMax *cnst_min_max,
 			const ParasiticAnalysisPt *ap);
-  virtual void reduceToPiElmore(Parasitic *parasitic,
+  virtual void reduceToPiElmore(const Parasitic *parasitic,
 				const Net *net,
 				const OperatingConditions *op_cond,
 				const Corner *corner,
 				const MinMax *cnst_min_max,
 				const ParasiticAnalysisPt *ap);
   // Reduce parasitic network to pi elmore model for drvr_pin.
-  virtual void reduceToPiElmore(Parasitic *parasitic,
+  virtual void reduceToPiElmore(const Parasitic *parasitic,
 				const Pin *drvr_pin,
 				const OperatingConditions *op_cond,
 				const Corner *corner,
 				const MinMax *cnst_min_max,
 				const ParasiticAnalysisPt *ap);
-  virtual void reduceToPiPoleResidue2(Parasitic *parasitic,
+  virtual void reduceToPiPoleResidue2(const Parasitic *parasitic,
 				      const Net *net,
 				      const OperatingConditions *op_cond,
 				      const Corner *corner,
 				      const MinMax *cnst_min_max,
 				      const ParasiticAnalysisPt *ap);
-  virtual void reduceToPiPoleResidue2(Parasitic *parasitic,
+  virtual void reduceToPiPoleResidue2(const Parasitic *parasitic,
 				      const Pin *drvr_pin,
 				      const OperatingConditions *op_cond,
 				      const Corner *corner,

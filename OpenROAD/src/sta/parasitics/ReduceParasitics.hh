@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ class StaState;
 
 // Reduce parasitic network to pi elmore model for drvr_pin.
 void
-reduceToPiElmore(Parasitic *parasitic_network,
+reduceToPiElmore(const Parasitic *parasitic_network,
 		 const Pin *drvr_pin,
 		 float coupling_cap_factor,
 		 const OperatingConditions *op_cond,
@@ -40,7 +40,7 @@ reduceToPiElmore(Parasitic *parasitic_network,
 // Reduce parasitic network to pi and 2nd order pole/residue models
 // for drvr_pin.
 void
-reduceToPiPoleResidue2(Parasitic *parasitic_network,
+reduceToPiPoleResidue2(const Parasitic *parasitic_network,
 		       const Pin *drvr_pin,
 		       float coupling_cap_factor,
 		       const OperatingConditions *op_cond,

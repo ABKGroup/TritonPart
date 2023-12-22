@@ -45,62 +45,100 @@
 #include "dbTable.hpp"
 #include "dbVector.h"
 // User Code Begin Includes
+#include <cmath>
+
+#include "dbGroup.h"
+#include "dbLevelShifter.h"
 // User Code End Includes
 namespace odb {
-
 template class dbTable<_dbPowerDomain>;
 
 bool _dbPowerDomain::operator==(const _dbPowerDomain& rhs) const
 {
-  if (_name != rhs._name)
+  if (_name != rhs._name) {
     return false;
-
-  if (_next_entry != rhs._next_entry)
+  }
+  if (_next_entry != rhs._next_entry) {
     return false;
+  }
+  if (_group != rhs._group) {
+    return false;
+  }
+  if (_top != rhs._top) {
+    return false;
+  }
+  if (_parent != rhs._parent) {
+    return false;
+  }
+  if (_x1 != rhs._x1) {
+    return false;
+  }
+  if (_x2 != rhs._x2) {
+    return false;
+  }
+  if (_y1 != rhs._y1) {
+    return false;
+  }
+  if (_y2 != rhs._y2) {
+    return false;
+  }
 
-  // User Code Begin ==
-  // User Code End ==
   return true;
 }
+
 bool _dbPowerDomain::operator<(const _dbPowerDomain& rhs) const
 {
-  // User Code Begin <
-  // User Code End <
   return true;
 }
+
 void _dbPowerDomain::differences(dbDiff& diff,
                                  const char* field,
                                  const _dbPowerDomain& rhs) const
 {
   DIFF_BEGIN
-
   DIFF_FIELD(_name);
   DIFF_FIELD(_next_entry);
-  // User Code Begin Differences
-  // User Code End Differences
+  DIFF_FIELD(_group);
+  DIFF_FIELD(_top);
+  DIFF_FIELD(_parent);
+  DIFF_FIELD(_x1);
+  DIFF_FIELD(_x2);
+  DIFF_FIELD(_y1);
+  DIFF_FIELD(_y2);
   DIFF_END
 }
+
 void _dbPowerDomain::out(dbDiff& diff, char side, const char* field) const
 {
   DIFF_OUT_BEGIN
   DIFF_OUT_FIELD(_name);
   DIFF_OUT_FIELD(_next_entry);
+  DIFF_OUT_FIELD(_group);
+  DIFF_OUT_FIELD(_top);
+  DIFF_OUT_FIELD(_parent);
+  DIFF_OUT_FIELD(_x1);
+  DIFF_OUT_FIELD(_x2);
+  DIFF_OUT_FIELD(_y1);
+  DIFF_OUT_FIELD(_y2);
 
-  // User Code Begin Out
-  // User Code End Out
   DIFF_END
 }
+
 _dbPowerDomain::_dbPowerDomain(_dbDatabase* db)
 {
-  // User Code Begin Constructor
-  // User Code End Constructor
 }
+
 _dbPowerDomain::_dbPowerDomain(_dbDatabase* db, const _dbPowerDomain& r)
 {
   _name = r._name;
   _next_entry = r._next_entry;
-  // User Code Begin CopyConstructor
-  // User Code End CopyConstructor
+  _group = r._group;
+  _top = r._top;
+  _parent = r._parent;
+  _x1 = r._x1;
+  _x2 = r._x2;
+  _y1 = r._y1;
+  _y2 = r._y2;
 }
 
 dbIStream& operator>>(dbIStream& stream, _dbPowerDomain& obj)
@@ -110,10 +148,21 @@ dbIStream& operator>>(dbIStream& stream, _dbPowerDomain& obj)
   stream >> obj._elements;
   stream >> obj._power_switch;
   stream >> obj._isolation;
+  stream >> obj._group;
+  stream >> obj._top;
+  stream >> obj._parent;
+  stream >> obj._x1;
+  stream >> obj._x2;
+  stream >> obj._y1;
+  stream >> obj._y2;
   // User Code Begin >>
+  if (stream.getDatabase()->isSchema(db_schema_level_shifter)) {
+    stream >> obj._levelshifters;
+  }
   // User Code End >>
   return stream;
 }
+
 dbOStream& operator<<(dbOStream& stream, const _dbPowerDomain& obj)
 {
   stream << obj._name;
@@ -121,21 +170,25 @@ dbOStream& operator<<(dbOStream& stream, const _dbPowerDomain& obj)
   stream << obj._elements;
   stream << obj._power_switch;
   stream << obj._isolation;
+  stream << obj._group;
+  stream << obj._top;
+  stream << obj._parent;
+  stream << obj._x1;
+  stream << obj._x2;
+  stream << obj._y1;
+  stream << obj._y2;
   // User Code Begin <<
+  stream << obj._levelshifters;
   // User Code End <<
   return stream;
 }
 
 _dbPowerDomain::~_dbPowerDomain()
 {
-  if (_name)
+  if (_name) {
     free((void*) _name);
-  // User Code Begin Destructor
-  // User Code End Destructor
+  }
 }
-
-// User Code Begin PrivateMethods
-// User Code End PrivateMethods
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -149,6 +202,46 @@ const char* dbPowerDomain::getName() const
   return obj->_name;
 }
 
+dbGroup* dbPowerDomain::getGroup() const
+{
+  _dbPowerDomain* obj = (_dbPowerDomain*) this;
+  if (obj->_group == 0) {
+    return nullptr;
+  }
+  _dbBlock* par = (_dbBlock*) obj->getOwner();
+  return (dbGroup*) par->_group_tbl->getPtr(obj->_group);
+}
+
+void dbPowerDomain::setTop(bool top)
+{
+  _dbPowerDomain* obj = (_dbPowerDomain*) this;
+
+  obj->_top = top;
+}
+
+bool dbPowerDomain::isTop() const
+{
+  _dbPowerDomain* obj = (_dbPowerDomain*) this;
+  return obj->_top;
+}
+
+void dbPowerDomain::setParent(dbPowerDomain* parent)
+{
+  _dbPowerDomain* obj = (_dbPowerDomain*) this;
+
+  obj->_parent = parent->getImpl()->getOID();
+}
+
+dbPowerDomain* dbPowerDomain::getParent() const
+{
+  _dbPowerDomain* obj = (_dbPowerDomain*) this;
+  if (obj->_parent == 0) {
+    return nullptr;
+  }
+  _dbBlock* par = (_dbBlock*) obj->getOwner();
+  return (dbPowerDomain*) par->_powerdomain_tbl->getPtr(obj->_parent);
+}
+
 // User Code Begin dbPowerDomainPublicMethods
 dbPowerDomain* dbPowerDomain::create(dbBlock* block, const char* name)
 {
@@ -157,6 +250,7 @@ dbPowerDomain* dbPowerDomain::create(dbBlock* block, const char* name)
     return nullptr;
   _dbPowerDomain* pd = _block->_powerdomain_tbl->create();
   pd->_name = strdup(name);
+  pd->_x1 = -1;  // used as flag to determine whether area has been set before
   ZALLOCATED(pd->_name);
 
   _block->_powerdomain_hash.insert(pd);
@@ -174,6 +268,13 @@ void dbPowerDomain::addElement(const std::string& element)
   obj->_elements.push_back(element);
 }
 
+void dbPowerDomain::setGroup(dbGroup* group)
+{
+  _dbPowerDomain* obj = (_dbPowerDomain*) this;
+  _dbGroup* _group = (_dbGroup*) group;
+  obj->_group = _group->getOID();
+}
+
 std::vector<std::string> dbPowerDomain::getElements()
 {
   _dbPowerDomain* obj = (_dbPowerDomain*) this;
@@ -189,6 +290,12 @@ void dbPowerDomain::addIsolation(dbIsolation* iso)
 {
   _dbPowerDomain* obj = (_dbPowerDomain*) this;
   obj->_isolation.push_back(iso->getImpl()->getOID());
+}
+
+void dbPowerDomain::addLevelShifter(dbLevelShifter* shifter)
+{
+  _dbPowerDomain* obj = (_dbPowerDomain*) this;
+  obj->_levelshifters.push_back(shifter->getImpl()->getOID());
 }
 
 std::vector<dbPowerSwitch*> dbPowerDomain::getPowerSwitches()
@@ -219,6 +326,52 @@ std::vector<dbIsolation*> dbPowerDomain::getIsolations()
   return isolations;
 }
 
+std::vector<dbLevelShifter*> dbPowerDomain::getLevelShifters()
+{
+  _dbPowerDomain* obj = (_dbPowerDomain*) this;
+  _dbBlock* par = (_dbBlock*) obj->getOwner();
+
+  std::vector<dbLevelShifter*> levelshifters;
+
+  for (const auto& shifter : obj->_levelshifters) {
+    levelshifters.push_back(
+        (dbLevelShifter*) par->_levelshifter_tbl->getPtr(shifter));
+  }
+
+  return levelshifters;
+}
+
+bool dbPowerDomain::setArea(float _x1, float _y1, float _x2, float _y2)
+{
+  _dbPowerDomain* obj = (_dbPowerDomain*) this;
+  const int dbu = obj->getDb()->getTech()->getLefUnits();
+
+  if (_x1 >= 0 && _y1 >= 0 && _x2 >= 0 && _y2 >= 0) {
+    obj->_x1 = std::round(_x1 * dbu);
+    obj->_y1 = std::round(_y1 * dbu);
+    obj->_x2 = std::round(_x2 * dbu);
+    obj->_y2 = std::round(_y2 * dbu);
+    return true;
+  }
+
+  return false;
+}
+
+bool dbPowerDomain::getArea(int& _x1, int& _y1, int& _x2, int& _y2)
+{
+  _dbPowerDomain* obj = (_dbPowerDomain*) this;
+  if (obj->_x1 == -1) {  // area unset
+    return false;
+  }
+
+  _x1 = obj->_x1;
+  _y1 = obj->_y1;
+  _x2 = obj->_x2;
+  _y2 = obj->_y2;
+
+  return true;
+}
+
 // User Code End dbPowerDomainPublicMethods
 }  // namespace odb
-   // Generator Code End Cpp
+// Generator Code End Cpp

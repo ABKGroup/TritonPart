@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ tagStateEqualCrpr(const Tag *tag1,
 		  const Tag *tag2);
 
 Tag::Tag(TagIndex index,
-	 int tr_index,
+	 int rf_index,
 	 PathAPIndex path_ap_index,
 	 ClkInfo *clk_info,
 	 bool is_clk,
@@ -53,21 +53,19 @@ Tag::Tag(TagIndex index,
   clk_info_(clk_info),
   input_delay_(input_delay),
   states_(states),
+  index_(index),
   is_clk_(is_clk),
   is_filter_(false),
   is_loop_(false),
   is_segment_start_(is_segment_start),
   own_states_(own_states),
-  index_(index),
-  tr_index_(tr_index),
+  rf_index_(rf_index),
   path_ap_index_(path_ap_index)
 {
   findHash();
   if (states_) {
     FilterPath *filter = sta->search()->filter();
-    ExceptionStateSet::ConstIterator state_iter(states_);
-    while (state_iter.hasNext()) {
-      ExceptionState *state = state_iter.next();
+    for (ExceptionState *state : *states_) {
       ExceptionPath *exception = state->exception();
       if (exception->isLoop())
 	is_loop_ = true;
@@ -96,91 +94,90 @@ Tag::asString(bool report_index,
 {
   const Network *network = sta->network();
   const Corners *corners = sta->corners();
-  string str;
+  string result;
 
   if (report_index)
-    str += stringPrintTmp("%4d ", index_);
+    result += std::to_string(index_) + " ";
 
   if (report_rf_min_max) {
     const RiseFall *rf = transition();
     PathAnalysisPt *path_ap = corners->findPathAnalysisPt(path_ap_index_);
-    str += stringPrintTmp("%s %s/%d ",
-			  rf->asString(),
-			  path_ap->pathMinMax()->asString(),
-			  path_ap_index_);
+    result += rf->asString();
+    result += " ";
+    result += path_ap->pathMinMax()->asString();
+    result += "/";
+    result += std::to_string(path_ap_index_);
   }
 
-  ClockEdge *clk_edge = clkEdge();
+  const ClockEdge *clk_edge = clkEdge();
   if (clk_edge)
-    str += clk_edge->name();
+    result += clk_edge->name();
   else
-    str += "unclocked";
+    result += "unclocked";
 
   bool is_genclk_src = clk_info_->isGenClkSrcPath();
   if (is_clk_ || is_genclk_src) {
-    str += " (";
+    result += " (";
     if (is_clk_) {
-      str += "clock";
+      result += "clock";
       if (clk_info_->isPropagated())
-	str += " prop";
+	result += " prop";
       else
-	str += " ideal";
+	result += " ideal";
       if (is_genclk_src)
-	str += " ";
+	result += " ";
     }
     if (clk_info_->isGenClkSrcPath())
-      str += "genclk";
-    str += ")";
+      result += "genclk";
+    result += ")";
   }
 
   const Pin *clk_src = clkSrc();
   if (clk_src) {
-    str += " clk_src ";
-    str += network->pathName(clk_src);
+    result += " clk_src ";
+    result += network->pathName(clk_src);
   }
 
   const PathVertex crpr_clk_path(clk_info_->crprClkPath(), sta);
   if (!crpr_clk_path.isNull()) {
-    str += " crpr_pin ";
-    str += network->pathName(crpr_clk_path.pin(sta));
+    result += " crpr_pin ";
+    result += network->pathName(crpr_clk_path.pin(sta));
   }
 
   if (input_delay_) {
-    str += " input ";
-    str += network->pathName(input_delay_->pin());
+    result += " input ";
+    result += network->pathName(input_delay_->pin());
   }
 
   if (is_segment_start_)
-    str += " segment_start";
+    result += " segment_start";
 
   if (states_) {
-    ExceptionStateSet::ConstIterator state_iter(states_);
-    while (state_iter.hasNext()) {
-      ExceptionState *state = state_iter.next();
+    for (ExceptionState *state : *states_) {
       ExceptionPath *exception = state->exception();
-      str += " ";
-      str += exception->asString(network);
+      result += " ";
+      result += exception->asString(network);
       if (state->nextThru()) {
-	str += " (next thru ";
-	str += state->nextThru()->asString(network);
-	str += ")";
+	result += " (next thru ";
+	result += state->nextThru()->asString(network);
+	result += ")";
       }
       else {
 	if (exception->thrus() != nullptr)
-	  str += " (thrus complete)";
+	  result += " (thrus complete)";
       }
     }
   }
 
-  char *result = makeTmpString(str.size() + 1);
-  strcpy(result, str.c_str());
-  return result;
+  char *tmp = makeTmpString(result.size() + 1);
+  strcpy(tmp, result.c_str());
+  return tmp;
 }
 
 const RiseFall *
 Tag::transition() const
 {
-  return RiseFall::find(tr_index_);
+  return RiseFall::find(rf_index_);
 }
 
 PathAnalysisPt *
@@ -196,13 +193,13 @@ Tag::setStates(ExceptionStateSet *states)
   states_ = states;
 }
 
-ClockEdge *
+const ClockEdge *
 Tag::clkEdge() const
 {
   return clk_info_->clkEdge();
 }
 
-Clock *
+const Clock *
 Tag::clock() const
 {
   return clk_info_->clock();
@@ -220,15 +217,13 @@ Tag::isGenClkSrcPath() const
   return clk_info_->isGenClkSrcPath();
 }
 
-Clock *
+const Clock *
 Tag::genClkSrcPathClk(const StaState *sta) const
 {
   if (clk_info_->isGenClkSrcPath()
       && states_) {
     FilterPath *filter = sta->search()->filter();
-    ExceptionStateSet::ConstIterator state_iter(states_);
-    while (state_iter.hasNext()) {
-      ExceptionState *state = state_iter.next();
+    for (ExceptionState *state : *states_) {
       ExceptionPath *except = state->exception();
       if (except->isFilter()
 	  && except != filter) {
@@ -237,7 +232,7 @@ Tag::genClkSrcPathClk(const StaState *sta) const
 	  ClockSet *clks = to->clks();
 	  if (clks && clks->size() == 1) {
 	    ClockSet::Iterator clk_iter(clks);
-	    Clock *clk = clk_iter.next();
+	    const Clock *clk = clk_iter.next();
 	    return clk;
 	  }
 	}
@@ -252,16 +247,13 @@ Tag::findHash()
 {
   // Common to hash_ and match_hash_.
   hash_ = hash_init_value;
-  hashIncr(hash_, tr_index_);
+  hashIncr(hash_, rf_index_);
   hashIncr(hash_, path_ap_index_);
   hashIncr(hash_, is_clk_);
   hashIncr(hash_, is_segment_start_);
   if (states_) {
-    ExceptionStateSet::Iterator state_iter(states_);
-    while (state_iter.hasNext()) {
-      ExceptionState *state = state_iter.next();
+    for (ExceptionState *state : *states_)
       hashIncr(hash_, state->hash());
-    }
   }
   match_hash_ = hash_;
 
@@ -271,7 +263,7 @@ Tag::findHash()
     hashIncr(hash_, input_delay_->index());
 
   // Finish match_hash_.
-  ClockEdge *clk_edge = clk_info_->clkEdge();
+  const ClockEdge *clk_edge = clk_info_->clkEdge();
   if (clk_edge)
     hashIncr(match_hash_, clk_edge->index());
   hashIncr(match_hash_, clk_info_->isGenClkSrcPath());
@@ -305,11 +297,11 @@ tagCmp(const Tag *tag1,
     return 0;
 
   if (cmp_rf) {
-    int tr_index1 = tag1->trIndex();
-    int tr_index2 = tag2->trIndex();
-    if (tr_index1 < tr_index2)
+    int rf_index1 = tag1->rfIndex();
+    int rf_index2 = tag2->rfIndex();
+    if (rf_index1 < rf_index2)
       return -1;
-    if (tr_index1 > tr_index2)
+    if (rf_index1 > rf_index2)
       return 1;
   }
 
@@ -358,7 +350,7 @@ tagEqual(const Tag *tag1,
 	 const Tag *tag2)
 {
   return tag1 == tag2
-    || (tag1->trIndex() == tag2->trIndex()
+    || (tag1->rfIndex() == tag2->rfIndex()
 	&& tag1->pathAPIndex() == tag2->pathAPIndex()
 	&& tag1->clkInfo() == tag2->clkInfo()
 	&& tag1->isClock() == tag2->isClock()
@@ -412,7 +404,7 @@ tagMatch(const Tag *tag1,
   const ClkInfo *clk_info2 = tag2->clkInfo();
   return tag1 == tag2
     || (clk_info1->clkEdge() == clk_info2->clkEdge()
-	&& tag1->trIndex() == tag2->trIndex()
+	&& tag1->rfIndex() == tag2->rfIndex()
 	&& tag1->pathAPIndex() == tag2->pathAPIndex()
 	&& tag1->isClock() == tag2->isClock()
 	&& tag1->isSegmentStart() == tag2->isSegmentStart()
@@ -432,11 +424,11 @@ tagMatchCmp(const Tag *tag1,
   if (tag1 == tag2)
     return 0;
 
-  int tr_index1 = tag1->trIndex();
-  int tr_index2 = tag2->trIndex();
-  if (tr_index1 < tr_index2)
+  int rf_index1 = tag1->rfIndex();
+  int rf_index2 = tag2->rfIndex();
+  if (rf_index1 < rf_index2)
     return -1;
-  if (tr_index1 > tr_index2)
+  if (rf_index1 > rf_index2)
     return 1;
 
   PathAPIndex path_ap_index1 = tag1->pathAPIndex();
@@ -499,7 +491,7 @@ tagMatchNoCrpr(const Tag *tag1,
   const ClkInfo *clk_info2 = tag2->clkInfo();
   return tag1 == tag2
     || (clk_info1->clkEdge() == clk_info2->clkEdge()
-	&& tag1->trIndex() == tag2->trIndex()
+	&& tag1->rfIndex() == tag2->rfIndex()
 	&& tag1->pathAPIndex() == tag2->pathAPIndex()
 	&& tag1->isClock() == tag2->isClock()
 	&& clk_info1->isGenClkSrcPath() == clk_info2->isGenClkSrcPath()
@@ -514,7 +506,7 @@ tagMatchNoPathAp(const Tag *tag1,
   const ClkInfo *clk_info2 = tag2->clkInfo();
   return tag1 == tag2
     || (clk_info1->clkEdge() == clk_info2->clkEdge()
-	&& tag1->trIndex() == tag2->trIndex()
+	&& tag1->rfIndex() == tag2->rfIndex()
 	&& tag1->isClock() == tag2->isClock()
 	&& tag1->isSegmentStart() == tag2->isSegmentStart()
 	&& clk_info1->isGenClkSrcPath() == clk_info2->isGenClkSrcPath()
@@ -529,7 +521,7 @@ tagMatchCrpr(const Tag *tag1,
   const ClkInfo *clk_info2 = tag2->clkInfo();
   return tag1 == tag2
     || (clk_info1->clkEdge() == clk_info2->clkEdge()
-	&& tag1->trIndex() == tag2->trIndex()
+	&& tag1->rfIndex() == tag2->rfIndex()
 	&& tag1->isClock() == tag2->isClock()
 	&& tag1->isSegmentStart() == tag2->isSegmentStart()
 	&& clk_info1->isGenClkSrcPath() == clk_info2->isGenClkSrcPath()

@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,14 +29,14 @@ class ConcreteParasiticNode;
 typedef Map<const Pin*, float> ConcreteElmoreLoadMap;
 typedef ConcreteElmoreLoadMap::Iterator ConcretePiElmoreLoadIterator;
 typedef Map<const Pin*, ConcretePoleResidue*> ConcretePoleResidueMap;
-typedef std::pair<const Net*, int> NetId;
-struct NetIdLess
+typedef std::pair<const Net*, int> NetIdPair;
+struct NetIdPairLess
 {
-  bool operator()(const NetId *net_id1,
-		  const NetId *net_id2) const;
+  bool operator()(const NetIdPair *net_id1,
+		  const NetIdPair *net_id2) const;
 };
-typedef Map<NetId*, ConcreteParasiticSubNode*,
-	    NetIdLess > ConcreteParasiticSubNodeMap;
+typedef Map<NetIdPair*, ConcreteParasiticSubNode*,
+	    NetIdPairLess > ConcreteParasiticSubNodeMap;
 typedef Map<const Pin*,
 	    ConcreteParasiticPinNode*> ConcreteParasiticPinNodeMap;
 typedef Vector<ConcreteParasiticDevice*> ConcreteParasiticDeviceSeq;
@@ -78,26 +78,8 @@ public:
   virtual void setPoleResidue(const Pin *load_pin,
 			      ComplexFloatSeq *poles,
 			      ComplexFloatSeq *residues);
-  virtual ParasiticDeviceIterator *deviceIterator();
-  virtual ParasiticNodeIterator *nodeIterator();
-};
-
-class ConcreteElmore
-{
-public:
-  void findElmore(const Pin *load_pin,
-		  float &elmore,
-		  bool &exists) const;
-  void deleteLoad(const Pin *load_pin);
-  void setElmore(const Pin *load_pin,
-		 float elmore);
-
-protected:
-  ConcreteElmore();
-  virtual ~ConcreteElmore();
-
-private:
-  ConcreteElmoreLoadMap *loads_;
+  virtual ParasiticDeviceIterator *deviceIterator() const;
+  virtual ParasiticNodeIterator *nodeIterator() const;
 };
 
 // Pi model for a driver pin.
@@ -126,13 +108,13 @@ protected:
 
 // Pi model for a driver pin and the elmore delay to each load.
 class ConcretePiElmore : public ConcretePi,
-			 public ConcreteElmore,
 			 public ConcreteParasitic
 {
 public:
   ConcretePiElmore(float c2,
 		   float rpi,
 		   float c1);
+  virtual ~ConcretePiElmore();
   virtual bool isPiElmore() const { return true; }
   virtual bool isPiModel() const { return true; }
   virtual float capacitance() const;
@@ -143,6 +125,10 @@ public:
   virtual void findElmore(const Pin *load_pin, float &elmore,
 			  bool &exists) const;
   virtual void setElmore(const Pin *load_pin, float elmore);
+  void deleteLoad(const Pin *load_pin);
+
+private:
+  ConcreteElmoreLoadMap *loads_;
 };
 
 // PiElmore from wireload model estimate.
@@ -421,17 +407,17 @@ public:
   bool includesPinCaps() const { return includes_pin_caps_; }
   ConcreteParasiticNode *ensureParasiticNode(const Net *net,
 					     int id);
-  ConcreteParasiticNode *findNode(const Pin *pin);
+  ConcreteParasiticNode *findNode(const Pin *pin) const;
   ConcreteParasiticNode *ensureParasiticNode(const Pin *pin);
   virtual float capacitance() const;
   ConcreteParasiticPinNodeMap *pinNodes() { return &pin_nodes_; }
   ConcreteParasiticSubNodeMap *subNodes() { return &sub_nodes_; }
   void disconnectPin(const Pin *pin,
-		     Net *net);
-  virtual ParasiticDeviceIterator *deviceIterator();
-  virtual ParasiticNodeIterator *nodeIterator();
+		     const Net *net);
+  virtual ParasiticDeviceIterator *deviceIterator() const;
+  virtual ParasiticNodeIterator *nodeIterator() const;
   virtual void devices(// Return value.
-		       ConcreteParasiticDeviceSet *devices);
+		       ConcreteParasiticDeviceSet *devices) const;
 
 private:
   void deleteNodes();

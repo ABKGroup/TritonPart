@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -193,7 +193,7 @@ PathVertex::transition(const StaState *) const
 int
 PathVertex::rfIndex(const StaState *) const
 {
-  return tag_->trIndex();
+  return tag_->rfIndex();
 }
 
 PathAnalysisPt *
@@ -428,17 +428,17 @@ PrevPathVisitor::unfilteredTag(const Tag *tag) const
     ExceptionPath *except = state->exception();
     if (!except->isFilter()) {
       if (unfiltered_states == nullptr)
-	unfiltered_states = new ExceptionStateSet;
+	unfiltered_states = new ExceptionStateSet(network_);
       unfiltered_states->insert(state);
     }
   }
   return search_->findTag(tag->transition(),
-			 corners_->findPathAnalysisPt(tag->pathAPIndex()),
-			 tag->clkInfo(),
-			 tag->isClock(),
-			 tag->inputDelay(),
-			 tag->isSegmentStart(),
-			 unfiltered_states, true);
+                          corners_->findPathAnalysisPt(tag->pathAPIndex()),
+                          tag->clkInfo(),
+                          tag->isClock(),
+                          tag->inputDelay(),
+                          tag->isSegmentStart(),
+                          unfiltered_states, true);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -567,7 +567,7 @@ VertexPathIterator::findNext()
     int arrival_index;
     arrival_iter_.next(tag, arrival_index);
     if ((rf_ == nullptr
-	 || tag->trIndex() == rf_->index())
+	 || tag->rfIndex() == rf_->index())
 	&& (path_ap_ == nullptr
 	    || tag->pathAPIndex() == path_ap_->index())
 	&& (min_max_ == nullptr

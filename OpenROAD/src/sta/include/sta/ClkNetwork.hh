@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 namespace sta {
 
 typedef Map<const Pin*, ClockSet> PinClksMap;
-typedef Map<const Clock *, PinSet> ClkPinsMap;
+typedef Map<const Clock *, PinSet*> ClkPinsMap;
 
 class Sta;
 
@@ -36,6 +36,7 @@ class ClkNetwork : public StaState
 {
 public:
   ClkNetwork(StaState *sta);
+  ~ClkNetwork();
   void ensureClkNetwork();
   void clear();
   bool isClock(const Pin *pin) const;

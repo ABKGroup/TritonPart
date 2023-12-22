@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,86 +16,109 @@
 
 #include "VerilogNamespace.hh"
 
-#include <ctype.h>
+#include <cctype>
 
 #include "StringUtil.hh"
 #include "ParseBus.hh"
 
 namespace sta {
 
-const char *
+static string
+staToVerilog(const char *sta_name,
+	     const char escape);
+static string
+staToVerilog2(const char *sta_name,
+              const char escape);
+static string
+verilogToSta(const char *verilog_name);
+
+string
 instanceVerilogName(const char *sta_name,
 		    const char escape)
 {
   return staToVerilog(sta_name, escape);
 }
 
-const char *
+string
 netVerilogName(const char *sta_name,
 	       const char escape)
 {
-  char *bus_name;
+  bool is_bus;
+  string bus_name;
   int index;
-  parseBusName(sta_name, '[', ']', escape, bus_name, index);
-  if (bus_name) {
-    const char *vname = stringPrintTmp("%s[%d]",
-				       staToVerilog(bus_name, escape),
-				       index);
-    stringDelete(bus_name);
+  parseBusName(sta_name, '[', ']', escape, is_bus, bus_name, index);
+  if (is_bus) {
+    string bus_vname = staToVerilog(bus_name.c_str(), escape);
+    string vname;
+    stringPrint(vname, "%s[%d]", bus_vname.c_str(), index);
     return vname;
   }
   else
-    return staToVerilog(sta_name, escape);
+    return staToVerilog2(sta_name, escape);
 }
 
-const char *
+string
 portVerilogName(const char *sta_name,
 		const char escape)
 {
-  return staToVerilog(sta_name, escape);
+  return staToVerilog2(sta_name, escape);
 }
 
-// Append ch to str at insert.  Resize str if necessary.
-static inline void
-vstringAppend(char *&str,
-	      char *&str_end,
-	      char *&insert,
-	      char ch)
-{
-  if (insert == str_end) {
-    size_t length = str_end - str;
-    size_t length2 = length * 2;
-    char *new_str = makeTmpString(length2);
-    strncpy(new_str, str, length);
-    str = new_str;
-    str_end = &str[length2];
-    insert = &str[length];
-  }
-  *insert++ = ch;
-}
-
-const char *
+static string
 staToVerilog(const char *sta_name,
 	     const char escape)
 {
-  const char bus_brkt_left = '[';
-  const char bus_brkt_right = ']';
   // Leave room for leading escape and trailing space if the name
   // needs to be escaped.
-  size_t verilog_name_length = strlen(sta_name) + 3;
-  char *verilog_name = makeTmpString(verilog_name_length);
-  char *verilog_name_end = &verilog_name[verilog_name_length];
-  char *v = verilog_name;
   // Assume the name has to be escaped and start copying while scanning.
+  string escaped_name =  "\\";
   bool escaped = false;
-  *v++ = '\\';
   for (const char *s = sta_name; *s ; s++) {
     char ch = s[0];
     if (ch == escape) {
       char next_ch = s[1];
       if (next_ch == escape) {
-	vstringAppend(verilog_name, verilog_name_end, v, ch);
-	vstringAppend(verilog_name, verilog_name_end, v, next_ch);
+	escaped_name += ch;
+	escaped_name += next_ch;
+	s++;
+      }
+      else
+	// Skip escape.
+	escaped = true;
+    }
+    else {
+      if ((!(isalnum(ch) || ch == '_')))
+	escaped = true;
+      escaped_name += ch;
+    }
+  }
+  if (escaped) {
+    // Add a terminating space.
+    escaped_name += ' ';
+    return escaped_name;
+  }
+  else
+    return string(sta_name);
+}
+
+static string
+staToVerilog2(const char *sta_name,
+              const char escape)
+{
+  constexpr char bus_brkt_left = '[';
+  constexpr char bus_brkt_right = ']';
+  // Leave room for leading escape and trailing space if the name
+  // needs to be escaped.
+  string escaped_name =  "\\";
+  // Assume the name has to be escaped and start copying while scanning.
+  bool escaped = false;
+  for (const char *s = sta_name; *s ; s++) {
+    char ch = s[0];
+    if (ch == escape) {
+      char next_ch = s[1];
+      if (next_ch == escape) {
+	escaped_name += ch;
+	escaped_name += next_ch;
 	s++;
       }
       else
@@ -107,49 +130,73 @@ staToVerilog(const char *sta_name,
       if ((!(isalnum(ch) || ch == '_') && !is_brkt)
 	  || is_brkt)
 	escaped = true;
-      vstringAppend(verilog_name, verilog_name_end, v, ch);
+      escaped_name += ch;
     }
   }
   if (escaped) {
     // Add a terminating space.
-    vstringAppend(verilog_name, verilog_name_end, v, ' ');
-    vstringAppend(verilog_name, verilog_name_end, v, '\0');
-    return verilog_name;
+    escaped_name += ' ';
+    return escaped_name;
   }
   else
-    return sta_name;
+    return string(sta_name);
 }
 
-const char *
+////////////////////////////////////////////////////////////////
+
+string
+moduleVerilogToSta(const char *module_name)
+{
+  return verilogToSta(module_name);
+}
+
+string
+instanceVerilogToSta(const char *inst_name)
+{
+  return verilogToSta(inst_name);
+}
+
+string
+netVerilogToSta(const char *net_name)
+{
+  return verilogToSta(net_name);
+}
+
+string
+portVerilogToSta(const char *port_name)
+{
+  return verilogToSta(port_name);
+}
+
+static string
 verilogToSta(const char *verilog_name)
 {
-  if (verilog_name[0] == '\\') {
-    const char divider = '/';
-    const char escape = '\\';
-    const char bus_brkt_left = '[';
-    const char bus_brkt_right = ']';
-    size_t sta_name_length = strlen(verilog_name) + 1;
-    char *sta_name = makeTmpString(sta_name_length);
-    char *sta_name_end = &sta_name[sta_name_length];
-    char *s = sta_name;
-    for (const char *v = &verilog_name[1]; *v ; v++) {
-      char ch = *v;
-      if (ch == divider
-	  || ch == bus_brkt_left
-	  || ch == bus_brkt_right
-	  || ch == escape)
-	// Escape dividers, bus brackets and escapes.
-	vstringAppend(sta_name, sta_name_end, s, escape);
-      vstringAppend(sta_name, sta_name_end, s, ch);
-      // Don't include the last character, which is always a space.
-      if (v[2] == '\0')
-	break;
+  if (verilog_name && verilog_name[0] == '\\') {
+    constexpr char divider = '/';
+    constexpr char escape = '\\';
+    constexpr char bus_brkt_left = '[';
+    constexpr char bus_brkt_right = ']';
+
+    // Ignore leading '\'.
+    verilog_name = &verilog_name[1];
+    size_t verilog_name_length = strlen(verilog_name);
+    if (verilog_name[verilog_name_length - 1] == ' ')
+      verilog_name_length--;
+    string sta_name;
+    for (size_t i = 0; i < verilog_name_length; i++) {
+      char ch = verilog_name[i];
+      if (ch == bus_brkt_left
+          || ch == bus_brkt_right
+          || ch == divider
+          || ch == escape)
+          // Escape bus brackets, dividers and escapes.
+	sta_name += escape;
+      sta_name += ch;
     }
-    vstringAppend(sta_name, sta_name_end, s, '\0');
     return sta_name;
   }
   else
-    return verilog_name;
+    return string(verilog_name);
 }
 
 } // namespace

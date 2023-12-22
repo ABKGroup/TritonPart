@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,11 +19,6 @@
 // Author: W. Scott
 
 #include "ArnoldiReduce.hh"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <math.h>
 
 #include "Debug.hh"
 #include "MinMax.hh"
@@ -451,7 +446,7 @@ ArnoldiReduce::pinCapacitance(ParasiticNode *node)
     if (lib_port)
       pin_cap = sdc_->pinCapacitance(pin,rf_, op_cond_, corner_, cnst_min_max_);
     else if (network_->isTopLevelPort(pin))
-      pin_cap = sdc_->portExtCap(port, rf_, cnst_min_max_);
+      pin_cap = sdc_->portExtCap(port, rf_, corner_, cnst_min_max_);
   }
   return pin_cap;
 }

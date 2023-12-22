@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,20 +16,15 @@
 
 #pragma once
 
-#include <vector>
+#include "NetworkClass.hh"
 
 namespace sta {
-
-using std::vector;
-
-class Network;
-class LibertyCell;
 
 void
 writeVerilog(const char *filename,
 	     bool sort,
 	     bool include_pwr_gnd,
-	     vector<LibertyCell*> *remove_cells,
+	     CellSeq *remove_cells,
 	     Network *network);
 
 } // namespace

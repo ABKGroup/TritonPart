@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FR_BASE_TYPES_H_
-#define _FR_BASE_TYPES_H_
+#pragma once
 
 #include <boost/geometry/geometries/box.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
@@ -42,11 +41,9 @@
 #include <vector>
 
 #include "odb/dbTypes.h"
+#include "odb/geom.h"
 #include "utl/Logger.h"
 
-namespace odb {
-class Rect;
-}
 namespace boost::serialization {
 class access;
 }
@@ -194,6 +191,7 @@ enum class frConstraintTypeEnum
   frcLef58SpacingEndOfLineWithinEncloseCutConstraint,
   frcLef58SpacingEndOfLineWithinParallelEdgeConstraint,
   frcLef58SpacingEndOfLineWithinMaxMinLengthConstraint,
+  frcLef58SpacingWrongDirConstraint,
   frcLef58CutClassConstraint,  // not supported
   frcNonSufficientMetalConstraint,
   frcSpacingSamenetConstraint,
@@ -205,7 +203,8 @@ enum class frConstraintTypeEnum
   frcLef58EolKeepOutConstraint,
   frcLef58MinimumCutConstraint,
   frcMetalWidthViaConstraint,
-  frcLef58AreaConstraint
+  frcLef58AreaConstraint,
+  frcLef58KeepOutZoneConstraint
 };
 
 std::ostream& operator<<(std::ostream& os, frConstraintTypeEnum type);
@@ -259,6 +258,16 @@ enum class frDirEnum
   U = 6
 };
 
+static constexpr frDirEnum frDirEnumAll[] = {frDirEnum::D,
+                                             frDirEnum::S,
+                                             frDirEnum::W,
+                                             frDirEnum::E,
+                                             frDirEnum::N,
+                                             frDirEnum::U};
+
+static constexpr frDirEnum frDirEnumPlanar[]
+    = {frDirEnum::S, frDirEnum::W, frDirEnum::E, frDirEnum::N};
+
 enum class AccessPointTypeEnum
 {
   Ideal,
@@ -275,6 +284,13 @@ enum class frAccessPointEnum
   Center = 2,
   EncOpt = 3,
   NearbyGrid = 4  // nearby grid or 1/2 grid
+};
+
+enum class RipUpMode
+{
+  DRC = 0,
+  ALL = 1,
+  NEARDRC = 2
 };
 
 namespace bg = boost::geometry;
@@ -296,8 +312,6 @@ struct frDebugSettings
         debugTA(false),
         draw(true),
         allowPause(true),
-        x(-1),
-        y(-1),
         iter(0),
         paMarkers(false),
         paEdge(false),
@@ -305,8 +319,12 @@ struct frDebugSettings
         mazeEndIter(-1),
         drcCost(-1),
         markerCost(-1),
+        fixedShapeCost(-1),
+        markerDecay(-1),
         ripupMode(-1),
-        followGuide(-1)
+        followGuide(-1),
+        writeNetTracks(false),
+        dumpLastWorker(false)
 
   {
   }
@@ -322,8 +340,7 @@ struct frDebugSettings
   bool allowPause;
   std::string netName;
   std::string pinName;
-  int x;
-  int y;
+  odb::Rect box{-1, -1, -1, -1};
   int iter;
   bool paMarkers;
   bool paEdge;
@@ -333,8 +350,12 @@ struct frDebugSettings
   int mazeEndIter;
   int drcCost;
   int markerCost;
+  int fixedShapeCost;
+  float markerDecay;
   int ripupMode;
   int followGuide;
+  bool writeNetTracks;
+  bool dumpLastWorker;
 };
 
 // Avoids the need to split the whole serializer like
@@ -346,6 +367,6 @@ inline bool is_loading(const Archive& ar)
   return std::is_same<typename Archive::is_loading, boost::mpl::true_>::value;
 }
 
-}  // namespace fr
+using utl::format_as;
 
-#endif
+}  // namespace fr

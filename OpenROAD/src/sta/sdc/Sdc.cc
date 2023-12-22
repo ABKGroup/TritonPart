@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -82,41 +82,45 @@ clone(ExceptionThruSeq *thrus,
 Sdc::Sdc(StaState *sta) :
   StaState(sta),
   derating_factors_(nullptr),
-  net_derating_factors_(nullptr),
-  inst_derating_factors_(nullptr),
-  cell_derating_factors_(nullptr),
   clk_index_(0),
-  clk_insertions_(nullptr),
-  clk_group_exclusions_(nullptr),
-  clk_group_same_(nullptr),
+  clock_pin_map_(PinIdHash(network_)),
+  clock_leaf_pin_map_(PinIdHash(network_)),
+  clk_hpin_disables_(network_),
+  propagated_clk_pins_(network_),
+  clk_latencies_(network_),
+  clk_insertions_(network_),
   clk_sense_map_(network_),
   clk_gating_check_(nullptr),
   cycle_acctings_(this),
+
+  input_delay_pin_map_(PinIdLess(network_)),
+  input_delay_ref_pin_map_(PinIdLess(network_)),
+  input_delay_leaf_pin_map_(PinIdLess(network_)),
+  input_delay_internal_pin_map_(PinIdLess(network_)),
   input_delay_index_(0),
-  port_cap_map_(nullptr),
-  net_wire_cap_map_(nullptr),
-  drvr_pin_wire_cap_map_(nullptr),
+
+  output_delay_pin_map_(PinIdLess(network_)),
+  output_delay_ref_pin_map_(PinIdLess(network_)),
+  output_delay_leaf_pin_map_(PinIdLess(network_)),
+
+  disabled_pins_(network_),
+  disabled_ports_(network_),
+  disabled_wire_edges_(network_),
+  disabled_clk_gating_checks_inst_(network_),
+  disabled_clk_gating_checks_pin_(network_),
   have_thru_hpin_exceptions_(false),
-  first_from_pin_exceptions_(nullptr),
-  first_from_clk_exceptions_(nullptr),
-  first_from_inst_exceptions_(nullptr),
-  first_thru_pin_exceptions_(nullptr),
-  first_thru_inst_exceptions_(nullptr),
-  first_thru_net_exceptions_(nullptr),
-  first_to_pin_exceptions_(nullptr),
-  first_to_clk_exceptions_(nullptr),
-  first_to_inst_exceptions_(nullptr),
-  first_thru_edge_exceptions_(nullptr),
-  path_delay_internal_startpoints_(nullptr),
-  path_delay_internal_endpoints_(nullptr)
+  first_thru_edge_exceptions_(0, PinPairHash(network_), PinPairEqual()),
+  path_delay_internal_startpoints_(network_),
+  path_delay_internal_endpoints_(network_)
 {
-  initVariables();
   sdc_ = this;
+  initVariables();
+  if (corners_)
+    makeCornersAfter(corners_);
   setWireload(nullptr, MinMaxAll::all());
   setWireloadSelection(nullptr, MinMaxAll::all());
   setOperatingConditions(nullptr, MinMaxAll::all());
   makeDefaultArrivalClock();
-  initInstancePvtMaps();
 }
 
 void
@@ -125,7 +129,7 @@ Sdc::makeDefaultArrivalClock()
   FloatSeq *waveform = new FloatSeq;
   waveform->push_back(0.0);
   waveform->push_back(0.0);
-  default_arrival_clk_ = new Clock("input port clock", clk_index_++);
+  default_arrival_clk_ = new Clock("input port clock", clk_index_++, network_);
   default_arrival_clk_->initClk(0, false, 0.0, waveform, nullptr, network_);
 }
 
@@ -148,8 +152,7 @@ Sdc::clear()
   clock_leaf_pin_map_.clear();
   clk_latencies_.clear();
   edge_clk_latency_.clear();
-  if (clk_insertions_)
-    clk_insertions_->clear();
+  clk_insertions_.clear();
 
   pin_clk_uncertainty_map_.clear();
   inter_clk_uncertainties_.clear();
@@ -247,11 +250,7 @@ Sdc::deleteConstraints()
   clock_pin_map_.deleteContents();
   clock_leaf_pin_map_.deleteContents();
   clk_latencies_.deleteContents();
-  if (clk_insertions_) {
-    clk_insertions_->deleteContents();
-    delete clk_insertions_;
-    clk_insertions_ = nullptr;
-  }
+  clk_insertions_.deleteContents();
 
   clk_groups_name_map_.deleteContents();
   clearClkGroupExclusions();
@@ -270,28 +269,23 @@ Sdc::deleteConstraints()
   inst_min_pulse_width_map_.deleteContentsClear();
   clk_min_pulse_width_map_.deleteContentsClear();
 
-  DataChecksMap::Iterator data_checks_iter1(data_checks_from_map_);
-  while (data_checks_iter1.hasNext()) {
-    DataCheckSet *checks = data_checks_iter1.next();
+  for (auto pin_data_check : data_checks_from_map_) {
+    DataCheckSet *checks = pin_data_check.second;
     checks->deleteContents();
     delete checks;
   }
-
-  DataChecksMap::Iterator data_checks_iter2(data_checks_to_map_);
-  while (data_checks_iter2.hasNext()) {
-    DataCheckSet *checks = data_checks_iter2.next();
+  for (auto pin_data_check : data_checks_to_map_) {
+    DataCheckSet *checks = pin_data_check.second;
     delete checks;
   }
 
-  for (InputDelay *input_delay : input_delays_)
-    delete input_delay;
+  input_delays_.deleteContents();
   input_delay_pin_map_.deleteContents();
   input_delay_leaf_pin_map_.deleteContents();
   input_delay_ref_pin_map_.deleteContents();
   input_delay_internal_pin_map_.deleteContents();
 
-  for (OutputDelay *output_delay : output_delays_)
-    delete output_delay;
+  output_delays_.deleteContents();
   output_delay_pin_map_.deleteContents();
   output_delay_ref_pin_map_.deleteContents();
   output_delay_leaf_pin_map_.deleteContents();
@@ -302,115 +296,90 @@ Sdc::deleteConstraints()
   clearCycleAcctings();
   deleteExceptions();
   clearGroupPathMap();
-  deleteInstancePvts();
   deleteDeratingFactors();
-  removeLoadCaps();
-  clk_sense_map_.clear();
-}
 
-void
-Sdc::deleteInstancePvts()
-{
-  // Multiple instances can share a pvt, so put them in a set
-  // so they are only deleted once.
-  PvtSet pvts;
-  for (auto mm_index : MinMax::rangeIndex()) {
-    InstancePvtMap *pvt_map = instance_pvt_maps_[mm_index];
-    InstancePvtMap::Iterator pvt_iter(pvt_map);
-    while (pvt_iter.hasNext()) {
-      Pvt *pvt = pvt_iter.next();
-      pvts.insert(pvt);
-    }
-    delete pvt_map;
-  }
-  pvts.deleteContents();
+  removeNetLoadCaps();
+
+  clk_sense_map_.clear();
+
+  for (int mm_index : MinMax::rangeIndex())
+    instance_pvt_maps_[mm_index].deleteContentsClear();
 }
 
 void
 Sdc::removeNetLoadCaps()
 {
-  delete [] net_wire_cap_map_;
-  net_wire_cap_map_ = nullptr;
-
-  delete [] drvr_pin_wire_cap_map_;
-  drvr_pin_wire_cap_map_ = nullptr;
-}
-
-void
-Sdc::removeLoadCaps()
-{
-  if (port_cap_map_) {
-    port_cap_map_->deleteContents();
-    delete port_cap_map_;
-    port_cap_map_ = nullptr;
+  if (!net_wire_cap_maps_.empty()) {
+    for (int corner_index = 0; corner_index < corners_->count(); corner_index++) {
+      net_wire_cap_maps_[corner_index].clear();
+      drvr_pin_wire_cap_maps_[corner_index].clear();
+      port_ext_cap_maps_[corner_index].deleteContentsClear();
+    }
   }
-  removeNetLoadCaps();
 }
 
 void
 Sdc::removeLibertyAnnotations()
 {
-  DisabledCellPortsMap::Iterator disabled_iter(disabled_cell_ports_);
-  while (disabled_iter.hasNext()) {
-    DisabledCellPorts *disable = disabled_iter.next();
+  for (auto cell_port : disabled_cell_ports_) {
+    DisabledCellPorts *disable = cell_port.second;
     LibertyCell *cell = disable->cell();
     if (disable->all())
       cell->setIsDisabledConstraint(false);
 
-    LibertyPortSet::Iterator from_iter(disable->from());
-    while (from_iter.hasNext()) {
-      LibertyPort *from = from_iter.next();
-      from->setIsDisabledConstraint(false);
+    if (disable->from()) {
+      for (LibertyPort *from : *disable->from())
+        from->setIsDisabledConstraint(false);
     }
 
-    LibertyPortSet::Iterator to_iter(disable->to());
-    while (to_iter.hasNext()) {
-      LibertyPort *to = to_iter.next();
-      to->setIsDisabledConstraint(false);
+    if (disable->to()) {
+      for (LibertyPort *to : *disable->to())
+        to->setIsDisabledConstraint(false);
     }
 
     if (disable->timingArcSets()) {
-      TimingArcSetSet::Iterator arc_iter(disable->timingArcSets());
-      while (arc_iter.hasNext()) {
-	TimingArcSet *arc_set = arc_iter.next();
+      for (TimingArcSet *arc_set : *disable->timingArcSets()) 
 	arc_set->setIsDisabledConstraint(false);
+    }
+
+    
+    if (disable->fromTo()) {
+      for (const LibertyPortPair &pair : *disable->fromTo()) {
+        const LibertyPort *from = pair.first;
+        const LibertyPort *to = pair.second;
+        for (TimingArcSet *arc_set : cell->timingArcSets(from, to))
+          arc_set->setIsDisabledConstraint(false);
       }
     }
-
-    LibertyPortPairSet::Iterator from_to_iter(disable->fromTo());
-    while (from_to_iter.hasNext()) {
-      LibertyPortPair *pair = from_to_iter.next();
-      const LibertyPort *from = pair->first;
-      const LibertyPort *to = pair->second;
-      for (TimingArcSet *arc_set : cell->timingArcSets(from, to))
-	arc_set->setIsDisabledConstraint(false);
-    }
   }
 
-  LibertyPortSet::Iterator port_iter(disabled_lib_ports_);
-  while (port_iter.hasNext()) {
-    LibertyPort *port = port_iter.next();
+  for (LibertyPort *port : disabled_lib_ports_)
     port->setIsDisabledConstraint(false);
+}
+
+void
+Sdc::deleteNetBefore(const Net *net)
+{
+  for (int corner_index = 0; corner_index < corners_->count(); corner_index++) {
+    net_wire_cap_maps_[corner_index].erase(net);
+    for (const Pin *pin : *network_->drivers(net))
+      drvr_pin_wire_cap_maps_[corner_index].erase(pin);
   }
 }
 
 void
-Sdc::initInstancePvtMaps()
+Sdc::makeCornersBefore()
 {
-  for (auto mm_index : MinMax::rangeIndex())
-    instance_pvt_maps_[mm_index] = nullptr;
+  removeNetLoadCaps();
 }
 
 void
-Sdc::deleteNetBefore(Net *net)
+Sdc::makeCornersAfter(Corners *corners)
 {
-  if (net_wire_cap_map_) {
-    for (int corner_index = 0; corner_index < corners_->count(); corner_index++) {
-      net_wire_cap_map_[corner_index].erase(net);
-      for (Pin *pin : *network_->drivers(net))
-	drvr_pin_wire_cap_map_[corner_index].erase(pin);
-    }
-  }
+  corners_ = corners;
+  port_ext_cap_maps_.resize(corners_->count(), PortExtCapMap(PortIdLess(network_)));
+  net_wire_cap_maps_.resize(corners_->count(), NetWireCapMap(NetIdLess(network_)));
+  drvr_pin_wire_cap_maps_.resize(corners_->count(), PinWireCapMap(PinIdLess(network_)));
 }
 
 ////////////////////////////////////////////////////////////////
@@ -418,10 +387,9 @@ Sdc::deleteNetBefore(Net *net)
 bool
 Sdc::isConstrained(const Pin *pin) const
 {
-  Pin *pin1 = const_cast<Pin*>(pin);
   Port *port = network_->isTopLevelPort(pin) ? network_->port(pin) : nullptr;
   return clock_pin_map_.hasKey(pin)
-    || propagated_clk_pins_.hasKey(pin1)
+    || propagated_clk_pins_.hasKey(pin)
     || hasClockLatency(pin)
     || hasClockInsertion(pin)
     || pin_clk_uncertainty_map_.hasKey(pin)
@@ -430,45 +398,35 @@ Sdc::isConstrained(const Pin *pin) const
     || data_checks_to_map_.hasKey(pin)
     || input_delay_pin_map_.hasKey(pin)
     || output_delay_pin_map_.hasKey(pin)
-    || port_slew_limit_map_.hasKey(port)
-    || pin_cap_limit_map_.hasKey(pin1)
-    || port_cap_limit_map_.hasKey(port)
-    || port_fanout_limit_map_.hasKey(port)
-    || hasPortExtCap(port)
-    || disabled_pins_.hasKey(pin1)
+    || pin_cap_limit_map_.hasKey(pin)
+    || disabled_pins_.hasKey(pin)
     || disabled_ports_.hasKey(port)
-    || disabled_clk_gating_checks_pin_.hasKey(pin1)
-    || (first_from_pin_exceptions_
-	&& first_from_pin_exceptions_->hasKey(pin))
-    || (first_thru_pin_exceptions_
-	&& first_thru_pin_exceptions_->hasKey(pin))
-    || (first_to_pin_exceptions_
-	&& first_to_pin_exceptions_->hasKey(pin))
+    || disabled_clk_gating_checks_pin_.hasKey(pin)
+    || first_from_pin_exceptions_.hasKey(pin)
+    || first_thru_pin_exceptions_.hasKey(pin)
+    || first_to_pin_exceptions_.hasKey(pin)
     || input_drive_map_.hasKey(port)
     || logic_value_map_.hasKey(pin)
     || case_value_map_.hasKey(pin)
     || pin_latch_borrow_limit_map_.hasKey(pin)
-    || pin_min_pulse_width_map_.hasKey(pin);
+    || pin_min_pulse_width_map_.hasKey(pin)
+    || (port && (port_slew_limit_map_.hasKey(port)
+                 || port_cap_limit_map_.hasKey(port)
+                 || port_fanout_limit_map_.hasKey(port)
+                 || hasPortExtCap(port)));
 }
 
 bool
 Sdc::isConstrained(const Instance *inst) const
 {
-  Instance *inst1 = const_cast<Instance*>(inst);
-  return (instance_pvt_maps_[MinMax::minIndex()]
-	  && instance_pvt_maps_[MinMax::minIndex()]->hasKey(inst1))
-    || (instance_pvt_maps_[MinMax::maxIndex()]
-	  && instance_pvt_maps_[MinMax::maxIndex()]->hasKey(inst1))
-    || (inst_derating_factors_
-	&& inst_derating_factors_->hasKey(inst))
+  return instance_pvt_maps_[MinMax::minIndex()].hasKey(inst)
+    || instance_pvt_maps_[MinMax::maxIndex()].hasKey(inst)
+    || inst_derating_factors_.hasKey(inst)
     || inst_clk_gating_check_map_.hasKey(inst)
-    || disabled_inst_ports_.hasKey(inst1)
-    || (first_from_inst_exceptions_
-	&& first_from_inst_exceptions_->hasKey(inst))
-    || (first_thru_inst_exceptions_
-	&& first_thru_inst_exceptions_->hasKey(inst))
-    || (first_to_inst_exceptions_
-	&& first_to_inst_exceptions_->hasKey(inst))
+    || disabled_inst_ports_.hasKey(inst)
+    || first_from_inst_exceptions_.hasKey(inst)
+    || first_thru_inst_exceptions_.hasKey(inst)
+    || first_to_inst_exceptions_.hasKey(inst)
     || inst_latch_borrow_limit_map_.hasKey(inst)
     || inst_min_pulse_width_map_.hasKey(inst);
 }
@@ -476,13 +434,10 @@ Sdc::isConstrained(const Instance *inst) const
 bool
 Sdc::isConstrained(const Net *net) const
 {
-  Net *net1 = const_cast<Net*>(net);
-  return (net_derating_factors_
-	  && net_derating_factors_->hasKey(net))
-    || hasNetWireCap(net1)
-    || net_res_map_.hasKey(net1)
-    || (first_thru_net_exceptions_
-	&& first_thru_net_exceptions_->hasKey(net));
+  return net_derating_factors_.hasKey(net)
+    || hasNetWireCap(net)
+    || net_res_map_.hasKey(net)
+    || first_thru_net_exceptions_.hasKey(net);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -516,30 +471,59 @@ Sdc::operatingConditions(const MinMax *min_max)
   return operating_conditions_[mm_index];
 }
 
-Pvt *
-Sdc::pvt(Instance *inst,
+const Pvt *
+Sdc::pvt(const Instance *inst,
 	 const MinMax *min_max) const
 {
-  InstancePvtMap *pvt_map = instance_pvt_maps_[min_max->index()];
-  if (pvt_map)
-    return pvt_map->findKey(inst);
-  else
-    return nullptr;
+  const InstancePvtMap &pvt_map = instance_pvt_maps_[min_max->index()];
+  return pvt_map.findKey(inst);
 }
 
 void
-Sdc::setPvt(Instance *inst, const
-	    MinMaxAll *min_max,
-	    Pvt *pvt)
+Sdc::setPvt(const Instance *inst,
+            const MinMaxAll *min_max,
+	    const Pvt &pvt)
 {
   for (auto mm_index : min_max->rangeIndex()) {
-    InstancePvtMap *pvt_map = instance_pvt_maps_[mm_index];
-    if (pvt_map == nullptr) {
-      pvt_map = new InstancePvtMap;
-      instance_pvt_maps_[mm_index] = pvt_map;
-    }
-    (*pvt_map)[inst] = pvt;
+    InstancePvtMap &pvt_map = instance_pvt_maps_[mm_index];
+    pvt_map[inst] = new Pvt(pvt);
   }
+}
+
+void
+Sdc::voltage(const MinMax *min_max,
+             // Return values.
+             float &voltage,
+             bool &exists)
+{
+  voltages_.value(min_max, voltage, exists);
+}
+
+void
+Sdc::voltage(const Net *net,
+             const MinMax *min_max,
+             // Return values.
+             float &voltage,
+             bool &exists)
+{
+  exists = false;
+  if (net_voltage_map_.hasKey(net))
+    net_voltage_map_[net].value(min_max, voltage, exists);
+}
+
+void
+Sdc::setVoltage(const MinMax *min_max,
+                float voltage)
+{
+  voltages_.setValue(min_max, voltage);
+}
+
+void
+Sdc::setVoltage(const Net *net,
+                const MinMax *min_max,
+                float voltage)
+{
+  net_voltage_map_[net].setValue(min_max, voltage);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -563,12 +547,10 @@ Sdc::setTimingDerate(const Net *net,
 		     const EarlyLate *early_late,
 		     float derate)
 {
-  if (net_derating_factors_ == nullptr)
-    net_derating_factors_ = new NetDeratingFactorsMap;
-  DeratingFactorsNet *factors = net_derating_factors_->findKey(net);
+  DeratingFactorsNet *factors = net_derating_factors_.findKey(net);
   if (factors == nullptr) { 
     factors = new DeratingFactorsNet;
-    (*net_derating_factors_)[net] = factors;
+    net_derating_factors_[net] = factors;
   }
   factors->setFactor(clk_data, rf, early_late, derate);
 }
@@ -581,12 +563,10 @@ Sdc::setTimingDerate(const Instance *inst,
 		     const EarlyLate *early_late,
 		     float derate)
 {
-  if (inst_derating_factors_ == nullptr)
-    inst_derating_factors_ = new InstDeratingFactorsMap;
-  DeratingFactorsCell *factors = inst_derating_factors_->findKey(inst);
+  DeratingFactorsCell *factors = inst_derating_factors_.findKey(inst);
   if (factors == nullptr) {
     factors = new DeratingFactorsCell;
-    (*inst_derating_factors_)[inst] = factors;
+    inst_derating_factors_[inst] = factors;
   }
   factors->setFactor(type, clk_data, rf, early_late, derate);
 }
@@ -599,12 +579,10 @@ Sdc::setTimingDerate(const LibertyCell *cell,
 		     const EarlyLate *early_late,
 		     float derate)
 {
-  if (cell_derating_factors_ == nullptr)
-    cell_derating_factors_ = new CellDeratingFactorsMap;
-  DeratingFactorsCell *factors = cell_derating_factors_->findKey(cell);
+  DeratingFactorsCell *factors = cell_derating_factors_.findKey(cell);
   if (factors == nullptr) {
     factors = new DeratingFactorsCell;
-    (*cell_derating_factors_)[cell] = factors;
+    cell_derating_factors_[cell] = factors;
   }
   factors->setFactor(type, clk_data, rf, early_late, derate);
 }
@@ -616,32 +594,28 @@ Sdc::timingDerateInstance(const Pin *pin,
 			  const RiseFall *rf,
 			  const EarlyLate *early_late) const
 {
-  if (inst_derating_factors_) {
-    const Instance *inst = network_->instance(pin);
-    DeratingFactorsCell *factors = inst_derating_factors_->findKey(inst);
+  const Instance *inst = network_->instance(pin);
+  DeratingFactorsCell *factors = inst_derating_factors_.findKey(inst);
+  if (factors) {
+    float factor;
+    bool exists;
+    factors->factor(type, clk_data, rf, early_late, factor, exists);
+    if (exists)
+      return factor;
+  }
+
+  const LibertyCell *cell = network_->libertyCell(inst);
+  if (cell) {
+    DeratingFactorsCell *factors = cell_derating_factors_.findKey(cell);
+    float factor;
+    bool exists;
     if (factors) {
-      float factor;
-      bool exists;
       factors->factor(type, clk_data, rf, early_late, factor, exists);
       if (exists)
-	return factor;
+        return factor;
     }
   }
 
-  if (cell_derating_factors_) {
-    const Instance *inst = network_->instance(pin);
-    const LibertyCell *cell = network_->libertyCell(inst);
-    if (cell) {
-      DeratingFactorsCell *factors = cell_derating_factors_->findKey(cell);
-      float factor;
-      bool exists;
-      if (factors) {
-	factors->factor(type, clk_data, rf, early_late, factor, exists);
-	if (exists)
-	  return factor;
-      }
-    }
-  }
   if (derating_factors_) {
     float factor;
     bool exists;
@@ -658,17 +632,16 @@ Sdc::timingDerateNet(const Pin *pin,
 		     const RiseFall *rf,
 		     const EarlyLate *early_late) const
 {
-  if (net_derating_factors_) {
-    const Net *net = network_->net(pin);
-    DeratingFactorsNet *factors = net_derating_factors_->findKey(net);
-    if (factors) {
-      float factor;
-      bool exists;
-      factors->factor(clk_data, rf, early_late, factor, exists);
-      if (exists)
-	return factor;
-    }
+  const Net *net = network_->net(pin);
+  DeratingFactorsNet *factors = net_derating_factors_.findKey(net);
+  if (factors) {
+    float factor;
+    bool exists;
+    factors->factor(clk_data, rf, early_late, factor, exists);
+    if (exists)
+      return factor;
   }
+
   if (derating_factors_) {
     float factor;
     bool exists;
@@ -687,25 +660,33 @@ Sdc::unsetTimingDerate()
 }
 
 void
+Sdc::moveDeratingFactors(Sdc *from,
+                         Sdc *to)
+{
+  if (from->derating_factors_) {
+    to->derating_factors_ = from->derating_factors_;
+    from->derating_factors_ = nullptr;
+  }
+
+  to->net_derating_factors_.deleteContents();
+  to->net_derating_factors_ = from->net_derating_factors_;
+  from->net_derating_factors_.clear();
+
+  to->inst_derating_factors_.deleteContents();
+  to->inst_derating_factors_ = from->inst_derating_factors_;
+  from->inst_derating_factors_.clear();
+
+  to->cell_derating_factors_.deleteContents();
+  to->cell_derating_factors_ = from->cell_derating_factors_;
+  from->cell_derating_factors_.clear();
+}
+
+void
 Sdc::deleteDeratingFactors()
 {
-  if (net_derating_factors_) {
-    net_derating_factors_->deleteContents();
-    delete net_derating_factors_;
-    net_derating_factors_ = nullptr;
-  }
-
-  if (inst_derating_factors_) {
-    inst_derating_factors_->deleteContents();
-    delete inst_derating_factors_;
-    inst_derating_factors_ = nullptr;
-  }
-
-  if (cell_derating_factors_) {
-    cell_derating_factors_->deleteContents();
-    delete cell_derating_factors_;
-    cell_derating_factors_ = nullptr;
-  }
+  net_derating_factors_.deleteContents();
+  inst_derating_factors_.deleteContents();
+  cell_derating_factors_.deleteContents();
 
   delete derating_factors_;
   derating_factors_ = nullptr;
@@ -714,12 +695,12 @@ Sdc::deleteDeratingFactors()
 ////////////////////////////////////////////////////////////////
 
 void
-Sdc::setDriveCell(LibertyLibrary *library,
-		  LibertyCell *cell,
-		  Port *port,
-		  LibertyPort *from_port,
+Sdc::setDriveCell(const LibertyLibrary *library,
+		  const LibertyCell *cell,
+		  const Port *port,
+		  const LibertyPort *from_port,
 		  float *from_slews,
-		  LibertyPort *to_port,
+		  const LibertyPort *to_port,
 		  const RiseFallBoth *rf,
 		  const MinMaxAll *min_max)
 {
@@ -728,7 +709,7 @@ Sdc::setDriveCell(LibertyLibrary *library,
 }
 
 void
-Sdc::setInputSlew(Port *port,
+Sdc::setInputSlew(const Port *port,
 		  const RiseFallBoth *rf,
 		  const MinMaxAll *min_max,
 		  float slew)
@@ -737,7 +718,7 @@ Sdc::setInputSlew(Port *port,
 }
 
 void
-Sdc::setDriveResistance(Port *port,
+Sdc::setDriveResistance(const Port *port,
 			const RiseFallBoth *rf,
 			const MinMaxAll *min_max,
 			float res)
@@ -746,7 +727,7 @@ Sdc::setDriveResistance(Port *port,
 }
 
 InputDrive *
-Sdc::ensureInputDrive(Port *port)
+Sdc::ensureInputDrive(const Port *port)
 {
   InputDrive *drive = input_drive_map_.findKey(port);
   if (drive == nullptr) {
@@ -973,7 +954,7 @@ Sdc::makeClock(const char *name,
     deleteClkPinMappings(clk);
   else {
     // Fresh clock definition.
-    clk = new Clock(name, clk_index_++);
+    clk = new Clock(name, clk_index_++, network_);
     clk->setIsPropagated(propagate_all_clks_);
     clocks_.push_back(clk);
     // Use the copied name in the map.
@@ -1008,7 +989,7 @@ Sdc::makeGeneratedClock(const char *name,
   if (clk)
     deleteClkPinMappings(clk);
   else {
-    clk = new Clock(name, clk_index_++);
+    clk = new Clock(name, clk_index_++, network_);
     clocks_.push_back(clk);
     clock_name_map_[clk->name()] = clk;
   }
@@ -1043,27 +1024,19 @@ Sdc::deletePinClocks(Clock *defining_clk,
   // Find all the clocks defined on pins to avoid finding the clock's
   // vertex pins multiple times.
   ClockSet clks;
-  PinSet::Iterator pin_iter(pins);
-  while (pin_iter.hasNext()) {
-    Pin *pin = pin_iter.next();
-    ClockSet *pin_clks = clock_pin_map_.findKey(pin);
-    if (pin_clks) {
-      ClockSet::Iterator clk_iter(pin_clks);
-      while (clk_iter.hasNext()) {
-	Clock *clk = clk_iter.next();
-	clks.insert(clk);
+  if (pins) {
+    for (const Pin *pin : *pins) {
+      ClockSet *pin_clks = clock_pin_map_.findKey(pin);
+      if (pin_clks) {
+        for (Clock *clk : *pin_clks) 
+          clks.insert(clk);
       }
     }
   }
-  ClockSet::Iterator clk_iter(clks);
-  while (clk_iter.hasNext()) {
-    Clock *clk = clk_iter.next();
+  for (Clock *clk : clks) {
     deleteClkPinMappings(clk);
-    PinSet::Iterator pin_iter(pins);
-    while (pin_iter.hasNext()) {
-      Pin *pin = pin_iter.next();
+    for (const Pin *pin : *pins)
       clk->deletePin(pin);
-    }
     if (clk != defining_clk) {
       if (clk->pins().empty())
 	removeClock(clk);
@@ -1080,7 +1053,7 @@ Sdc::deletePinClocks(Clock *defining_clk,
 void
 Sdc::deleteClkPinMappings(Clock *clk)
 {
-  for (Pin *pin : clk->pins()) {
+  for (const Pin *pin : clk->pins()) {
     ClockSet *pin_clks = clock_pin_map_.findKey(pin);
     if (pin_clks) {
       pin_clks->erase(clk);
@@ -1106,7 +1079,7 @@ Sdc::deleteClkPinMappings(Clock *clk)
 void
 Sdc::makeClkPinMappings(Clock *clk)
 {
-  for (Pin *pin : clk->pins()) {
+  for (const Pin *pin : clk->pins()) {
     ClockSet *pin_clks = clock_pin_map_.findKey(pin);
     if (pin_clks == nullptr) {
       pin_clks = new ClockSet;
@@ -1196,9 +1169,7 @@ Sdc::isLeafPinNonGeneratedClock(const Pin *pin) const
 {
   ClockSet *clks = findLeafPinClocks(pin);
   if (clks) {
-    ClockSet::Iterator clk_iter(clks);
-    while (clk_iter.hasNext()) {
-      Clock *clk = clk_iter.next();
+    for (Clock *clk : *clks) {
       if (!clk->isGenerated())
 	return true;
     }
@@ -1220,21 +1191,22 @@ Sdc::findClocks(const Pin *pin) const
   return clock_pin_map_.findKey(pin);
 }
 
-void
-Sdc::findClocksMatching(PatternMatch *pattern,
-			ClockSeq *clks) const
+ClockSeq
+Sdc::findClocksMatching(PatternMatch *pattern) const
 {
+  ClockSeq matches;
   if (!pattern->hasWildcards()) {
     Clock *clk = findClock(pattern->pattern());
     if (clk)
-      clks->push_back(clk);
+      matches.push_back(clk);
   }
   else {
     for (auto clk : clocks_) {
       if (pattern->match(clk->name()))
-	clks->push_back(clk);
+	matches.push_back(clk);
     }
   }
+  return matches;
 }
 
 void
@@ -1272,25 +1244,26 @@ ClkHpinDisable::ClkHpinDisable(const Clock *clk,
 {
 }
 
+ClkHpinDisableLess::ClkHpinDisableLess(const Network *network) :
+  network_(network)
+{
+}
+
 bool
 ClkHpinDisableLess::operator()(const ClkHpinDisable *disable1,
 			       const ClkHpinDisable *disable2) const
 {
   int clk_index1 = disable1->clk()->index();
   int clk_index2 = disable2->clk()->index();
-  if (clk_index1 == clk_index2) {
-    const Pin *from_pin1 = disable1->fromPin();
-    const Pin *from_pin2 = disable2->fromPin();
-    if (from_pin1 == from_pin2) {
-      const Pin *to_pin1 = disable1->toPin();
-      const Pin *to_pin2 = disable2->toPin();
-      return to_pin1 < to_pin2;
-    }
-    else
-      return from_pin1 < from_pin2;
-  }
-  else
-    return clk_index1 < clk_index2;
+  const Pin *from_pin1 = disable1->fromPin();
+  const Pin *from_pin2 = disable2->fromPin();
+  const Pin *to_pin1 = disable1->toPin();
+  const Pin *to_pin2 = disable2->toPin();
+  return clk_index1 < clk_index2
+    || (clk_index1 == clk_index2
+        && (network_->id(to_pin1) < network_->id(to_pin2)
+            || (from_pin1 == from_pin2
+                && network_->id(from_pin1) < network_->id(from_pin2))));
 }
 
 class FindClkHpinDisables : public HpinDrvrLoadVisitor
@@ -1299,15 +1272,14 @@ public:
   FindClkHpinDisables(Clock *clk,
 		      const Network *network,
 		      Sdc *sdc);
-  ~FindClkHpinDisables();
-  bool drvrLoadExists(Pin *drvr,
-		      Pin *load);
+  bool drvrLoadExists(const Pin *drvr,
+		      const Pin *load);
 
 protected:
   virtual void visit(HpinDrvrLoad *drvr_load);
-  void makeClkHpinDisables(Pin *clk_src,
-			   Pin *drvr,
-			   Pin *load);
+  void makeClkHpinDisables(const Pin *clk_src,
+                           const Pin *drvr,
+                           const Pin *load);
 
   Clock *clk_;
   PinPairSet drvr_loads_;
@@ -1320,56 +1292,49 @@ FindClkHpinDisables::FindClkHpinDisables(Clock *clk,
 					 Sdc *sdc) :
   HpinDrvrLoadVisitor(),
   clk_(clk),
+  drvr_loads_(network),
   network_(network),
   sdc_(sdc)
 {
 }
 
-FindClkHpinDisables::~FindClkHpinDisables()
-{
-  drvr_loads_.deleteContents();
-}
-
 void
 FindClkHpinDisables::visit(HpinDrvrLoad *drvr_load)
 {
-  Pin *drvr = drvr_load->drvr();
-  Pin *load = drvr_load->load();
+  const Pin *drvr = drvr_load->drvr();
+  const Pin *load = drvr_load->load();
 
   makeClkHpinDisables(drvr, drvr, load);
 
   PinSet *hpins_from_drvr = drvr_load->hpinsFromDrvr();
-  PinSet::Iterator hpin_iter(hpins_from_drvr);
-  while (hpin_iter.hasNext()) {
-    Pin *hpin = hpin_iter.next();
+  for (const Pin *hpin : *hpins_from_drvr)
     makeClkHpinDisables(hpin, drvr, load);
-  }
-  drvr_loads_.insert(new PinPair(drvr, load));
+  drvr_loads_.insert(PinPair(drvr, load));
 }
 
 void
-FindClkHpinDisables::makeClkHpinDisables(Pin *clk_src,
-					 Pin *drvr,
-					 Pin *load)
+FindClkHpinDisables::makeClkHpinDisables(const Pin *clk_src,
+					 const Pin *drvr,
+					 const Pin *load)
 {
   ClockSet *clks = sdc_->findClocks(clk_src);
-  ClockSet::Iterator clk_iter(clks);
-  while (clk_iter.hasNext()) {
-    Clock *clk = clk_iter.next();
-    if (clk != clk_)
-      // Do not propagate clock from source pin if another
-      // clock is defined on a hierarchical pin between the
-      // driver and load.
-      sdc_->makeClkHpinDisable(clk, drvr, load);
+  if (clks) {
+    for (Clock *clk : *clks) {
+      if (clk != clk_)
+        // Do not propagate clock from source pin if another
+        // clock is defined on a hierarchical pin between the
+        // driver and load.
+        sdc_->makeClkHpinDisable(clk, drvr, load);
+    }
   }
 }
 
 bool
-FindClkHpinDisables::drvrLoadExists(Pin *drvr,
-				    Pin *load)
+FindClkHpinDisables::drvrLoadExists(const Pin *drvr,
+				    const Pin *load)
 {
   PinPair probe(drvr, load);
-  return drvr_loads_.hasKey(&probe);
+  return drvr_loads_.hasKey(probe);
 }
 
 void
@@ -1378,19 +1343,19 @@ Sdc::ensureClkHpinDisables()
   if (!clk_hpin_disables_valid_) {
     clk_hpin_disables_.deleteContentsClear();
     for (auto clk : clocks_) {
-      for (Pin *src : clk->pins()) {
+      for (const Pin *src : clk->pins()) {
 	if (network_->isHierarchical(src)) {
 	  FindClkHpinDisables visitor1(clk, network_, this);
 	  visitHpinDrvrLoads(src, network_, &visitor1);
 	  PinSeq loads, drvrs;
-	  PinSet visited_drvrs;
+	  PinSet visited_drvrs(network_);
 	  FindNetDrvrLoads visitor2(nullptr, visited_drvrs, loads, drvrs, network_);
 	  network_->visitConnectedPins(src, visitor2);
 
 	  // Disable fanouts from the src driver pins that do
 	  // not go thru the hierarchical src pin.
-	  for (Pin *drvr : drvrs) {
-	    for (Pin *load : loads) {
+	  for (const Pin *drvr : drvrs) {
+	    for (const Pin *load : loads) {
 	      if (!visitor1.drvrLoadExists(drvr, load))
 		makeClkHpinDisable(clk, drvr, load);
 	    }
@@ -1403,9 +1368,9 @@ Sdc::ensureClkHpinDisables()
 }
 
 void
-Sdc::makeClkHpinDisable(Clock *clk,
-			Pin *drvr,
-			Pin *load)
+Sdc::makeClkHpinDisable(const Clock *clk,
+			const Pin *drvr,
+			const Pin *load)
 {
   ClkHpinDisable probe(clk, drvr, load);
   if (!clk_hpin_disables_.hasKey(&probe)) {
@@ -1429,7 +1394,7 @@ Sdc::clkDisabledByHpinThru(const Clock *clk,
 			   const Pin *from_pin,
 			   const Pin *to_pin)
 {
-  if (clk->leafPins().hasKey(const_cast<Pin*>(from_pin))) {
+  if (clk->leafPins().hasKey(from_pin)) {
     ClkHpinDisable probe(clk, from_pin, to_pin);
     return clk_hpin_disables_.hasKey(&probe);
   }
@@ -1468,7 +1433,7 @@ Sdc::removePropagatedClock(Pin *pin)
 bool
 Sdc::isPropagatedClock(const Pin *pin)
 {
-  return propagated_clk_pins_.hasKey(const_cast<Pin*>(pin));
+  return propagated_clk_pins_.hasKey(pin);
 }
 
 void
@@ -1528,11 +1493,15 @@ Sdc::deleteClockLatency(ClockLatency *latency)
 void
 Sdc::deleteClockLatenciesReferencing(Clock *clk)
 {
-  ClockLatencies::Iterator latency_iter(clk_latencies_);
-  while (latency_iter.hasNext()) {
-    ClockLatency *latency = latency_iter.next();
-    if (latency->clock() == clk)
-      deleteClockLatency(latency);
+  for (auto iter = clk_latencies_.cbegin();
+       iter != clk_latencies_.cend(); ) {
+    ClockLatency *latency = *iter;
+    if (latency->clock() == clk) {
+      iter = clk_latencies_.erase(iter);
+      delete latency;
+    }
+    else
+      iter++;
   }
 }
 
@@ -1712,12 +1681,16 @@ Sdc::deleteInterClockUncertainty(InterClockUncertainty *uncertainties)
 void
 Sdc::deleteInterClockUncertaintiesReferencing(Clock *clk)
 {
-  InterClockUncertaintySet::Iterator inter_iter(inter_clk_uncertainties_);
-  while (inter_iter.hasNext()) {
-    InterClockUncertainty *uncertainties = inter_iter.next();
+  for (auto iter = inter_clk_uncertainties_.cbegin();
+       iter != inter_clk_uncertainties_.cend(); ) {
+    InterClockUncertainty *uncertainties = *iter;
     if (uncertainties->src() == clk
-	|| uncertainties->target() == clk)
-      deleteInterClockUncertainty(uncertainties);
+	|| uncertainties->target() == clk) {
+      iter = inter_clk_uncertainties_.erase(iter);
+      delete uncertainties;
+    }
+    else
+      iter++;
   }
 }
 
@@ -1731,13 +1704,11 @@ Sdc::setClockInsertion(const Clock *clk,
 		       const EarlyLateAll *early_late,
 		       float delay)
 {
-  if (clk_insertions_ == nullptr)
-    clk_insertions_ = new ClockInsertions;
   ClockInsertion probe(clk, pin);
-  ClockInsertion *insertion = clk_insertions_->findKey(&probe);
+  ClockInsertion *insertion = clk_insertions_.findKey(&probe);
   if (insertion == nullptr) {
     insertion = new ClockInsertion(clk, pin);
-    clk_insertions_->insert(insertion);
+    clk_insertions_.insert(insertion);
   }
   insertion->setDelay(rf, min_max, early_late, delay);
 }
@@ -1750,13 +1721,11 @@ Sdc::setClockInsertion(const Clock *clk,
 		       const EarlyLate *early_late,
 		       float delay)
 {
-  if (clk_insertions_ == nullptr)
-    clk_insertions_ = new ClockInsertions;
   ClockInsertion probe(clk, pin);
-  ClockInsertion *insertion = clk_insertions_->findKey(&probe);
+  ClockInsertion *insertion = clk_insertions_.findKey(&probe);
   if (insertion == nullptr) {
     insertion = new ClockInsertion(clk, pin);
-    clk_insertions_->insert(insertion);
+    clk_insertions_.insert(insertion);
   }
   insertion->setDelay(rf, min_max, early_late, delay);
 }
@@ -1765,29 +1734,31 @@ void
 Sdc::removeClockInsertion(const Clock *clk,
 			  const Pin *pin)
 {
-  if (clk_insertions_) {
-    ClockInsertion probe(clk, pin);
-    ClockInsertion *insertion = clk_insertions_->findKey(&probe);
-    if (insertion != nullptr)
-      deleteClockInsertion(insertion);
-  }
+  ClockInsertion probe(clk, pin);
+  ClockInsertion *insertion = clk_insertions_.findKey(&probe);
+  if (insertion != nullptr)
+    deleteClockInsertion(insertion);
 }
 
 void
 Sdc::deleteClockInsertion(ClockInsertion *insertion)
 {
-  clk_insertions_->erase(insertion);
+  clk_insertions_.erase(insertion);
   delete insertion;
 }
 
 void
 Sdc::deleteClockInsertionsReferencing(Clock *clk)
 {
-  ClockInsertions::Iterator insertion_iter(clk_insertions_);
-  while (insertion_iter.hasNext()) {
-    ClockInsertion *insertion = insertion_iter.next();
-    if (insertion->clock() == clk)
-      deleteClockInsertion(insertion);
+  for (auto iter = clk_insertions_.cbegin();
+       iter != clk_insertions_.cend(); ) {
+    ClockInsertion *insertion = *iter;
+    if (insertion->clock() == clk) {
+      iter = clk_insertions_.erase(iter);
+      delete insertion;
+    }
+    else
+      iter++;
   }
 }
 
@@ -1806,12 +1777,8 @@ Sdc::clockInsertion(const Clock *clk,
 bool
 Sdc::hasClockInsertion(const Pin *pin) const
 {
-  if (clk_insertions_) {
-    ClockInsertion probe(nullptr, pin);
-    return clk_insertions_->hasKey(&probe);
-  }
-  else
-    return false;
+  ClockInsertion probe(nullptr, pin);
+  return clk_insertions_.hasKey(&probe);
 }
 
 void
@@ -1825,20 +1792,19 @@ Sdc::clockInsertion(const Clock *clk,
 		    bool &exists) const
 {
   ClockInsertion *insert = nullptr;
-  if (clk_insertions_) {
-    if (clk && pin) {
-      ClockInsertion probe(clk, pin);
-      insert = clk_insertions_->findKey(&probe);
-    }
-    if (insert == nullptr && pin) {
-      ClockInsertion probe(nullptr, pin);
-      insert = clk_insertions_->findKey(&probe);
-    }
-    if (insert == nullptr && clk) {
-      ClockInsertion probe(clk, nullptr);
-      insert = clk_insertions_->findKey(&probe);
-    }
+  if (clk && pin) {
+    ClockInsertion probe(clk, pin);
+    insert = clk_insertions_.findKey(&probe);
   }
+  if (insert == nullptr && pin) {
+    ClockInsertion probe(nullptr, pin);
+    insert = clk_insertions_.findKey(&probe);
+  }
+  if (insert == nullptr && clk) {
+    ClockInsertion probe(clk, nullptr);
+    insert = clk_insertions_.findKey(&probe);
+  }
+
   if (insert)
     insert->delay(rf, min_max, early_late, insertion, exists);
   else {
@@ -1849,39 +1815,46 @@ Sdc::clockInsertion(const Clock *clk,
 
 ////////////////////////////////////////////////////////////////
 
+ClockLatencyLess::ClockLatencyLess(const Network *network) :
+  network_(network)
+{
+}
+
 bool
-ClockLatencyPinClkLess::operator()(const ClockLatency *latency1,
-				   const ClockLatency *latency2) const
+ClockLatencyLess::operator()(const ClockLatency *latency1,
+                             const ClockLatency *latency2) const
 {
   const Clock *clk1 = latency1->clock();
   const Clock *clk2 = latency2->clock();
   const Pin *pin1 = latency1->pin();
   const Pin *pin2 = latency2->pin();
-  return clk1 < clk2
-    || (clk1 == clk2
-	&& pin1 < pin2);
+  return (clk1 == nullptr && clk2)
+    || ((clk1 && clk2 && clk1->index() < clk2->index())
+        || (clk1 == clk2
+            && ((pin1 == nullptr && pin2)
+                || (pin1 && pin2 && network_->id(pin1) < network_->id(pin2)))));
 }
 
 ////////////////////////////////////////////////////////////////
 
+ClockInsertionkLess::ClockInsertionkLess(const Network *network) :
+  network_(network)
+{
+}
+
 bool
-ClockInsertionPinClkLess::operator()(const ClockInsertion *insert1,
-				     const ClockInsertion *insert2)const
+ClockInsertionkLess::operator()(const ClockInsertion *insert1,
+                                const ClockInsertion *insert2) const
 {
   const Clock *clk1 = insert1->clock();
   const Clock *clk2 = insert2->clock();
   const Pin *pin1 = insert1->pin();
   const Pin *pin2 = insert2->pin();
-  return (clk1 && clk2
-	  && (clk1 < clk2
-	      || (clk1 == clk2
-		  && pin1 && pin2
-		  && pin1 < pin2)))
-    || (clk1 == nullptr && clk2)
-    || (clk1 == nullptr && clk2 == nullptr
-	&& ((pin1 && pin2
-	     && pin1 < pin2)
-	    || (pin1 == nullptr && pin2)));
+  return (clk1 == nullptr && clk2)
+    || ((clk1 && clk2 && clk1->index() < clk2->index())
+        || (clk1 == clk2
+            && ((pin1 == nullptr && pin2)
+                || (pin1 && pin2 && network_->id(pin1) < network_->id(pin2)))));
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1935,12 +1908,8 @@ Sdc::makeClockGroup(ClockGroups *clk_groups,
 void
 Sdc::ensureClkGroupExclusions()
 {
-  if (clk_group_exclusions_ == nullptr) {
-    clk_group_exclusions_ = new ClockPairSet;
-    clk_group_same_ = new ClockPairSet;
-    for (auto name_clk_groups : clk_groups_name_map_)
-      makeClkGroupExclusions(name_clk_groups.second);
-  }
+  for (auto name_clk_groups : clk_groups_name_map_)
+    makeClkGroupExclusions(name_clk_groups.second);
 }
    
 void
@@ -1963,12 +1932,11 @@ Sdc::makeClkGroupExclusions1(ClockGroupSet *groups)
 {
   ClockGroupSet::Iterator group_iter1(groups);
   ClockGroup *group1 = group_iter1.next();
-  ClockSet *clks1 = group1->clks();
-  for (auto clk1 : *clks1) {
+  for (auto clk1 : *group1) {
     for (Clock *clk2 : clocks_) {
       if (clk2 != clk1
-	  && !group1->isMember(clk2))
-	clk_group_exclusions_->insert(ClockPair(clk1, clk2));
+	  && !group1->hasKey(clk2))
+	clk_group_exclusions_.insert(ClockPair(clk1, clk2));
     }
   }
   makeClkGroupSame(group1);
@@ -1978,15 +1946,13 @@ void
 Sdc::makeClkGroupExclusions(ClockGroupSet *groups)
 {
   for (auto group1 : *groups) {
-    ClockSet *clks1 = group1->clks();
     for (auto group2 : *groups) {
       if (group1 != group2) {
-	ClockSet *clks2 = group2->clks();
-	for (auto clk1 : *clks1) {
-	  for (auto clk2 : *clks2) {
+	for (auto clk1 : *group1) {
+	  for (auto clk2 : *group2) {
 	    // ClockPair is symmetric so only add one clk1/clk2 pair.
 	    if (clk1->index() < clk2->index()) {
-	      clk_group_exclusions_->insert(ClockPair(clk1, clk2));
+	      clk_group_exclusions_.insert(ClockPair(clk1, clk2));
 	    }
 	  }
 	}
@@ -1999,13 +1965,12 @@ Sdc::makeClkGroupExclusions(ClockGroupSet *groups)
 void
 Sdc::makeClkGroupSame(ClockGroup *group)
 {
-  ClockSet *clks = group->clks();
-  for (auto clk1 : *clks) {
-    for (auto clk2 : *clks) {
+  for (auto clk1 : *group) {
+    for (auto clk2 : *group) {
       if (clk1->index() <= clk2->index()) {
 	ClockPair clk_pair(clk1, clk2);
-	if (!clk_group_same_->hasKey(clk_pair))
-	  clk_group_same_->insert(clk_pair);
+	if (!clk_group_same_.hasKey(clk_pair))
+	  clk_group_same_.insert(clk_pair);
       }
     }
   }
@@ -2014,12 +1979,8 @@ Sdc::makeClkGroupSame(ClockGroup *group)
 void
 Sdc::clearClkGroupExclusions()
 {
-  if (clk_group_exclusions_) {
-    delete clk_group_exclusions_;
-    delete clk_group_same_;
-    clk_group_exclusions_ = nullptr;
-    clk_group_same_ = nullptr;
-  }
+  clk_group_exclusions_.clear();
+  clk_group_same_.clear();
 }
 
 bool
@@ -2028,7 +1989,7 @@ Sdc::sameClockGroup(const Clock *clk1,
 {
   if (clk1 && clk2) {
     ClockPair clk_pair(clk1, clk2);
-    bool excluded = clk_group_exclusions_->hasKey(clk_pair);
+    bool excluded = clk_group_exclusions_.hasKey(clk_pair);
     return !excluded;
   }
   else
@@ -2040,7 +2001,7 @@ Sdc::sameClockGroupExplicit(const Clock *clk1,
 			    const Clock *clk2)
 {
   ClockPair clk_pair(clk1, clk2);
-  return clk_group_same_->hasKey(clk_pair);
+  return clk_group_same_.hasKey(clk_pair);
 }
 
 void
@@ -2060,9 +2021,8 @@ Sdc::removeClockGroupsLogicallyExclusive(const char *name)
       removeClockGroups(groups);
   }
   else {
-    ClockGroupsNameMap::Iterator groups_iter(clk_groups_name_map_);
-    while (groups_iter.hasNext()) {
-      ClockGroups *groups = groups_iter.next();
+    for (auto name_group : clk_groups_name_map_) {
+      ClockGroups *groups = name_group.second;
       if (groups->logicallyExclusive())
 	removeClockGroups(groups);
     }
@@ -2078,9 +2038,8 @@ Sdc::removeClockGroupsPhysicallyExclusive(const char *name)
       removeClockGroups(groups);
   }
   else {
-    ClockGroupsNameMap::Iterator groups_iter(clk_groups_name_map_);
-    while (groups_iter.hasNext()) {
-      ClockGroups *groups = groups_iter.next();
+    for (auto name_group : clk_groups_name_map_) {
+      ClockGroups *groups = name_group.second;
       if (groups->physicallyExclusive())
 	removeClockGroups(groups);
     }
@@ -2096,9 +2055,8 @@ Sdc::removeClockGroupsAsynchronous(const char *name)
       removeClockGroups(groups);
   }
   else {
-    ClockGroupsNameMap::Iterator groups_iter(clk_groups_name_map_);
-    while (groups_iter.hasNext()) {
-      ClockGroups *groups = groups_iter.next();
+    for (auto name_group : clk_groups_name_map_) {
+      ClockGroups *groups = name_group.second;
       if (groups->asynchronous())
 	removeClockGroups(groups);
     }
@@ -2118,9 +2076,8 @@ Sdc::removeClockGroups(ClockGroups *groups)
 void
 Sdc::clockGroupsDeleteClkRefs(Clock *clk)
 {
-  ClockGroupsNameMap::Iterator groups_iter(clk_groups_name_map_);
-  while (groups_iter.hasNext()) {
-    ClockGroups *groups = groups_iter.next();
+  for (auto name_group : clk_groups_name_map_) {
+    ClockGroups *groups = name_group.second;
     groups->removeClock(clk);
   }
   clearClkGroupExclusions();
@@ -2137,15 +2094,10 @@ Sdc::setClockSense(PinSet *pins,
     delete clks;
     clks = nullptr;
   }
-  PinSet::Iterator pin_iter(pins);
-  while (pin_iter.hasNext()) {
-    Pin *pin = pin_iter.next();
+  for (const Pin *pin : *pins) {
     if (clks) {
-      ClockSet::Iterator clk_iter(clks);
-      while (clk_iter.hasNext()) {
-	Clock *clk = clk_iter.next();
+      for (const Clock *clk : *clks)
 	setClockSense(pin, clk, sense);
-      }
     }
     else
       setClockSense(pin, nullptr, sense);
@@ -2156,8 +2108,8 @@ Sdc::setClockSense(PinSet *pins,
 
 void
 Sdc::setClockSense(const Pin *pin,
-			   const Clock *clk,
-			   ClockSense sense)
+                   const Clock *clk,
+                   ClockSense sense)
 {
   PinClockPair probe(pin, clk);
   if (clk_sense_map_.hasKey(probe))
@@ -2477,22 +2429,22 @@ Sdc::dataChecksTo(const Pin *to) const
 ////////////////////////////////////////////////////////////////
 
 void
-Sdc::setLatchBorrowLimit(Pin *pin,
+Sdc::setLatchBorrowLimit(const Pin *pin,
 			 float limit)
 {
   pin_latch_borrow_limit_map_[pin] = limit;
 }
 
 void
-Sdc::setLatchBorrowLimit(Instance *inst,
+Sdc::setLatchBorrowLimit(const Instance *inst,
 			 float limit)
 {
   inst_latch_borrow_limit_map_[inst] = limit;
 }
 
 void
-Sdc::setLatchBorrowLimit(Clock *clk,
-				 float limit)
+Sdc::setLatchBorrowLimit(const Clock *clk,
+                         float limit)
 {
   clk_latch_borrow_limit_map_[clk] = limit;
 }
@@ -2504,9 +2456,9 @@ Sdc::deleteLatchBorrowLimitsReferencing(Clock *clk)
 }
 
 void
-Sdc::latchBorrowLimit(Pin *data_pin,
-		      Pin *enable_pin,
-		      Clock *clk,
+Sdc::latchBorrowLimit(const Pin *data_pin,
+		      const Pin *enable_pin,
+		      const Clock *clk,
 		      // Return values.
 		      float &limit,
 		      bool &exists)
@@ -2618,11 +2570,11 @@ Sdc::findInputDrive(Port *port)
 }
 
 void
-Sdc::setInputDelay(Pin *pin,
+Sdc::setInputDelay(const Pin *pin,
 		   const RiseFallBoth *rf,
-		   Clock *clk,
+		   const Clock *clk,
 		   const RiseFall *clk_rf,
-		   Pin *ref_pin,
+		   const Pin *ref_pin,
 		   bool source_latency_included,
 		   bool network_latency_included,
 		   const MinMaxAll *min_max,
@@ -2630,9 +2582,9 @@ Sdc::setInputDelay(Pin *pin,
 		   float delay)
 {
   ClockEdge *clk_edge = clk ? clk->edge(clk_rf) : nullptr;
-  InputDelay *input_delay = findInputDelay(pin, clk_edge, ref_pin);
+  InputDelay *input_delay = findInputDelay(pin, clk_edge);
   if (input_delay == nullptr)
-    input_delay = makeInputDelay(pin, clk_edge, ref_pin);
+    input_delay = makeInputDelay(pin, clk_edge);
   if (add) {
     RiseFallMinMax *delays = input_delay->delays();
     delays->mergeValue(rf, min_max, delay);
@@ -2642,25 +2594,6 @@ Sdc::setInputDelay(Pin *pin,
     RiseFallMinMax *delays = input_delay->delays();
     delays->setValue(rf, min_max, delay);
   }
-  input_delay->setSourceLatencyIncluded(source_latency_included);
-  input_delay->setNetworkLatencyIncluded(network_latency_included);
-}
-
-InputDelay *
-Sdc::makeInputDelay(Pin *pin,
-		    ClockEdge *clk_edge,
-		    Pin *ref_pin)
-{
-  InputDelay *input_delay = new InputDelay(pin, clk_edge, ref_pin,
-					   input_delay_index_++,
-					   network_);
-  input_delays_.insert(input_delay);
-  InputDelaySet *inputs = input_delay_pin_map_.findKey(pin);
-  if (inputs == nullptr) {
-    inputs = new InputDelaySet;
-    input_delay_pin_map_[pin] = inputs;
-  }
-  inputs->insert(input_delay);
 
   if (ref_pin) {
     InputDelaySet *ref_inputs = input_delay_ref_pin_map_.findKey(ref_pin);
@@ -2670,8 +2603,27 @@ Sdc::makeInputDelay(Pin *pin,
     }
     ref_inputs->insert(input_delay);
   }
+  input_delay->setRefPin(ref_pin);
 
-  for (Pin *lpin : input_delay->leafPins()) {
+  input_delay->setSourceLatencyIncluded(source_latency_included);
+  input_delay->setNetworkLatencyIncluded(network_latency_included);
+}
+
+InputDelay *
+Sdc::makeInputDelay(const Pin *pin,
+		    const ClockEdge *clk_edge)
+{
+  InputDelay *input_delay = new InputDelay(pin, clk_edge, input_delay_index_++,
+					   network_);
+  input_delays_.insert(input_delay);
+  InputDelaySet *inputs = input_delay_pin_map_.findKey(pin);
+  if (inputs == nullptr) {
+    inputs = new InputDelaySet;
+    input_delay_pin_map_[pin] = inputs;
+  }
+  inputs->insert(input_delay);
+
+  for (const Pin *lpin : input_delay->leafPins()) {
     InputDelaySet *leaf_inputs = input_delay_leaf_pin_map_[lpin];
     if (leaf_inputs == nullptr) {
       leaf_inputs = new InputDelaySet;
@@ -2693,14 +2645,12 @@ Sdc::makeInputDelay(Pin *pin,
 
 InputDelay *
 Sdc::findInputDelay(const Pin *pin,
-		    ClockEdge *clk_edge,
-		    Pin *ref_pin)
+		    const ClockEdge *clk_edge)
 {
   InputDelaySet *inputs = input_delay_pin_map_.findKey(pin);
   if (inputs) {
     for (InputDelay *input_delay : *inputs) {
-      if (input_delay->clkEdge() == clk_edge
-	  && input_delay->refPin() == ref_pin)
+      if (input_delay->clkEdge() == clk_edge)
 	return input_delay;
     }
   }
@@ -2708,14 +2658,14 @@ Sdc::findInputDelay(const Pin *pin,
 }
 
 void
-Sdc::removeInputDelay(Pin *pin,
+Sdc::removeInputDelay(const Pin *pin,
 		      const RiseFallBoth *rf,
-		      Clock *clk,
-		      RiseFall *clk_rf,
-		      MinMaxAll *min_max)
+		      const Clock *clk,
+		      const RiseFall *clk_rf,
+		      const MinMaxAll *min_max)
 {
   ClockEdge *clk_edge = clk ? clk->edge(clk_rf) : nullptr;
-  InputDelay *input_delay = findInputDelay(pin, clk_edge, nullptr);
+  InputDelay *input_delay = findInputDelay(pin, clk_edge);
   if (input_delay) {
     RiseFallMinMax *delays = input_delay->delays();
     delays->removeValue(rf, min_max);
@@ -2725,7 +2675,7 @@ Sdc::removeInputDelay(Pin *pin,
 }
 
 void
-Sdc::deleteInputDelays(Pin *pin,
+Sdc::deleteInputDelays(const Pin *pin,
 		       InputDelay *except)
 {
   InputDelaySet *input_delays = input_delay_pin_map_[pin];
@@ -2763,7 +2713,7 @@ Sdc::isInputDelayInternal(const Pin *pin) const
 }
 
 void
-Sdc::deleteInputDelaysReferencing(Clock *clk)
+Sdc::deleteInputDelaysReferencing(const Clock *clk)
 {
   InputDelaySet::Iterator iter(input_delays_);
   while (iter.hasNext()) {
@@ -2778,11 +2728,11 @@ Sdc::deleteInputDelay(InputDelay *input_delay)
 {
   input_delays_.erase(input_delay);
 
-  Pin *pin = input_delay->pin();
+  const Pin *pin = input_delay->pin();
   InputDelaySet *inputs = input_delay_pin_map_[pin];
   inputs->erase(input_delay);
 
-  for (Pin *lpin : input_delay->leafPins()) {
+  for (const Pin *lpin : input_delay->leafPins()) {
     InputDelaySet *inputs = input_delay_leaf_pin_map_[lpin];
     inputs->erase(input_delay);
   }
@@ -2790,14 +2740,60 @@ Sdc::deleteInputDelay(InputDelay *input_delay)
   delete input_delay;
 }
 
+void
+Sdc::movePortDelays(Sdc *from,
+                    Sdc *to)
+{
+  to->input_delays_.deleteContents();
+  to->input_delays_ = from->input_delays_;
+  from->input_delays_.clear();
+
+  to->input_delay_pin_map_.deleteContents();
+  to->input_delay_pin_map_ = from->input_delay_pin_map_;
+  from->input_delay_pin_map_.clear();
+
+  to->input_delay_ref_pin_map_.deleteContents();
+  to->input_delay_ref_pin_map_ = from->input_delay_ref_pin_map_;
+  from->input_delay_ref_pin_map_.clear();
+
+  to->input_delay_leaf_pin_map_.deleteContents();
+  to->input_delay_leaf_pin_map_ = from->input_delay_leaf_pin_map_;
+  from->input_delay_leaf_pin_map_.clear();
+
+  to->input_delay_internal_pin_map_.deleteContents();
+  to->input_delay_internal_pin_map_ = from->input_delay_internal_pin_map_;
+  from->input_delay_internal_pin_map_.clear();
+
+  to->input_delay_index_ = from->input_delay_index_;
+  from->input_delay_index_ = 0;
+
+  ////////////////
+
+  to->output_delays_.deleteContents();
+  to->output_delays_ = from->output_delays_;
+  from->output_delays_.clear();
+
+  to->output_delay_pin_map_.deleteContents();
+  to->output_delay_pin_map_ = from->output_delay_pin_map_;
+  from->output_delay_pin_map_.clear();
+
+  to->output_delay_ref_pin_map_.deleteContents();
+  to->output_delay_ref_pin_map_ = from->output_delay_ref_pin_map_;
+  from->output_delay_ref_pin_map_.clear();
+
+  to->output_delay_leaf_pin_map_.deleteContents();
+  to->output_delay_leaf_pin_map_ = from->output_delay_leaf_pin_map_;
+  from->output_delay_leaf_pin_map_.clear();
+}
+
 ////////////////////////////////////////////////////////////////
 
 void
-Sdc::setOutputDelay(Pin *pin,
+Sdc::setOutputDelay(const Pin *pin,
 		    const RiseFallBoth *rf,
-		    Clock *clk,
+		    const Clock *clk,
 		    const RiseFall *clk_rf,
-		    Pin *ref_pin,
+		    const Pin *ref_pin,
 		    bool source_latency_included,
 		    bool network_latency_included,
 		    const MinMaxAll *min_max,
@@ -2805,9 +2801,9 @@ Sdc::setOutputDelay(Pin *pin,
 		    float delay)
 {
   ClockEdge *clk_edge = clk ? clk->edge(clk_rf) : nullptr;
-  OutputDelay *output_delay = findOutputDelay(pin, clk_edge, ref_pin);
+  OutputDelay *output_delay = findOutputDelay(pin, clk_edge);
   if (output_delay == nullptr)
-    output_delay = makeOutputDelay(pin, clk_edge, ref_pin);
+    output_delay = makeOutputDelay(pin, clk_edge);
   if (add) {
     RiseFallMinMax *delays = output_delay->delays();
     delays->mergeValue(rf, min_max, delay);
@@ -2817,40 +2813,6 @@ Sdc::setOutputDelay(Pin *pin,
     RiseFallMinMax *delays = output_delay->delays();
     delays->setValue(rf, min_max, delay);
   }
-  output_delay->setSourceLatencyIncluded(source_latency_included);
-  output_delay->setNetworkLatencyIncluded(network_latency_included);
-}
-
-OutputDelay *
-Sdc::findOutputDelay(const Pin *pin,
-		     ClockEdge *clk_edge,
-		     Pin *ref_pin)
-{
-  OutputDelaySet *outputs = output_delay_pin_map_.findKey(pin);
-  if (outputs) {
-    for (OutputDelay *output_delay : *outputs) {
-      if (output_delay->clkEdge() == clk_edge
-	  && output_delay->refPin() == ref_pin)
-	return output_delay;
-    }
-  }
-  return nullptr;
-}
-
-OutputDelay *
-Sdc::makeOutputDelay(Pin *pin,
-		     ClockEdge *clk_edge,
-		     Pin *ref_pin)
-{
-  OutputDelay *output_delay = new OutputDelay(pin, clk_edge, ref_pin,
-					      network_);
-  output_delays_.insert(output_delay);
-  OutputDelaySet *outputs = output_delay_pin_map_.findKey(pin);
-  if (outputs == nullptr) {
-    outputs = new OutputDelaySet;
-    output_delay_pin_map_[pin] = outputs;
-  }
-  outputs->insert(output_delay);
 
   if (ref_pin) {
     OutputDelaySet *ref_outputs = output_delay_ref_pin_map_.findKey(ref_pin);
@@ -2860,8 +2822,40 @@ Sdc::makeOutputDelay(Pin *pin,
     }
     ref_outputs->insert(output_delay);
   }
+  output_delay->setRefPin(ref_pin);
 
-  for (Pin *lpin : output_delay->leafPins()) {
+  output_delay->setSourceLatencyIncluded(source_latency_included);
+  output_delay->setNetworkLatencyIncluded(network_latency_included);
+}
+
+OutputDelay *
+Sdc::findOutputDelay(const Pin *pin,
+		     const ClockEdge *clk_edge)
+{
+  OutputDelaySet *outputs = output_delay_pin_map_.findKey(pin);
+  if (outputs) {
+    for (OutputDelay *output_delay : *outputs) {
+      if (output_delay->clkEdge() == clk_edge)
+	return output_delay;
+    }
+  }
+  return nullptr;
+}
+
+OutputDelay *
+Sdc::makeOutputDelay(const Pin *pin,
+		     const ClockEdge *clk_edge)
+{
+  OutputDelay *output_delay = new OutputDelay(pin, clk_edge, network_);
+  output_delays_.insert(output_delay);
+  OutputDelaySet *outputs = output_delay_pin_map_.findKey(pin);
+  if (outputs == nullptr) {
+    outputs = new OutputDelaySet;
+    output_delay_pin_map_[pin] = outputs;
+  }
+  outputs->insert(output_delay);
+
+  for (const Pin *lpin : output_delay->leafPins()) {
     OutputDelaySet *leaf_outputs = output_delay_leaf_pin_map_[lpin];
     if (leaf_outputs == nullptr) {
       leaf_outputs = new OutputDelaySet;
@@ -2873,14 +2867,14 @@ Sdc::makeOutputDelay(Pin *pin,
 }
 
 void
-Sdc::removeOutputDelay(Pin *pin,
-		       RiseFallBoth *rf,
-		       Clock *clk,
-		       RiseFall *clk_rf,
-		       MinMaxAll *min_max)
+Sdc::removeOutputDelay(const Pin *pin,
+		       const RiseFallBoth *rf,
+		       const Clock *clk,
+		       const RiseFall *clk_rf,
+		       const MinMaxAll *min_max)
 {
   ClockEdge *clk_edge = clk ? clk->edge(clk_rf) : nullptr;
-  OutputDelay *output_delay = findOutputDelay(pin, clk_edge, nullptr);
+  OutputDelay *output_delay = findOutputDelay(pin, clk_edge);
   if (output_delay) {
     RiseFallMinMax *delays = output_delay->delays();
     delays->removeValue(rf, min_max);
@@ -2888,7 +2882,7 @@ Sdc::removeOutputDelay(Pin *pin,
 }
 
 void
-Sdc::deleteOutputDelays(Pin *pin,
+Sdc::deleteOutputDelays(const Pin *pin,
 			OutputDelay *except)
 {
   OutputDelaySet *output_delays = output_delay_pin_map_[pin];
@@ -2913,7 +2907,7 @@ Sdc::hasOutputDelay(const Pin *leaf_pin) const
 }
 
 void
-Sdc::deleteOutputDelaysReferencing(Clock *clk)
+Sdc::deleteOutputDelaysReferencing(const Clock *clk)
 {
   OutputDelaySet::Iterator iter(output_delays_);
   while (iter.hasNext()) {
@@ -2928,11 +2922,11 @@ Sdc::deleteOutputDelay(OutputDelay *output_delay)
 {
   output_delays_.erase(output_delay);
 
-  Pin *pin = output_delay->pin();
- OutputDelaySet *outputs = output_delay_pin_map_[pin];
+  const Pin *pin = output_delay->pin();
+  OutputDelaySet *outputs = output_delay_pin_map_[pin];
   outputs->erase(output_delay);
 
-  for (Pin *lpin : output_delay->leafPins()) {
+  for (const Pin *lpin : output_delay->leafPins()) {
     OutputDelaySet *outputs = output_delay_leaf_pin_map_[lpin];
     outputs->erase(output_delay);
   }
@@ -2943,24 +2937,25 @@ Sdc::deleteOutputDelay(OutputDelay *output_delay)
 ////////////////////////////////////////////////////////////////
 
 void
-Sdc::setPortExtPinCap(Port *port,
+Sdc::setPortExtPinCap(const Port *port,
 		      const RiseFall *rf,
+                      const Corner *corner,
 		      const MinMax *min_max,
 		      float cap)
 {
-  PortExtCap *port_cap = ensurePortExtPinCap(port);
+  PortExtCap *port_cap = ensurePortExtPinCap(port, corner);
   port_cap->setPinCap(cap, rf, min_max);
 }
 
 void
-Sdc::setPortExtWireCap(Port *port,
+Sdc::setPortExtWireCap(const Port *port,
 		       bool subtract_pin_cap,
 		       const RiseFall *rf,
 		       const Corner *corner,
 		       const MinMax *min_max,
 		       float cap)
 {
-  PortExtCap *port_cap = ensurePortExtPinCap(port);
+  PortExtCap *port_cap = ensurePortExtPinCap(port, corner);
   if (subtract_pin_cap) {
     Pin *pin = network_->findPin(network_->name(port));
     const OperatingConditions *op_cond = operatingConditions(min_max);
@@ -2972,26 +2967,26 @@ Sdc::setPortExtWireCap(Port *port,
 }
 
 PortExtCap *
-Sdc::portExtCap(Port *port) const
+Sdc::portExtCap(const Port *port,
+                const Corner *corner) const
 {
-  if (port_cap_map_)
-    return port_cap_map_->findKey(port);
-  else
-    return nullptr;
+  return port_ext_cap_maps_[corner->index()].findKey(port);
 }
 
 bool
-Sdc::hasPortExtCap(Port *port) const
+Sdc::hasPortExtCap(const Port *port) const
 {
-  if (port_cap_map_)
-    return port_cap_map_->hasKey(port);
-  else
-    return false;
+  for (int corner_index = 0; corner_index < corners_->count(); corner_index++) {
+    if (port_ext_cap_maps_[corner_index].hasKey(port))
+      return true;
+  }
+  return false;
 }
 
 void
-Sdc::portExtCap(Port *port,
+Sdc::portExtCap(const Port *port,
 		const RiseFall *rf,
+                const Corner *corner,
 		const MinMax *min_max,
 		// Return values.
 		float &pin_cap,
@@ -3001,32 +2996,32 @@ Sdc::portExtCap(Port *port,
 		int &fanout,
 		bool &has_fanout) const
 {
-  if (port_cap_map_) {
-    PortExtCap *port_cap = port_cap_map_->findKey(port);
-    if (port_cap) {
-      port_cap->pinCap(rf, min_max, pin_cap, has_pin_cap);
-      port_cap->wireCap(rf, min_max, wire_cap, has_wire_cap);
-      port_cap->fanout(min_max, fanout, has_fanout);
-      return;
-    }
+  PortExtCap *port_cap = port_ext_cap_maps_[corner->index()].findKey(port);
+  if (port_cap) {
+    port_cap->pinCap(rf, min_max, pin_cap, has_pin_cap);
+    port_cap->wireCap(rf, min_max, wire_cap, has_wire_cap);
+    port_cap->fanout(min_max, fanout, has_fanout);
   }
-  pin_cap = 0.0F;
-  has_pin_cap = false;
-  wire_cap = 0.0F;
-  has_wire_cap = false;
-  fanout = 0.0F;
-  has_fanout = false;
+  else {
+    pin_cap = 0.0F;
+    has_pin_cap = false;
+    wire_cap = 0.0F;
+    has_wire_cap = false;
+    fanout = 0.0F;
+    has_fanout = false;
+  }
 }
 
 float
-Sdc::portExtCap(Port *port,
+Sdc::portExtCap(const Port *port,
 		const RiseFall *rf,
+                const Corner *corner,
 		const MinMax *min_max) const
 {
   float pin_cap, wire_cap;
   int fanout;
   bool has_pin_cap, has_wire_cap, has_fanout;
-  portExtCap(port, rf, min_max,
+  portExtCap(port, rf, corner, min_max,
 	     pin_cap, has_pin_cap,
 	     wire_cap, has_wire_cap,
 	     fanout, has_fanout);
@@ -3039,10 +3034,10 @@ Sdc::portExtCap(Port *port,
 }
 
 bool
-Sdc::drvrPinHasWireCap(const Pin *pin)
+Sdc::drvrPinHasWireCap(const Pin *pin,
+                       const Corner *corner)
 {
-  return drvr_pin_wire_cap_map_
-    && drvr_pin_wire_cap_map_->hasKey(const_cast<Pin*>(pin));
+  return drvr_pin_wire_cap_maps_[corner->index()].hasKey(pin);
 }
 
 void
@@ -3053,18 +3048,17 @@ Sdc::drvrPinWireCap(const Pin *pin,
 		    float &cap,
 		    bool &exists) const
 {
-  if (drvr_pin_wire_cap_map_) {
-    MinMaxFloatValues *values =
-      drvr_pin_wire_cap_map_[corner->index()].findKey(const_cast<Pin*>(pin));
-    if (values)
-      return values->value(min_max, cap, exists);
+  MinMaxFloatValues *values = drvr_pin_wire_cap_maps_[corner->index()].findKey(pin);
+  if (values)
+    values->value(min_max, cap, exists);
+  else {
+    cap = 0.0;
+    exists = false;
   }
-  cap = 0.0;
-  exists = false;
 }
 
 void
-Sdc::setNetWireCap(Net *net,
+Sdc::setNetWireCap(const Net *net,
 		   bool subtract_pin_cap,
 		   const Corner *corner,
 		   const MinMax *min_max,
@@ -3075,7 +3069,7 @@ Sdc::setNetWireCap(Net *net,
     OperatingConditions *op_cond = operatingConditions(min_max);
     NetConnectedPinIterator *pin_iter = network_->connectedPinIterator(net);
     if (pin_iter->hasNext()) {
-      Pin *pin = pin_iter->next();
+      const Pin *pin = pin_iter->next();
       float pin_cap_rise = connectedPinCap(pin, RiseFall::rise(),
 					   op_cond, corner, min_max);
       float pin_cap_fall = connectedPinCap(pin, RiseFall::fall(),
@@ -3087,30 +3081,24 @@ Sdc::setNetWireCap(Net *net,
       delete pin_iter;
     }
   }
-  if (net_wire_cap_map_ == nullptr)
-    net_wire_cap_map_ = new NetWireCapMap[corners_->count()];
-  bool make_drvr_entry = !net_wire_cap_map_[corner->index()].hasKey(net);
-  MinMaxFloatValues &values = net_wire_cap_map_[corner->index()][net];
+  bool make_drvr_entry = !net_wire_cap_maps_[corner->index()].hasKey(net);
+  MinMaxFloatValues &values = net_wire_cap_maps_[corner->index()][net];
   values.setValue(min_max, wire_cap);
 
-  // Only need to do this when there is new net_wire_cap_map_ entry.
+  // Only need to do this when there is new net_wire_cap_maps_ entry.
   if (make_drvr_entry) {
-    for (Pin *pin : *network_->drivers(net)) {
-      if (drvr_pin_wire_cap_map_ == nullptr)
-	drvr_pin_wire_cap_map_ = new PinWireCapMap[corners_->count()];
-      drvr_pin_wire_cap_map_[corner->index()][pin] = &values;
+    for (const Pin *pin : *network_->drivers(net)) {
+      drvr_pin_wire_cap_maps_[corner->index()][pin] = &values;
     }
   }
 }
 
 bool
-Sdc::hasNetWireCap(Net *net) const
+Sdc::hasNetWireCap(const Net *net) const
 {
-  if (net_wire_cap_map_) {
-    for (int i = 0; i < corners_->count(); i++) {
-      if (net_wire_cap_map_[i].hasKey(net))
-	return true;
-    }
+  for (int i = 0; i < corners_->count(); i++) {
+    if (net_wire_cap_maps_[i].hasKey(net))
+      return true;
   }
   return false;
 }
@@ -3127,17 +3115,14 @@ Sdc::connectedCap(const Pin *pin,
 		  float &pin_cap,
 		  float &wire_cap,
 		  float &fanout,
-		  bool &has_set_load) const
+                  bool &has_net_load) const
 {
   netCaps(pin, rf, op_cond, corner, min_max,
-	  pin_cap, wire_cap, fanout, has_set_load);
+	  pin_cap, wire_cap, fanout, has_net_load);
   float net_wire_cap;
-  bool has_net_wire_cap;
-  drvrPinWireCap(pin, corner, min_max, net_wire_cap, has_net_wire_cap);
-  if (has_net_wire_cap) {
+  drvrPinWireCap(pin, corner, min_max, net_wire_cap, has_net_load);
+  if (has_net_load)
     wire_cap += net_wire_cap;
-    has_set_load = true;
-  }
 }
 
 float
@@ -3148,9 +3133,9 @@ Sdc::connectedPinCap(const Pin *pin,
 		     const MinMax *min_max)
 {
   float pin_cap, wire_cap, fanout;
-  bool has_set_load;
+  bool has_net_load;
   connectedCap(pin, rf, op_cond, corner, min_max,
-	       pin_cap, wire_cap, fanout, has_set_load);
+	       pin_cap, wire_cap, fanout, has_net_load);
   return pin_cap;
 }
 
@@ -3164,9 +3149,9 @@ public:
 	      float &pin_cap,
 	      float &wire_cap,
 	      float &fanout,
-	      bool &has_set_load,
+	      bool &has_net_load,
 	      const Sdc *sdc);
-  virtual void operator()(Pin *pin);
+  virtual void operator()(const Pin *pin);
 
 protected:
   const RiseFall *rf_;
@@ -3176,7 +3161,7 @@ protected:
   float &pin_cap_;
   float &wire_cap_;
   float &fanout_;
-  bool &has_set_load_;
+  bool &has_net_load_;
   const Sdc *sdc_;
 };
 
@@ -3187,7 +3172,7 @@ FindNetCaps::FindNetCaps(const RiseFall *rf,
 			 float &pin_cap,
 			 float &wire_cap,
 			 float &fanout,
-			 bool &has_set_load,
+			 bool &has_net_load,
 			 const Sdc *sdc) :
   PinVisitor(),
   rf_(rf),
@@ -3197,16 +3182,16 @@ FindNetCaps::FindNetCaps(const RiseFall *rf,
   pin_cap_(pin_cap),
   wire_cap_(wire_cap),
   fanout_(fanout),
-  has_set_load_(has_set_load),
+  has_net_load_(has_net_load),
   sdc_(sdc)
 {
 }
 
 void
-FindNetCaps::operator()(Pin *pin)
+FindNetCaps::operator()(const Pin *pin)
 {
   sdc_->pinCaps(pin, rf_, op_cond_, corner_, min_max_,
-		pin_cap_, wire_cap_, fanout_, has_set_load_);
+		pin_cap_, wire_cap_, fanout_);
 }
 
 // Capacitances for all pins connected to drvr_pin's net.
@@ -3220,15 +3205,15 @@ Sdc::netCaps(const Pin *drvr_pin,
 	     float &pin_cap,
 	     float &wire_cap,
 	     float &fanout,
-	     bool &has_set_load) const
+             bool &has_net_load) const
 {
   pin_cap = 0.0;
   wire_cap = 0.0;
   fanout = 0.0;
-  has_set_load = false;
+  has_net_load = false;
   FindNetCaps visitor(rf, op_cond, corner, min_max, pin_cap,
-		      wire_cap, fanout, has_set_load, this);
-  network_->visitConnectedPins(const_cast<Pin*>(drvr_pin), visitor);
+		      wire_cap, fanout, has_net_load, this);
+  network_->visitConnectedPins(drvr_pin, visitor);
 }
 
 void
@@ -3240,8 +3225,7 @@ Sdc::pinCaps(const Pin *pin,
 	     // Return values.
 	     float &pin_cap,
 	     float &wire_cap,
-	     float &fanout,
-	     bool &has_set_load) const
+	     float &fanout) const
 {
   if (network_->isTopLevelPort(pin)) {
     Port *port = network_->port(pin);
@@ -3249,7 +3233,7 @@ Sdc::pinCaps(const Pin *pin,
     float port_pin_cap, port_wire_cap;
     int port_fanout;
     bool has_pin_cap, has_wire_cap, has_fanout;
-    portExtCap(port, rf, min_max,
+    portExtCap(port, rf, corner, min_max,
 	       port_pin_cap, has_pin_cap,
 	       port_wire_cap, has_wire_cap,
 	       port_fanout, has_fanout);
@@ -3263,7 +3247,6 @@ Sdc::pinCaps(const Pin *pin,
       // Output port counts as a fanout.
       fanout++;
     }
-    has_set_load |= has_pin_cap || has_wire_cap;
   }
   else {
     LibertyPort *port = network_->libertyPort(pin);
@@ -3284,7 +3267,7 @@ Sdc::portCapacitance(Instance *inst,
 		     const Corner *corner,
 		     const MinMax *min_max) const
 {
-  Pvt *inst_pvt = nullptr;
+  const Pvt *inst_pvt = nullptr;
   if (inst)
     inst_pvt = pvt(inst, min_max);
   LibertyPort *corner_port = port->cornerPort(corner, min_max);
@@ -3310,7 +3293,7 @@ Sdc::pinCapacitance(const Pin *pin,
 ////////////////////////////////////////////////////////////////
 
 void
-Sdc::setResistance(Net *net,
+Sdc::setResistance(const Net *net,
 		   const MinMaxAll *min_max,
 		   float res)
 {
@@ -3319,7 +3302,7 @@ Sdc::setResistance(Net *net,
 }
 
 void
-Sdc::resistance(Net *net,
+Sdc::resistance(const Net *net,
 		const MinMax *min_max,
 		float &res,
 		bool &exists)
@@ -3332,22 +3315,24 @@ Sdc::resistance(Net *net,
 }
 
 void
-Sdc::setPortExtFanout(Port *port,
+Sdc::setPortExtFanout(const Port *port,
+                      const Corner *corner,
 		      const MinMax *min_max,
 		      int fanout)
 {
-  PortExtCap *port_cap = ensurePortExtPinCap(port);
+  PortExtCap *port_cap = ensurePortExtPinCap(port, corner);
   port_cap->setFanout(fanout, min_max);
 }
 
 void
-Sdc::portExtFanout(Port *port,
+Sdc::portExtFanout(const Port *port,
+                   const Corner *corner,
 		   const MinMax *min_max,
 		   // Return values.
 		   int &fanout,
 		   bool &exists)
 {
-  PortExtCap *port_cap = portExtCap(port);
+  PortExtCap *port_cap = portExtCap(port, corner);
   if (port_cap)
     port_cap->fanout(min_max, fanout, exists);
   else {
@@ -3358,11 +3343,12 @@ Sdc::portExtFanout(Port *port,
 
 int
 Sdc::portExtFanout(Port *port,
+                   const Corner *corner,
 		   const MinMax *min_max)
 {
   int fanout;
   bool exists;
-  portExtFanout(port, min_max, fanout, exists);
+  portExtFanout(port, corner, min_max, fanout, exists);
   if (exists)
     return fanout;
   else
@@ -3370,16 +3356,28 @@ Sdc::portExtFanout(Port *port,
 }
 
 PortExtCap *
-Sdc::ensurePortExtPinCap(Port *port)
+Sdc::ensurePortExtPinCap(const Port *port,
+                         const Corner *corner)
 {
-  if (port_cap_map_ == nullptr)
-    port_cap_map_ = new PortExtCapMap;
-  PortExtCap *port_cap = port_cap_map_->findKey(port);
+  PortExtCap *port_cap = port_ext_cap_maps_[corner->index()].findKey(port);
   if (port_cap == nullptr) {
     port_cap = new PortExtCap(port);
-    (*port_cap_map_)[port] = port_cap;
+    port_ext_cap_maps_[corner->index()][port] = port_cap;
   }
   return port_cap;
+}
+
+void
+Sdc::movePortExtCaps(Sdc *from,
+                     Sdc *to)
+{
+  for (int corner_index = 0; corner_index < from->corners()->count(); corner_index++) {
+    to->port_ext_cap_maps_[corner_index] = from->port_ext_cap_maps_[corner_index];
+    from->port_ext_cap_maps_[corner_index].clear();
+
+    to->net_wire_cap_maps_[corner_index] = from->net_wire_cap_maps_[corner_index];
+    from->net_wire_cap_maps_[corner_index].clear();
+  }
 }
 
 ////////////////////////////////////////////////////////////////
@@ -3532,11 +3530,8 @@ void
 Sdc::disable(Pin *from,
 	     Pin *to)
 {
-  PinPair probe(from, to);
-  if (!disabled_wire_edges_.hasKey(&probe)) {
-    PinPair *pair = new PinPair(from, to);
-    disabled_wire_edges_.insert(pair);
-  }
+  PinPair pair(from, to);
+  disabled_wire_edges_.insert(pair);
 }
 
 void
@@ -3544,7 +3539,7 @@ Sdc::removeDisable(Pin *from,
 		   Pin *to)
 {
   PinPair probe(from, to);
-  disabled_wire_edges_.erase(&probe);
+  disabled_wire_edges_.erase(probe);
 }
 
 void
@@ -3574,8 +3569,8 @@ public:
 			  Graph *graph);
 
 protected:
-  virtual void visit(Pin *drvr,
-		     Pin *load);
+  virtual void visit(const Pin *drvr,
+		     const Pin *load);
 
   PinPairSet *pairs_;
   Graph *graph_;
@@ -3590,18 +3585,15 @@ DisableEdgesThruHierPin::DisableEdgesThruHierPin(PinPairSet *pairs,
 }
 
 void
-DisableEdgesThruHierPin::visit(Pin *drvr,
-			       Pin *load)
+DisableEdgesThruHierPin::visit(const Pin *drvr,
+			       const Pin *load)
 {
-  PinPair probe(drvr, load);
-  if (!pairs_->hasKey(&probe)) {
-    PinPair *pair = new PinPair(drvr, load);
-    pairs_->insert(pair);
-  }
+  PinPair pair(drvr, load);
+  pairs_->insert(pair);
 }
 
 void
-Sdc::disable(Pin *pin)
+Sdc::disable(const Pin *pin)
 {
   if (network_->isHierarchical(pin)) {
     // Add leaf pins thru hierarchical pin to disabled_edges_.
@@ -3619,7 +3611,8 @@ public:
 				Graph *graph);
 
 protected:
-  virtual void visit(Pin *drvr, Pin *load);
+  virtual void visit(const Pin *drvr,
+                     const Pin *load);
 
   PinPairSet *pairs_;
   Graph *graph_;
@@ -3634,15 +3627,11 @@ RemoveDisableEdgesThruHierPin::RemoveDisableEdgesThruHierPin(PinPairSet *pairs,
 }
 
 void
-RemoveDisableEdgesThruHierPin::visit(Pin *drvr,
-				     Pin *load)
+RemoveDisableEdgesThruHierPin::visit(const Pin *drvr,
+				     const Pin *load)
 {
-  PinPair probe(drvr, load);
-  PinPair *pair = pairs_->findKey(&probe);
-  if (pair) {
-    pairs_->erase(pair);
-    delete pair;
-  }
+  PinPair pair(drvr, load);
+  pairs_->erase(pair);
 }
 
 void
@@ -3662,7 +3651,7 @@ Sdc::isDisabled(const Pin *pin) const
 {
   Port *port = network_->port(pin);
   LibertyPort *lib_port = network_->libertyPort(pin);
-  return disabled_pins_.hasKey(const_cast<Pin*>(pin))
+  return disabled_pins_.hasKey(pin)
     || disabled_ports_.hasKey(port)
     || disabled_lib_ports_.hasKey(lib_port);
 }
@@ -3675,15 +3664,14 @@ Sdc::isDisabled(const Instance *inst,
 {
   if (role == TimingRole::wire()) {
     // Hierarchical thru pin disables.
-    PinPair pair(const_cast<Pin*>(from_pin), const_cast<Pin*>(to_pin));
-    return disabled_wire_edges_.hasKey(&pair);
+    PinPair pair(from_pin, to_pin);
+    return disabled_wire_edges_.hasKey(pair);
   }
   else {
     LibertyCell *cell = network_->libertyCell(inst);
     LibertyPort *from_port = network_->libertyPort(from_pin);
     LibertyPort *to_port = network_->libertyPort(to_pin);
-    DisabledInstancePorts *disabled_inst =
-      disabled_inst_ports_.findKey(const_cast<Instance*>(inst));
+    DisabledInstancePorts *disabled_inst = disabled_inst_ports_.findKey(inst);
     DisabledCellPorts *disabled_cell = disabled_cell_ports_.findKey(cell);
     return (disabled_inst
 	    && disabled_inst->isDisabled(from_port, to_port, role))
@@ -3705,8 +3693,8 @@ Sdc::isDisabled(TimingArcSet *arc_set) const
     return false;
 }
 
-DisabledInstancePortsMap *
-Sdc::disabledInstancePorts()
+const DisabledInstancePortsMap *
+Sdc::disabledInstancePorts() const
 {
   return &disabled_inst_ports_;
 }
@@ -3744,20 +3732,20 @@ Sdc::removeDisableClockGatingCheck(Pin *pin)
 bool
 Sdc::isDisableClockGatingCheck(const Instance *inst)
 {
-  return disabled_clk_gating_checks_inst_.hasKey(const_cast<Instance*>(inst));
+  return disabled_clk_gating_checks_inst_.hasKey(inst);
 }
 
 bool
 Sdc::isDisableClockGatingCheck(const Pin *pin)
 {
-  return disabled_clk_gating_checks_pin_.hasKey(const_cast<Pin*>(pin));
+  return disabled_clk_gating_checks_pin_.hasKey(pin);
 }
 
 ////////////////////////////////////////////////////////////////
 
 void
-Sdc::setLogicValue(Pin *pin,
-			   LogicValue value)
+Sdc::setLogicValue(const Pin *pin,
+                   LogicValue value)
 {
   logic_value_map_[pin] = value;
 }
@@ -3771,14 +3759,14 @@ Sdc::logicValue(const Pin *pin,
 }
 
 void
-Sdc::setCaseAnalysis(Pin *pin,
+Sdc::setCaseAnalysis(const Pin *pin,
 		     LogicValue value)
 {
   case_value_map_[pin] = value;
 }
 
 void
-Sdc::removeCaseAnalysis(Pin *pin)
+Sdc::removeCaseAnalysis(const Pin *pin)
 {
   case_value_map_.erase(pin);
 }
@@ -3809,7 +3797,8 @@ Sdc::makeExceptionFrom(PinSet *from_pins,
   if ((from_pins && !from_pins->empty())
       || (from_clks && !from_clks->empty())
       || (from_insts && !from_insts->empty()))
-    return new ExceptionFrom(from_pins, from_clks, from_insts, from_rf, true);
+    return new ExceptionFrom(from_pins, from_clks, from_insts, from_rf,
+                             true, network_);
   else
     return nullptr;
 }
@@ -3840,7 +3829,7 @@ Sdc::makeExceptionTo(PinSet *pins,
       || (insts && !insts->empty())
       || (rf != RiseFallBoth::riseFall())
       || (end_rf != RiseFallBoth::riseFall()))
-    return new ExceptionTo(pins, clks, insts, rf, end_rf, true);
+    return new ExceptionTo(pins, clks, insts, rf, end_rf, true, network_);
   else
     return nullptr;
 }
@@ -3927,14 +3916,10 @@ Sdc::recordPathDelayInternalStartpoints(ExceptionPath *exception)
   ExceptionFrom *from = exception->from();
   if (from
       && from->hasPins()) {
-    PinSet::Iterator pin_iter(from->pins());
-    while (pin_iter.hasNext()) {
-      Pin *pin = pin_iter.next();
+    for (const Pin *pin : *from->pins()) {
       if (!(network_->isRegClkPin(pin)
 	    || network_->isTopLevelPort(pin))) {
-	if (path_delay_internal_startpoints_ == nullptr)
-	  path_delay_internal_startpoints_ = new PinSet;
-	path_delay_internal_startpoints_->insert(pin);
+	path_delay_internal_startpoints_.insert(pin);
       }
     }
   }
@@ -3945,14 +3930,12 @@ Sdc::unrecordPathDelayInternalStartpoints(ExceptionFrom *from)
 {
   if (from
       && from->hasPins()
-      && path_delay_internal_startpoints_) {
-    PinSet::Iterator pin_iter(from->pins());
-    while (pin_iter.hasNext()) {
-      Pin *pin = pin_iter.next();
+      && !path_delay_internal_startpoints_.empty()) {
+    for (const Pin *pin : *from->pins()) {
       if (!(network_->isRegClkPin(pin)
 	    || network_->isTopLevelPort(pin))
 	  && !pathDelayFrom(pin))
-	path_delay_internal_startpoints_->erase(pin);
+	path_delay_internal_startpoints_.erase(pin);
     }
   }
 }
@@ -3960,14 +3943,10 @@ Sdc::unrecordPathDelayInternalStartpoints(ExceptionFrom *from)
 bool
 Sdc::pathDelayFrom(const Pin *pin)
 {
-  if (first_from_pin_exceptions_) {
-    ExceptionPathSet *exceptions = first_from_pin_exceptions_->findKey(pin);
-    ExceptionPathSet::ConstIterator exception_iter(exceptions);
-    while (exception_iter.hasNext()) {
-      ExceptionPath *exception = exception_iter.next();
-      if (exception->isPathDelay())
-	return true;
-    }
+  ExceptionPathSet *exceptions = first_from_pin_exceptions_.findKey(pin);
+  for (ExceptionPath *exception : *exceptions) {
+    if (exception->isPathDelay())
+      return true;
   }
   return false;
 }
@@ -3975,11 +3954,10 @@ Sdc::pathDelayFrom(const Pin *pin)
 bool
 Sdc::isPathDelayInternalStartpoint(const Pin *pin) const
 {
-  return path_delay_internal_startpoints_
-    && path_delay_internal_startpoints_->hasKey(const_cast<Pin*>(pin));
+  return path_delay_internal_startpoints_.hasKey(pin);
 }
 
-PinSet *
+const PinSet &
 Sdc::pathDelayInternalStartpoints() const
 {
   return path_delay_internal_startpoints_;
@@ -3991,14 +3969,10 @@ Sdc::recordPathDelayInternalEndpoints(ExceptionPath *exception)
   ExceptionTo *to = exception->to();
   if (to
       && to->hasPins()) {
-    PinSet::Iterator pin_iter(to->pins());
-    while (pin_iter.hasNext()) {
-      Pin *pin = pin_iter.next();
+    for (const Pin *pin : *to->pins()) {
       if (!(hasLibertyChecks(pin)
 	    || network_->isTopLevelPort(pin))) {
-	if (path_delay_internal_endpoints_ == nullptr)
-	  path_delay_internal_endpoints_ = new PinSet;
-	path_delay_internal_endpoints_->insert(pin);
+	path_delay_internal_endpoints_.insert(pin);
       }
     }
   }
@@ -4010,14 +3984,12 @@ Sdc::unrecordPathDelayInternalEndpoints(ExceptionPath *exception)
   ExceptionTo *to = exception->to();
   if (to
       && to->hasPins()
-      && path_delay_internal_endpoints_) {
-    PinSet::Iterator pin_iter(to->pins());
-    while (pin_iter.hasNext()) {
-      Pin *pin = pin_iter.next();
+      && !path_delay_internal_endpoints_.empty()) {
+    for (const Pin *pin : *to->pins()) {
       if (!(hasLibertyChecks(pin)
 	    || network_->isTopLevelPort(pin))
 	  && !pathDelayTo(pin))
-	path_delay_internal_endpoints_->erase(pin);
+	path_delay_internal_endpoints_.erase(pin);
     }
   }
 }
@@ -4042,14 +4014,10 @@ Sdc::hasLibertyChecks(const Pin *pin)
 bool
 Sdc::pathDelayTo(const Pin *pin)
 {
-  if (first_to_pin_exceptions_) {
-    ExceptionPathSet *exceptions = first_to_pin_exceptions_->findKey(pin);
-    ExceptionPathSet::ConstIterator exception_iter(exceptions);
-    while (exception_iter.hasNext()) {
-      ExceptionPath *exception = exception_iter.next();
-      if (exception->isPathDelay())
-	return true;
-    }
+  ExceptionPathSet *exceptions = first_to_pin_exceptions_.findKey(pin);
+  for (ExceptionPath *exception : *exceptions) {
+    if (exception->isPathDelay())
+      return true;
   }
   return false;
 }
@@ -4057,8 +4025,7 @@ Sdc::pathDelayTo(const Pin *pin)
 bool
 Sdc::isPathDelayInternalEndpoint(const Pin *pin) const
 {
-  return path_delay_internal_endpoints_
-    && path_delay_internal_endpoints_->hasKey(const_cast<Pin*>(pin));
+  return path_delay_internal_endpoints_.hasKey(pin);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -4068,12 +4035,11 @@ Sdc::clearGroupPathMap()
 {
   // GroupPath exceptions are deleted with other exceptions.
   // Delete group_path name strings.
-  GroupPathIterator group_path_iter(group_path_map_);
-  while (group_path_iter.hasNext()) {
-    const char *name;
-    GroupPathSet *groups;
-    group_path_iter.next(name, groups);
+  for (auto name_groups : group_path_map_) {
+    const char *name = name_groups.first;
+    GroupPathSet *groups = name_groups.second;
     stringDelete(name);
+    groups->deleteContents();
     delete groups;
   }
   group_path_map_.clear();
@@ -4093,14 +4059,25 @@ Sdc::makeGroupPath(const char *name,
   else if (name) {
     GroupPath *group_path = new GroupPath(name, is_default, from, thrus, to,
 					  true, comment);
-    addException(group_path);
+    // Clone the group_path because it may get merged and hence deleted
+    // by addException.
+    ExceptionFrom *from1 = group_path->from()
+      ? group_path->from()->clone(network_):nullptr;
+    ExceptionThruSeq *thrus1 = exceptionThrusClone(group_path->thrus(), network_);
+    ExceptionTo *to1 = group_path->to() ? group_path->to()->clone(network_) : nullptr;
+    ExceptionPath *clone = group_path->clone(from1, thrus1, to1, true);
+    addException(clone);
     // A named group path can have multiple exceptions.
     GroupPathSet *groups = group_path_map_.findKey(name);
     if (groups == nullptr) {
-      groups = new GroupPathSet;
+      groups = new GroupPathSet(network_);
       group_path_map_[stringCopy(name)] = groups;
     }
-    groups->insert(group_path);
+    if (groups->hasKey(group_path))
+      // Exact copy of existing group path.
+      delete group_path;
+    else
+      groups->insert(group_path);
   }
   else {
     // is_default
@@ -4114,12 +4091,6 @@ bool
 Sdc::isGroupPathName(const char *group_name)
 {
   return group_path_map_.hasKey(group_name);
-}
-
-GroupPathIterator *
-Sdc::groupPathIterator()
-{
-  return new GroupPathIterator(group_path_map_);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -4142,11 +4113,8 @@ Sdc::makeFilterPath(ExceptionFrom *from,
 void
 Sdc::makeLoopExceptions()
 {
-  GraphLoopSeq::Iterator loop_iter(levelize_->loops());
-  while (loop_iter.hasNext()) {
-    GraphLoop *loop = loop_iter.next();
+  for (GraphLoop *loop : *levelize_->loops()) 
     makeLoopExceptions(loop);
-  }
 }
 
 // Make a -thru pin false path from every edge entering the loop
@@ -4155,9 +4123,7 @@ void
 Sdc::makeLoopExceptions(GraphLoop *loop)
 {
   debugPrint(debug_, "loop", 2, "Loop false path");
-  EdgeSeq::Iterator loop_edge_iter(loop->edges());
-  while (loop_edge_iter.hasNext()) {
-    Edge *edge = loop_edge_iter.next();
+  for (Edge *edge : *loop->edges()) {
     Vertex *from_vertex = edge->from(graph_);
     Vertex *to_vertex = edge->to(graph_);
     Pin *from_pin = from_vertex->pin();
@@ -4177,9 +4143,9 @@ Sdc::makeLoopExceptions(GraphLoop *loop)
 }
 
 void
-Sdc::makeLoopException(Pin *loop_input_pin,
-		       Pin *loop_pin,
-		       Pin *loop_prev_pin)
+Sdc::makeLoopException(const Pin *loop_input_pin,
+		       const Pin *loop_pin,
+		       const Pin *loop_prev_pin)
 {
   ExceptionThruSeq *thrus = new ExceptionThruSeq;
   makeLoopExceptionThru(loop_input_pin, thrus);
@@ -4197,11 +4163,11 @@ Sdc::makeLoopPath(ExceptionThruSeq *thrus)
 }
 
 void
-Sdc::makeLoopExceptionThru(Pin *pin,
+Sdc::makeLoopExceptionThru(const Pin *pin,
 			   ExceptionThruSeq *thrus)
 {
   debugPrint(debug_, "levelize", 2, " %s", network_->pathName(pin));
-  PinSet *pins = new PinSet;
+  PinSet *pins = new PinSet(network_);
   pins->insert(pin);
   ExceptionThru *thru = makeExceptionThru(pins, nullptr, nullptr,
 					  RiseFallBoth::riseFall());
@@ -4211,6 +4177,7 @@ Sdc::makeLoopExceptionThru(Pin *pin,
 void
 Sdc::deleteLoopExceptions()
 {
+  // erase prevents range iteration.
   ExceptionPathSet::Iterator except_iter(exceptions_);
   while (except_iter.hasNext()) {
   ExceptionPath *except = except_iter.next();
@@ -4240,15 +4207,17 @@ Sdc::addException(ExceptionPath *exception)
   ExceptionFrom *from = exception->from();
   if (from
       && (from->hasPins() || from->hasInstances())
-      && from->hasClocks()) {
+      && from->hasClocks()
+      // There is only one filter so there are no competing priorities.
+      && !exception->isFilter()) {
     PinSet *pins1 = from->pins() ? new PinSet(*from->pins()) : nullptr;
     InstanceSet *insts1 =
       from->instances() ? new InstanceSet(*from->instances()) : nullptr;
     ExceptionFrom *from1 = new ExceptionFrom(pins1, nullptr, insts1,
-					     from->transition(), true);
+					     from->transition(), true, network_);
     ExceptionThruSeq *thrus1 = exceptionThrusClone(exception->thrus(), network_);
     ExceptionTo *to = exception->to();    
-    ExceptionTo *to1 = to ? to->clone() : nullptr;
+    ExceptionTo *to1 = to ? to->clone(network_) : nullptr;
     ExceptionPath *exception1 = exception->clone(from1, thrus1, to1, true);
     debugPrint(debug_, "exception_merge", 1, " split exception for %s",
                exception1->asString(network_));
@@ -4256,9 +4225,9 @@ Sdc::addException(ExceptionPath *exception)
 
     ClockSet *clks2 = new ClockSet(*from->clks());
     ExceptionFrom *from2 = new ExceptionFrom(nullptr, clks2, nullptr,
-					     from->transition(), true);
+					     from->transition(), true, network_);
     ExceptionThruSeq *thrus2 = exceptionThrusClone(exception->thrus(), network_);
-    ExceptionTo *to2 = to ? to->clone() : nullptr;
+    ExceptionTo *to2 = to ? to->clone(network_) : nullptr;
     ExceptionPath *exception2 = exception->clone(from2, thrus2, to2, true);
     debugPrint(debug_, "exception_merge", 1, " split exception for %s",
                exception2->asString(network_));
@@ -4277,23 +4246,22 @@ Sdc::addException1(ExceptionPath *exception)
   if (to
       && (to->hasPins() || to->hasInstances())
       && to->hasClocks()) {
-    ExceptionFrom *from1 = exception->from() ? exception->from()->clone() : nullptr;
+    ExceptionFrom *from1 = exception->from() ? exception->from()->clone(network_):nullptr;
     ExceptionThruSeq *thrus1 = exceptionThrusClone(exception->thrus(), network_);
     PinSet *pins1 = to->pins() ? new PinSet(*to->pins()) : nullptr;
     InstanceSet *insts1 = to->instances() ? new InstanceSet(*to->instances()) : nullptr;
-    ExceptionTo *to1 = new ExceptionTo(pins1, nullptr, insts1,
-				       to->transition(),
-				       to->endTransition(), true);
+    ExceptionTo *to1 = new ExceptionTo(pins1, nullptr, insts1, to->transition(),
+				       to->endTransition(), true, network_);
     ExceptionPath *exception1 = exception->clone(from1, thrus1, to1, true);
     debugPrint(debug_, "exception_merge", 1, " split exception for %s",
                exception1->asString(network_));
     addException2(exception1);
 
-    ExceptionFrom *from2 = exception->from() ? exception->from()->clone() : nullptr;
+    ExceptionFrom *from2 = exception->from() ? exception->from()->clone(network_):nullptr;
     ExceptionThruSeq *thrus2 = exceptionThrusClone(exception->thrus(), network_);
     ClockSet *clks2 = new ClockSet(*to->clks());
     ExceptionTo *to2 = new ExceptionTo(nullptr, clks2, nullptr, to->transition(),
-				       to->endTransition(), true);
+				       to->endTransition(), true, network_);
     ExceptionPath *exception2 = exception->clone(from2, thrus2, to2, true);
     debugPrint(debug_, "exception_merge", 1, " split exception for %s",
                exception2->asString(network_));
@@ -4364,26 +4332,17 @@ Sdc::deleteMatchingExceptions(ExceptionPath *exception)
   findMatchingExceptions(exception, matches);
 
   ExceptionPathSet expanded_matches;
-  ExceptionPathSet::Iterator match_iter1(matches);
-  while (match_iter1.hasNext()) {
-    ExceptionPath *match = match_iter1.next();
+  for (ExceptionPath *match : matches)
     // Expand the matching exception into a set of exceptions that
     // that do not cover the new exception.  Do not record them
     // to prevent merging with the match, which will be deleted.
     expandExceptionExcluding(match, exception, expanded_matches);
-  }
 
-  ExceptionPathSet::Iterator match_iter2(matches);
-  while (match_iter2.hasNext()) {
-    ExceptionPath *match = match_iter2.next();
+  for (ExceptionPath *match : matches)
     deleteException(match);
-  }
 
-  ExceptionPathSet::Iterator expanded_iter(expanded_matches);
-  while (expanded_iter.hasNext()) {
-    ExceptionPath *expand = expanded_iter.next();
-    addException(expand);
-  }
+  for (ExceptionPath *match : expanded_matches)
+    addException(match);
 }
 
 void
@@ -4403,17 +4362,14 @@ Sdc::findMatchingExceptionsFirstFrom(ExceptionPath *exception,
 				     ExceptionPathSet &matches)
 {
   ExceptionFrom *from = exception->from();
-  if (first_from_pin_exceptions_)
-    findMatchingExceptionsPins(exception, from->pins(),
-			       first_from_pin_exceptions_,
-			       matches);
-  if (first_from_inst_exceptions_)
-    findMatchingExceptionsInsts(exception, from->instances(),
-				first_from_inst_exceptions_, matches);
-  if (first_from_clk_exceptions_)
-    findMatchingExceptionsClks(exception, from->clks(),
-			       first_from_clk_exceptions_,
-			       matches);
+  findMatchingExceptionsPins(exception, from->pins(),
+                             first_from_pin_exceptions_,
+                             matches);
+  findMatchingExceptionsInsts(exception, from->instances(),
+                              first_from_inst_exceptions_, matches);
+  findMatchingExceptionsClks(exception, from->clks(),
+                             first_from_clk_exceptions_,
+                             matches);
 }
 
 void
@@ -4427,22 +4383,18 @@ Sdc::findMatchingExceptionsFirstThru(ExceptionPath *exception,
   findMatchingExceptionsInsts(exception, thru->instances(),
 			      first_thru_inst_exceptions_,
 			      matches);
-  if (first_thru_net_exceptions_) {
-    NetSet::Iterator net_iter(thru->nets());
-    if (net_iter.hasNext()) {
-      Net *net = net_iter.next();
+  if (!first_thru_net_exceptions_.empty()) {
+    for (const Net *net : *thru->nets()) {
       // Potential matches includes exceptions that match net that are not
       // the first exception point.
       ExceptionPathSet *potential_matches =
-	first_thru_net_exceptions_->findKey(net);
+	first_thru_net_exceptions_.findKey(net);
       if (potential_matches) {
-	ExceptionPathSet::Iterator match_iter(potential_matches);
-	while (match_iter.hasNext()) {
-	  ExceptionPath *match = match_iter.next();
+        for (ExceptionPath *match : *potential_matches) {
 	  ExceptionThru *match_thru = (*match->thrus())[0];
 	  if (match_thru->nets()->hasKey(net)
 	      && match->overrides(exception)
-	      && match->intersectsPts(exception))
+	      && match->intersectsPts(exception, network_))
 	    matches.insert(match);
 	}
       }
@@ -4467,16 +4419,13 @@ Sdc::findMatchingExceptionsFirstTo(ExceptionPath *exception,
 void
 Sdc::findMatchingExceptionsClks(ExceptionPath *exception,
 				ClockSet *clks,
-				ClockExceptionsMap *exception_map,
+				ClockExceptionsMap &exception_map,
 				ExceptionPathSet &matches)
 {
-  if (exception_map) {
+  if (clks) {
     ExceptionPathSet clks_matches;
-    ClockSet::Iterator clk_iter(clks);
-    while (clk_iter.hasNext()) {
-      Clock *clk = clk_iter.next();
-      clks_matches.insertSet(exception_map->findKey(clk));
-    }
+    for (Clock *clk : *clks)
+      clks_matches.insertSet(exception_map.findKey(clk));
     findMatchingExceptions(exception, &clks_matches, matches);
   }
 }
@@ -4484,16 +4433,13 @@ Sdc::findMatchingExceptionsClks(ExceptionPath *exception,
 void
 Sdc::findMatchingExceptionsPins(ExceptionPath *exception,
 				PinSet *pins,
-				PinExceptionsMap *exception_map,
+				PinExceptionsMap &exception_map,
 				ExceptionPathSet &matches)
 {
-  if (exception_map) {
+  if (pins) {
     ExceptionPathSet pins_matches;
-    PinSet::Iterator pin_iter(pins);
-    while (pin_iter.hasNext()) {
-      const Pin *pin = pin_iter.next();
-      pins_matches.insertSet(exception_map->findKey(pin));
-    }
+    for (const Pin *pin : *pins)
+      pins_matches.insertSet(exception_map.findKey(pin));
     findMatchingExceptions(exception, &pins_matches, matches);
   }
 }
@@ -4501,16 +4447,13 @@ Sdc::findMatchingExceptionsPins(ExceptionPath *exception,
 void
 Sdc::findMatchingExceptionsInsts(ExceptionPath *exception,
 				 InstanceSet *insts,
-				 InstanceExceptionsMap *exception_map,
+				 InstanceExceptionsMap &exception_map,
 				 ExceptionPathSet &matches)
 {
-  if (exception_map) {
+  if (insts) {
     ExceptionPathSet insts_matches;
-    InstanceSet::Iterator inst_iter(insts);
-    while (inst_iter.hasNext()) {
-      Instance *inst = inst_iter.next();
-      insts_matches.insertSet(exception_map->findKey(inst));
-    }
+    for (const Instance *inst : *insts)
+      insts_matches.insertSet(exception_map.findKey(inst));
     findMatchingExceptions(exception, &insts_matches, matches);
   }
 }
@@ -4521,11 +4464,9 @@ Sdc::findMatchingExceptions(ExceptionPath *exception,
 			    ExceptionPathSet &matches)
 {
   if (potential_matches) {
-    ExceptionPathSet::Iterator match_iter(potential_matches);
-    while (match_iter.hasNext()) {
-      ExceptionPath *match = match_iter.next();
+    for (ExceptionPath *match : *potential_matches) {
       if (match->overrides(exception)
-	  && match->intersectsPts(exception))
+	  && match->intersectsPts(exception, network_))
 	matches.insert(match);
     }
   }
@@ -4540,15 +4481,15 @@ Sdc::expandExceptionExcluding(ExceptionPath *exception,
   ExceptionThruSeq *thrus = exception->thrus();
   ExceptionTo *to = exception->to();
   if (from) {
-    ExceptionFrom *from_cpy = from->clone();
-    from_cpy->deleteObjects(excluding->from());
+    ExceptionFrom *from_cpy = from->clone(network_);
+    from_cpy->deleteObjects(excluding->from(), network_);
     if (from_cpy->hasObjects()) {
       ExceptionThruSeq *thrus_cpy = nullptr;
       if (thrus)
 	thrus_cpy = clone(thrus, network_);
       ExceptionTo *to_cpy = nullptr;
       if (to)
-	to_cpy = to->clone();
+	to_cpy = to->clone(network_);
       ExceptionPath *expand = exception->clone(from_cpy,thrus_cpy,to_cpy,true);
       expansions.insert(expand);
     }
@@ -4563,15 +4504,13 @@ Sdc::expandExceptionExcluding(ExceptionPath *exception,
       ExceptionThru *thru = thru_iter.next();
       ExceptionThru *thru2 = thru_iter2.next();
       ExceptionThru *thru_cpy = thru->clone(network_);
-      thru_cpy->deleteObjects(thru2);
+      thru_cpy->deleteObjects(thru2, network_);
       if (thru_cpy->hasObjects()) {
 	ExceptionFrom *from_cpy = nullptr;
 	if (from)
-	  from_cpy = from->clone();
+	  from_cpy = from->clone(network_);
 	ExceptionThruSeq *thrus_cpy = new ExceptionThruSeq;
-	ExceptionThruSeq::Iterator thru_iter1(thrus);
-	while (thru_iter1.hasNext()) {
-	  ExceptionThru *thru1 = thru_iter1.next();
+        for (ExceptionThru *thru1 : *thrus) {
 	  if (thru1 == thru)
 	    thrus_cpy->push_back(thru_cpy);
 	  else {
@@ -4581,7 +4520,7 @@ Sdc::expandExceptionExcluding(ExceptionPath *exception,
 	}
 	ExceptionTo *to_cpy = nullptr;
 	if (to)
-	  to_cpy = to->clone();
+	  to_cpy = to->clone(network_);
 	ExceptionPath *expand = exception->clone(from_cpy, thrus_cpy, to_cpy,
 						 true);
 	expansions.insert(expand);
@@ -4591,12 +4530,12 @@ Sdc::expandExceptionExcluding(ExceptionPath *exception,
     }
   }
   if (to) {
-    ExceptionTo *to_cpy = to->clone();
-    to_cpy->deleteObjects(excluding->to());
+    ExceptionTo *to_cpy = to->clone(network_);
+    to_cpy->deleteObjects(excluding->to(), network_);
     if (to_cpy->hasObjects()) {
       ExceptionFrom *from_cpy = nullptr;
       if (from)
-	from_cpy = from->clone();
+	from_cpy = from->clone(network_);
       ExceptionThruSeq *thrus_cpy = nullptr;
       if (thrus)
 	thrus_cpy = clone(thrus, network_);
@@ -4609,12 +4548,11 @@ Sdc::expandExceptionExcluding(ExceptionPath *exception,
 }
 
 static ExceptionThruSeq *
-clone(ExceptionThruSeq *thrus, Network *network)
+clone(ExceptionThruSeq *thrus,
+      Network *network)
 {
   ExceptionThruSeq *thrus_cpy = new ExceptionThruSeq;
-  ExceptionThruSeq::Iterator thru_iter(thrus);
-  while (thru_iter.hasNext()) {
-    ExceptionThru *thru = thru_iter.next();
+  for (ExceptionThru *thru : *thrus) {
     ExceptionThru *thru_cpy = thru->clone(network);
     thrus_cpy->push_back(thru_cpy);
   }
@@ -4707,11 +4645,8 @@ Sdc::recordExceptionFirstThru(ExceptionPath *exception)
   recordExceptionInsts(exception, thru->instances(),
 		       first_thru_inst_exceptions_);
   recordExceptionEdges(exception, thru->edges(), first_thru_edge_exceptions_);
-  ExceptionThruSeq::Iterator thru_iter(exception->thrus());
-  while (thru_iter.hasNext()) {
-    ExceptionThru *thru = thru_iter.next();
+  for (ExceptionThru *thru : *exception->thrus()) 
     recordExceptionNets(exception, thru->nets(), first_thru_net_exceptions_);
-  }
 }
 
 void
@@ -4726,81 +4661,63 @@ Sdc::recordExceptionFirstTo(ExceptionPath *exception)
 void
 Sdc::recordExceptionClks(ExceptionPath *exception,
 			 ClockSet *clks,
-			 ClockExceptionsMap *&exception_map)
+			 ClockExceptionsMap &exception_map)
 {
-  ClockSet::Iterator clk_iter(clks);
-  while (clk_iter.hasNext()) {
-    Clock *clk = clk_iter.next();
-    ExceptionPathSet *set = nullptr;
-    if (exception_map == nullptr)
-      exception_map = new ClockExceptionsMap;
-    else
-      set = exception_map->findKey(clk);
-    if (set == nullptr) {
-      set = new ExceptionPathSet;
-      (*exception_map)[clk] = set;
+  if (clks) {
+    for (Clock *clk : *clks) {
+      ExceptionPathSet *set = exception_map.findKey(clk);
+      if (set == nullptr) {
+        set = new ExceptionPathSet;
+        exception_map[clk] = set;
+      }
+      set->insert(exception);
     }
-    set->insert(exception);
   }
 }
 
 void
 Sdc::recordExceptionEdges(ExceptionPath *exception,
 			  EdgePinsSet *edges,
-			  EdgeExceptionsMap *&exception_map)
+			  EdgeExceptionsMap &exception_map)
 {
-  EdgePinsSet::Iterator edge_iter(edges);
-  while (edge_iter.hasNext()) {
-    EdgePins *edge = edge_iter.next();
-    ExceptionPathSet *set = nullptr;
-    if (exception_map == nullptr)
-      exception_map = new EdgeExceptionsMap;
-    else
-      set = exception_map->findKey(edge);
-    if (set == nullptr) {
-      set = new ExceptionPathSet;
-      // Copy the EdgePins so it is owned by the map.
-      edge = new EdgePins(*edge);
-      exception_map->insert(edge, set);
+  if (edges) {
+    for (const EdgePins &edge : *edges) {
+      ExceptionPathSet *set = exception_map.findKey(edge);
+      if (set == nullptr) {
+        set = new ExceptionPathSet;
+        exception_map.insert(edge, set);
+      }
+      set->insert(exception);
     }
-    set->insert(exception);
   }
 }
 
 void
 Sdc::recordExceptionPins(ExceptionPath *exception,
 			 PinSet *pins,
-			 PinExceptionsMap *&exception_map)
+			 PinExceptionsMap &exception_map)
 {
-  PinSet::Iterator pin_iter(pins);
-  while (pin_iter.hasNext()) {
-    const Pin *pin = pin_iter.next();
-    ExceptionPathSet *set = nullptr;
-    if (exception_map == nullptr)
-      exception_map = new PinExceptionsMap;
-    else
-      set = exception_map->findKey(pin);
-    if (set == nullptr) {
-      set = new ExceptionPathSet;
-      exception_map->insert(pin, set);
+  if (pins) {
+    for (const Pin *pin : *pins) {
+      ExceptionPathSet *set = exception_map.findKey(pin);
+      if (set == nullptr) {
+        set = new ExceptionPathSet;
+        exception_map.insert(pin, set);
+      }
+      set->insert(exception);
     }
-    set->insert(exception);
   }
 }
 
 void
 Sdc::recordExceptionHpin(ExceptionPath *exception,
 			 Pin *pin,
-			 PinExceptionsMap *&exception_map)
+			 PinExceptionsMap &exception_map)
 {
-  ExceptionPathSet *set = nullptr;
-  if (exception_map == nullptr)
-    exception_map = new PinExceptionsMap;
-  else
-    set = exception_map->findKey(pin);
+  ExceptionPathSet *set = exception_map.findKey(pin);
   if (set == nullptr) {
     set = new ExceptionPathSet;
-    exception_map->insert(pin, set);
+    exception_map.insert(pin, set);
   }
   set->insert(exception);
 }
@@ -4808,42 +4725,34 @@ Sdc::recordExceptionHpin(ExceptionPath *exception,
 void
 Sdc::recordExceptionInsts(ExceptionPath *exception,
 			  InstanceSet *insts,
-			  InstanceExceptionsMap *&exception_map)
+			  InstanceExceptionsMap &exception_map)
 {
-  InstanceSet::Iterator inst_iter(insts);
-  while (inst_iter.hasNext()) {
-    Instance *inst = inst_iter.next();
-    ExceptionPathSet *set = nullptr;
-    if (exception_map == nullptr)
-      exception_map = new InstanceExceptionsMap;
-    else
-      set = exception_map->findKey(inst);
-    if (set == nullptr) {
-      set = new ExceptionPathSet;
-      (*exception_map)[inst] = set;
+  if (insts) {
+    for (const Instance *inst : *insts) {
+      ExceptionPathSet *set = exception_map.findKey(inst);
+      if (set == nullptr) {
+        set = new ExceptionPathSet;
+        exception_map[inst] = set;
+      }
+      set->insert(exception);
     }
-    set->insert(exception);
   }
 }
 
 void
 Sdc::recordExceptionNets(ExceptionPath *exception,
 			 NetSet *nets,
-			 NetExceptionsMap *&exception_map)
+			 NetExceptionsMap &exception_map)
 {
-  NetSet::Iterator net_iter(nets);
-  while (net_iter.hasNext()) {
-    const Net *net = net_iter.next();
-    ExceptionPathSet *set = nullptr;
-    if (exception_map == nullptr)
-      exception_map = new NetExceptionsMap;
-    else
-      set = exception_map->findKey(net);
-    if (set == nullptr) {
-      set = new ExceptionPathSet;
-      (*exception_map)[net] = set;
+  if (nets) {
+    for (const Net *net : *nets) {
+      ExceptionPathSet *set = exception_map.findKey(net);
+      if (set == nullptr) {
+        set = new ExceptionPathSet;
+        exception_map[net] = set;
+      }
+      set->insert(exception);
     }
-    set->insert(exception);
   }
 }
 
@@ -4878,9 +4787,7 @@ Sdc::findMergeMatch(ExceptionPath *exception)
     size_t hash = exception->hash(missing_pt);
     ExceptionPathSet *matches = exception_merge_hash_.findKey(hash);
     if (matches) {
-      ExceptionPathSet::Iterator match_iter(matches);
-      while (match_iter.hasNext()) {
-	ExceptionPath *match = match_iter.next();
+      for (ExceptionPath *match : *matches) {
 	ExceptionPt *match_missing_pt;
 	if (match != exception
 	    // Exceptions are not merged if their priorities are
@@ -4895,7 +4802,7 @@ Sdc::findMergeMatch(ExceptionPath *exception)
 	  // Unrecord the exception that is being merged away.
 	  unrecordException(exception);
 	  unrecordMergeHashes(match);
-	  missing_pt->mergeInto(match_missing_pt);
+	  missing_pt->mergeInto(match_missing_pt, network_);
 	  recordMergeHashes(match);
 	  // First point maps only change if the exception point that
 	  // is being merged is the first exception point.
@@ -4918,28 +4825,21 @@ Sdc::findMergeMatch(ExceptionPath *exception)
 void
 Sdc::deleteExceptions()
 {
-  ExceptionPathSet::Iterator except_iter(exceptions_);
-  while (except_iter.hasNext()) {
-    delete except_iter.next();
-  }
-  exceptions_.clear();
+  exceptions_.deleteContentsClear();
 
-  deleteExceptionMap(first_from_pin_exceptions_);
-  deleteExceptionMap(first_from_clk_exceptions_);
-  deleteExceptionMap(first_from_inst_exceptions_);
-  deleteExceptionMap(first_to_pin_exceptions_);
-  deleteExceptionMap(first_to_clk_exceptions_);
-  deleteExceptionMap(first_to_inst_exceptions_);
-  deleteExceptionMap(first_thru_pin_exceptions_);
-  deleteExceptionMap(first_thru_inst_exceptions_);
-  deleteExceptionMap(first_thru_net_exceptions_);
-  deleteExceptionMap(first_thru_edge_exceptions_);
-
-  delete path_delay_internal_startpoints_;
-  path_delay_internal_startpoints_ = nullptr;
-
-  delete path_delay_internal_endpoints_;
-  path_delay_internal_endpoints_ = nullptr;
+  first_from_pin_exceptions_.deleteContentsClear();
+  first_from_clk_exceptions_.deleteContentsClear();
+  first_from_inst_exceptions_.deleteContentsClear();
+  first_to_pin_exceptions_.deleteContentsClear();
+  first_to_clk_exceptions_.deleteContentsClear();
+  first_to_inst_exceptions_.deleteContentsClear();
+  first_thru_pin_exceptions_.deleteContentsClear();
+  first_thru_inst_exceptions_.deleteContentsClear();
+  first_thru_net_exceptions_.deleteContentsClear();
+  first_thru_edge_exceptions_.deleteContentsClear();
+  first_thru_edge_exceptions_.clear();
+  path_delay_internal_startpoints_.clear();
+  path_delay_internal_endpoints_.clear();
 
   deleteExceptionPtHashMapSets(exception_merge_hash_);
   exception_merge_hash_.clear();
@@ -4949,80 +4849,7 @@ Sdc::deleteExceptions()
 void
 Sdc::deleteExceptionPtHashMapSets(ExceptionPathPtHash &map)
 {
-  ExceptionPathPtHash::Iterator set_iter(map);
-  while (set_iter.hasNext())
-    delete set_iter.next();
-}
-
-void
-Sdc::deleteExceptionMap(PinExceptionsMap *&exception_map)
-{
-  PinExceptionsMap::Iterator set_iter(exception_map);
-  while (set_iter.hasNext()) {
-    const Pin *pin;
-    ExceptionPathSet *set;
-    set_iter.next(pin, set);
-    delete set;
-  }
-  delete exception_map;
-  exception_map = nullptr;
-}
-
-void
-Sdc::deleteExceptionMap(InstanceExceptionsMap *&exception_map)
-{
-  InstanceExceptionsMap::Iterator set_iter(exception_map);
-  while (set_iter.hasNext()) {
-    const Instance *inst;
-    ExceptionPathSet *set;
-    set_iter.next(inst, set);
-    delete set;
-  }
-  delete exception_map;
-  exception_map = nullptr;
-}
-
-void
-Sdc::deleteExceptionMap(NetExceptionsMap *&exception_map)
-{
-  NetExceptionsMap::Iterator set_iter(exception_map);
-  while (set_iter.hasNext()) {
-    const Net *net;
-    ExceptionPathSet *set;
-    set_iter.next(net, set);
-    delete set;
-  }
-  delete exception_map;
-  exception_map = nullptr;
-}
-
-void
-Sdc::deleteExceptionMap(ClockExceptionsMap *&exception_map)
-{
-  ClockExceptionsMap::Iterator set_iter(exception_map);
-  while (set_iter.hasNext()) {
-    const Clock *clk;
-    ExceptionPathSet *set;
-    set_iter.next(clk, set);
-    delete set;
-  }
-  delete exception_map;
-  exception_map = nullptr;
-}
-
-void
-Sdc::deleteExceptionMap(EdgeExceptionsMap *&exception_map)
-{
-  EdgeExceptionsMap::Iterator set_iter(exception_map);
-  while (set_iter.hasNext()) {
-    const EdgePins *edge_pins;
-    ExceptionPathSet *set;
-    set_iter.next(edge_pins, set);
-    delete set;
-    delete edge_pins;
-  }
-  delete exception_map;
-  exception_map = nullptr;
+  map.deleteContents();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -5030,6 +4857,7 @@ Sdc::deleteExceptionMap(EdgeExceptionsMap *&exception_map)
 void
 Sdc::deleteExceptionsReferencing(Clock *clk)
 {
+  // erase prevents range iteration.
   ExceptionPathSet::ConstIterator exception_iter(exceptions_);
   while (exception_iter.hasNext()) {
     ExceptionPath *exception = exception_iter.next();
@@ -5117,8 +4945,7 @@ Sdc::unrecordExceptionFirstPts(ExceptionPath *exception)
   if (from) {
     unrecordExceptionPins(exception, from->pins(), first_from_pin_exceptions_);
     unrecordExceptionClks(exception, from->clks(), first_from_clk_exceptions_);
-    unrecordExceptionInsts(exception, from->instances(),
-			   first_from_inst_exceptions_);
+    unrecordExceptionInsts(exception, from->instances(), first_from_inst_exceptions_);
   }
   else if (thrus) {
     ExceptionThru *thru = (*thrus)[0];
@@ -5140,79 +4967,79 @@ Sdc::unrecordExceptionFirstPts(ExceptionPath *exception)
 void
 Sdc::unrecordExceptionClks(ExceptionPath *exception,
 			   ClockSet *clks,
-			   ClockExceptionsMap *exception_map)
+			   ClockExceptionsMap &exception_map)
 {
-  ClockSet::Iterator clk_iter(clks);
-  while (clk_iter.hasNext()) {
-    Clock *clk = clk_iter.next();
-    ExceptionPathSet *set = exception_map->findKey(clk);
-    if (set)
-      set->erase(exception);
+  if (clks) {
+    for (Clock *clk : *clks) {
+      ExceptionPathSet *set = exception_map.findKey(clk);
+      if (set)
+        set->erase(exception);
+    }
   }
 }
 
 void
 Sdc::unrecordExceptionPins(ExceptionPath *exception,
 			   PinSet *pins,
-			   PinExceptionsMap *exception_map)
+			   PinExceptionsMap &exception_map)
 {
-  PinSet::Iterator pin_iter(pins);
-  while (pin_iter.hasNext()) {
-    const Pin *pin = pin_iter.next();
-    ExceptionPathSet *set = exception_map->findKey(pin);
-    if (set)
-      set->erase(exception);
+  if (pins) {
+    for (const Pin *pin : *pins) {
+      ExceptionPathSet *set = exception_map.findKey(pin);
+      if (set)
+        set->erase(exception);
+    }
   }
 }
 
 void
 Sdc::unrecordExceptionInsts(ExceptionPath *exception,
 			    InstanceSet *insts,
-			    InstanceExceptionsMap *exception_map)
+			    InstanceExceptionsMap &exception_map)
 {
-  InstanceSet::Iterator inst_iter(insts);
-  while (inst_iter.hasNext()) {
-    Instance *inst = inst_iter.next();
-    ExceptionPathSet *set = exception_map->findKey(inst);
-    if (set)
-      set->erase(exception);
+  if (insts) {
+    for (const Instance *inst : *insts) {
+      ExceptionPathSet *set = exception_map.findKey(inst);
+      if (set)
+        set->erase(exception);
+    }
   }
 }
 
 void
 Sdc::unrecordExceptionEdges(ExceptionPath *exception,
 			    EdgePinsSet *edges,
-			    EdgeExceptionsMap *exception_map)
+			    EdgeExceptionsMap &exception_map)
 {
-  EdgePinsSet::Iterator edge_iter(edges);
-  while (edge_iter.hasNext()) {
-    EdgePins *edge = edge_iter.next();
-    ExceptionPathSet *set = exception_map->findKey(edge);
-    if (set)
-      set->erase(exception);
+  if (edges) {
+    for (const EdgePins &edge : *edges) {
+      ExceptionPathSet *set = exception_map.findKey(edge);
+      if (set)
+        set->erase(exception);
+    }
   }
 }
 
 void
 Sdc::unrecordExceptionNets(ExceptionPath *exception,
 			   NetSet *nets,
-			   NetExceptionsMap *exception_map)
+			   NetExceptionsMap &exception_map)
 {
-  NetSet::Iterator net_iter(nets);
-  while (net_iter.hasNext()) {
-    const Net *net = net_iter.next();
-    ExceptionPathSet *set = exception_map->findKey(net);
-    if (set)
-      set->erase(exception);
+  if (nets) {
+    for (const Net *net : *nets) {
+      ExceptionPathSet *set = exception_map.findKey(net);
+      if (set)
+        set->erase(exception);
+    }
   }
 }
 
 void
 Sdc::unrecordExceptionHpin(ExceptionPath *exception,
 			   Pin *pin,
-			   PinExceptionsMap *&exception_map)
+			   PinExceptionsMap &exception_map)
 {
-  ExceptionPathSet *set = exception_map->findKey(pin);
+  ExceptionPathSet *set = exception_map.findKey(pin);
   if (set)
     set->erase(exception);
 }
@@ -5247,19 +5074,16 @@ ExpandException::visit(ExceptionFrom *from,
 {
   ExceptionFrom *from_clone = nullptr;
   if (from)
-    from_clone = from->clone();
+    from_clone = from->clone(network_);
   ExceptionThruSeq *thrus_clone = nullptr;
   if (thrus) {
     thrus_clone = new ExceptionThruSeq;
-    ExceptionThruSeq::Iterator thru_iter(thrus);
-    while (thru_iter.hasNext()) {
-      ExceptionThru *thru = thru_iter.next();
+    for (ExceptionThru *thru : *thrus)
       thrus_clone->push_back(thru->clone(network_));
-    }
   }
   ExceptionTo *to_clone = nullptr;
   if (to)
-    to_clone = to->clone();
+    to_clone = to->clone(network_);
   ExceptionPath *expand = exception_->clone(from_clone, thrus_clone,
 					    to_clone, true);
   expansions_.insert(expand);
@@ -5287,7 +5111,7 @@ Sdc::resetPath(ExceptionFrom *from,
   ExceptionPathSet::Iterator except_iter(exceptions_);
   while (except_iter.hasNext()) {
     ExceptionPath *match = except_iter.next();
-    if (match->resetMatch(from, thrus, to, min_max)) {
+    if (match->resetMatch(from, thrus, to, min_max, network_)) {
       debugPrint(debug_, "exception_match", 3, "reset match %s",
                  match->asString(network_));
       ExceptionPathSet expansions;
@@ -5296,7 +5120,7 @@ Sdc::resetPath(ExceptionFrom *from,
       ExceptionPathSet::Iterator expand_iter(expansions);
       while (expand_iter.hasNext()) {
 	ExceptionPath *expand = expand_iter.next();
-	if (expand->resetMatch(from, thrus, to, min_max)) {
+	if (expand->resetMatch(from, thrus, to, min_max, network_)) {
 	  unrecordPathDelayInternalStartpoints(expand->from());
 	  unrecordPathDelayInternalEndpoints(expand);
 	  delete expand;
@@ -5332,30 +5156,31 @@ Sdc::exceptionFromStates(const Pin *pin,
 {
   bool srch_from = true;
   if (pin) {
-    if (srch_from && first_from_pin_exceptions_)
-      srch_from &= exceptionFromStates(first_from_pin_exceptions_->findKey(pin),
+    if (srch_from && !first_from_pin_exceptions_.empty())
+      srch_from &= exceptionFromStates(first_from_pin_exceptions_.findKey(pin),
 				       pin, rf, min_max, include_filter,
 				       states);
-    if (srch_from && first_thru_pin_exceptions_)
-      srch_from &= exceptionFromStates(first_thru_pin_exceptions_->findKey(pin),
+    if (srch_from && !first_thru_pin_exceptions_.empty())
+      srch_from &= exceptionFromStates(first_thru_pin_exceptions_.findKey(pin),
 				       pin, rf, min_max, include_filter,
 				       states);
 
     if (srch_from
-	&& (first_from_inst_exceptions_ || first_thru_inst_exceptions_)) {
+	&& (!first_from_inst_exceptions_.empty()
+            || !first_thru_inst_exceptions_.empty())) {
       Instance *inst = network_->instance(pin);
-      if (srch_from && first_from_inst_exceptions_)
-	srch_from &= exceptionFromStates(first_from_inst_exceptions_->findKey(inst),
+      if (srch_from && !first_from_inst_exceptions_.empty())
+	srch_from &= exceptionFromStates(first_from_inst_exceptions_.findKey(inst),
 					 pin, rf, min_max, include_filter,
 					 states);
-      if (srch_from && first_thru_inst_exceptions_)
-	srch_from &= exceptionFromStates(first_thru_inst_exceptions_->findKey(inst),
+      if (srch_from && !first_thru_inst_exceptions_.empty())
+	srch_from &= exceptionFromStates(first_thru_inst_exceptions_.findKey(inst),
 					 pin, rf, min_max, include_filter,
 					 states);
     }
   }
-  if (srch_from && clk && first_from_clk_exceptions_)
-    srch_from &= exceptionFromStates(first_from_clk_exceptions_->findKey(clk),
+  if (srch_from && clk && !first_from_clk_exceptions_.empty())
+    srch_from &= exceptionFromStates(first_from_clk_exceptions_.findKey(clk),
 				     pin, clk_rf, min_max, include_filter,
 				     states);
   if (!srch_from) {
@@ -5374,9 +5199,7 @@ Sdc::exceptionFromStates(const ExceptionPathSet *exceptions,
 			 ExceptionStateSet *&states) const
 {
   if (exceptions) {
-    ExceptionPathSet::ConstIterator exception_iter(exceptions);
-    while (exception_iter.hasNext()) {
-      ExceptionPath *exception = exception_iter.next();
+    for (ExceptionPath *exception : *exceptions) {
       if (exception->matches(min_max, false)
 	  && (exception->from() == nullptr
 	      || exception->from()->transition()->matches(rf))
@@ -5393,7 +5216,7 @@ Sdc::exceptionFromStates(const ExceptionPathSet *exceptions,
 	  // but flush all other exception states because they are lower
 	  // priority.
 	  if (states == nullptr)
-	    states = new ExceptionStateSet;
+	    states = new ExceptionStateSet(network_);
 	  states->clear();
 	  states->insert(state);
 	  // No need to examine other exceptions from this
@@ -5401,7 +5224,7 @@ Sdc::exceptionFromStates(const ExceptionPathSet *exceptions,
 	  return false;
 	}
 	if (states == nullptr)
-	  states = new ExceptionStateSet;
+	  states = new ExceptionStateSet(network_);
 	states->insert(state);
       }
     }
@@ -5418,17 +5241,17 @@ Sdc::exceptionFromClkStates(const Pin *pin,
 			    ExceptionStateSet *&states) const
 {
   if (pin) {
-    if (first_from_pin_exceptions_)
-      exceptionFromStates(first_from_pin_exceptions_->findKey(pin),
+    if (!first_from_pin_exceptions_.empty())
+      exceptionFromStates(first_from_pin_exceptions_.findKey(pin),
 			  nullptr, rf, min_max, true, states);
-    if (first_from_inst_exceptions_) {
+    if (!first_from_inst_exceptions_.empty()) {
       Instance *inst = network_->instance(pin);
-      exceptionFromStates(first_from_inst_exceptions_->findKey(inst),
+      exceptionFromStates(first_from_inst_exceptions_.findKey(inst),
 			  pin, rf, min_max, true, states);
     }
   }
-  if (first_from_clk_exceptions_)
-    exceptionFromStates(first_from_clk_exceptions_->findKey(clk),
+  if (!first_from_clk_exceptions_.empty())
+    exceptionFromStates(first_from_clk_exceptions_.findKey(clk),
 			pin, clk_rf, min_max, true, states);
 }
 
@@ -5438,19 +5261,17 @@ Sdc::filterRegQStates(const Pin *to_pin,
 		      const MinMax *min_max,
 		      ExceptionStateSet *&states) const
 {
-  if (first_from_pin_exceptions_) {
+  if (!first_from_pin_exceptions_.empty()) {
     const ExceptionPathSet *exceptions =
-      first_from_pin_exceptions_->findKey(to_pin);
+      first_from_pin_exceptions_.findKey(to_pin);
     if (exceptions) {
-      ExceptionPathSet::ConstIterator exception_iter(exceptions);
-      while (exception_iter.hasNext()) {
-	ExceptionPath *exception = exception_iter.next();
+      for (ExceptionPath *exception : *exceptions) {
 	// Hack for filter -from reg/Q.
 	if (exception->isFilter()
 	    && exception->matchesFirstPt(to_rf, min_max)) {
 	  ExceptionState *state = exception->firstState();
 	  if (states == nullptr)
-	    states = new ExceptionStateSet;
+	    states = new ExceptionStateSet(network_);
 	  states->insert(state);
 	}
       }
@@ -5465,19 +5286,18 @@ Sdc::exceptionThruStates(const Pin *from_pin,
 			 const MinMax *min_max) const
 {
   ExceptionStateSet *states = nullptr;
-  if (first_thru_pin_exceptions_)
-    exceptionThruStates(first_thru_pin_exceptions_->findKey(to_pin),
-			to_rf, min_max, states);
-  if (first_thru_edge_exceptions_) {
-    EdgePins edge_pins(const_cast<Pin*>(from_pin), const_cast<Pin*>(to_pin));
-    exceptionThruStates(first_thru_edge_exceptions_->findKey(&edge_pins),
+  exceptionThruStates(first_thru_pin_exceptions_.findKey(to_pin),
+                      to_rf, min_max, states);
+  if (!first_thru_edge_exceptions_.empty()) {
+    EdgePins edge_pins(from_pin, to_pin);
+    exceptionThruStates(first_thru_edge_exceptions_.findKey(edge_pins),
 			to_rf, min_max, states);
   }
-  if (first_thru_inst_exceptions_
+  if (!first_thru_inst_exceptions_.empty()
       && (network_->direction(to_pin)->isAnyOutput()
 	  || network_->isLatchData(to_pin))) {
     const Instance *to_inst = network_->instance(to_pin);
-    exceptionThruStates(first_thru_inst_exceptions_->findKey(to_inst),
+    exceptionThruStates(first_thru_inst_exceptions_.findKey(to_inst),
 			to_rf, min_max, states);
   }
   return states;
@@ -5491,13 +5311,11 @@ Sdc::exceptionThruStates(const ExceptionPathSet *exceptions,
 			 ExceptionStateSet *&states) const
 {
   if (exceptions) {
-    ExceptionPathSet::ConstIterator exception_iter(exceptions);
-    while (exception_iter.hasNext()) {
-      ExceptionPath *exception = exception_iter.next();
+    for (ExceptionPath *exception : *exceptions) {
       if (exception->matchesFirstPt(to_rf, min_max)) {
 	ExceptionState *state = exception->firstState();
 	if (states == nullptr)
-	  states = new ExceptionStateSet;
+	  states = new ExceptionStateSet(network_);
 	states->insert(state);
       }
     }
@@ -5515,18 +5333,18 @@ Sdc::exceptionTo(ExceptionPathType type,
 		 ExceptionPath *&hi_priority_exception,
 		 int &hi_priority) const
 {
-  if (first_to_inst_exceptions_) {
+  if (!first_to_inst_exceptions_.empty()) {
     Instance *inst = network_->instance(pin);
-    exceptionTo(first_to_inst_exceptions_->findKey(inst), type, pin, rf,
+    exceptionTo(first_to_inst_exceptions_.findKey(inst), type, pin, rf,
 		clk_edge, min_max, match_min_max_exactly,
 		hi_priority_exception, hi_priority);
   }
-  if (first_to_pin_exceptions_)
-    exceptionTo(first_to_pin_exceptions_->findKey(pin), type, pin, rf,
+  if (!first_to_pin_exceptions_.empty())
+    exceptionTo(first_to_pin_exceptions_.findKey(pin), type, pin, rf,
 		clk_edge, min_max, match_min_max_exactly,
 		hi_priority_exception, hi_priority);
-  if (clk_edge && first_to_clk_exceptions_)
-    exceptionTo(first_to_clk_exceptions_->findKey(clk_edge->clock()),
+  if (clk_edge && !first_to_clk_exceptions_.empty())
+    exceptionTo(first_to_clk_exceptions_.findKey(clk_edge->clock()),
 		type, pin, rf, clk_edge, min_max, match_min_max_exactly,
 		hi_priority_exception, hi_priority);
 }
@@ -5544,9 +5362,7 @@ Sdc::exceptionTo(const ExceptionPathSet *to_exceptions,
 		 int &hi_priority) const
 {
   if (to_exceptions) {
-    ExceptionPathSet::ConstIterator exception_iter(to_exceptions);
-    while (exception_iter.hasNext()) {
-      ExceptionPath *exception = exception_iter.next();
+    for (ExceptionPath *exception : *to_exceptions) {
       exceptionTo(exception, type, pin, rf, clk_edge,
 		  min_max, match_min_max_exactly,
 		  hi_priority_exception, hi_priority);
@@ -5880,22 +5696,21 @@ Sdc::setUseDefaultArrivalClock(bool enable)
 ////////////////////////////////////////////////////////////////
 
 void
-Sdc::connectPinAfter(Pin *pin)
+Sdc::connectPinAfter(const Pin *pin)
 {
   if (have_thru_hpin_exceptions_) {
     PinSet *drvrs = network_->drivers(pin);
-    ExceptionPathSet::Iterator except_iter(exceptions_);
-    while (except_iter.hasNext()) {
-      ExceptionPath *exception = except_iter.next();
+    for (ExceptionPath *exception : exceptions_) {
       ExceptionPt *first_pt = exception->firstPt();
-      ExceptionThruSeq::Iterator thru_iter(exception->thrus());
-      while (thru_iter.hasNext()) {
-        ExceptionThru *thru = thru_iter.next();
-        if (thru->edges()) {
-          thru->connectPinAfter(drvrs, network_);
-          if (first_pt == thru)
-            recordExceptionEdges(exception, thru->edges(),
-                                 first_thru_edge_exceptions_);
+      ExceptionThruSeq *thrus = exception->thrus();
+      if (thrus) {
+        for (ExceptionThru *thru : *exception->thrus()) {
+          if (thru->edges()) {
+            thru->connectPinAfter(drvrs, network_);
+            if (first_pt == thru)
+              recordExceptionEdges(exception, thru->edges(),
+                                   first_thru_edge_exceptions_);
+          }
         }
       }
     }
@@ -5903,29 +5718,30 @@ Sdc::connectPinAfter(Pin *pin)
 }
 
 void
-Sdc::disconnectPinBefore(Pin *pin)
+Sdc::disconnectPinBefore(const Pin *pin)
 {
   if (have_thru_hpin_exceptions_) {
-    ExceptionPathSet::Iterator except_iter(exceptions_);
-    while (except_iter.hasNext()) {
-      ExceptionPath *exception = except_iter.next();
+    for (ExceptionPath *exception : exceptions_) {
       ExceptionPt *first_pt = exception->firstPt();
-      ExceptionThruSeq::Iterator thru_iter(exception->thrus());
-      while (thru_iter.hasNext()) {
-        ExceptionThru *thru = thru_iter.next();
-        if (thru->edges()) {
-          thru->disconnectPinBefore(pin, network_);
-          if (thru == first_pt)
-            recordExceptionEdges(exception, thru->edges(),
-                                 first_thru_edge_exceptions_);
+      ExceptionThruSeq *thrus = exception->thrus();
+      if (thrus) {
+        for (ExceptionThru *thru : *exception->thrus()) {
+          if (thru->edges()) {
+            thru->disconnectPinBefore(pin, network_);
+            if (thru == first_pt)
+              recordExceptionEdges(exception, thru->edges(),
+                                   first_thru_edge_exceptions_);
+          }
         }
       }
     }
   }
+  for (int corner_index = 0; corner_index < corners_->count(); corner_index++)
+    drvr_pin_wire_cap_maps_[corner_index].erase(pin);
 }
 
 void
-Sdc::clkHpinDisablesChanged(Pin *pin)
+Sdc::clkHpinDisablesChanged(const Pin *pin)
 {
   if (isLeafPinClock(pin))
     clkHpinDisablesInvalid();
@@ -5938,7 +5754,7 @@ Sdc::clkHpinDisablesChanged(Pin *pin)
 //   hierarchical  input - load pins  inside the hierarchical instance
 //   hierarchical output - load pins outside the hierarchical instance
 void
-findLeafLoadPins(Pin *pin,
+findLeafLoadPins(const Pin *pin,
 		 const Network *network,
 		 PinSet *leaf_pins)
 {
@@ -5949,7 +5765,7 @@ findLeafLoadPins(Pin *pin,
     const Instance *hinst = network->instance(pin);
     PinConnectedPinIterator *pin_iter = network->connectedPinIterator(pin);
     while (pin_iter->hasNext()) {
-      Pin *pin1 = pin_iter->next();
+      const Pin *pin1 = pin_iter->next();
       bool is_inside = network->isInside(pin1, hinst);
       if (((is_input && is_inside)
 	   || (is_output && !is_inside))
@@ -5967,7 +5783,7 @@ findLeafLoadPins(Pin *pin,
 //   hierarchical  input - driver pins outside the hierarchical instance
 //   hierarchical output - driver pins  inside the hierarchical instance
 void
-findLeafDriverPins(Pin *pin,
+findLeafDriverPins(const Pin *pin,
 		   const Network *network,
 		   PinSet *leaf_pins)
 {
@@ -5978,7 +5794,7 @@ findLeafDriverPins(Pin *pin,
     const Instance *hinst = network->instance(pin);
     PinConnectedPinIterator *pin_iter = network->connectedPinIterator(pin);
     while (pin_iter->hasNext()) {
-      Pin *pin1 = pin_iter->next();
+      const Pin *pin1 = pin_iter->next();
       bool is_inside = network->isInside(pin1, hinst);
       if (((is_input && !is_inside)
 	   || (is_output && is_inside))
@@ -5989,30 +5805,6 @@ findLeafDriverPins(Pin *pin,
   }
   else
     leaf_pins->insert(pin);
-}
-
-////////////////////////////////////////////////////////////////
-
-ClockIterator::ClockIterator(Sdc *sdc) :
-  ClockSeq::Iterator(sdc->clocks())
-{
-}
-
-ClockIterator::ClockIterator(ClockSeq &clocks) :
-  ClockSeq::Iterator(clocks)
-{
-}
-
-////////////////////////////////////////////////////////////////
-
-GroupPathIterator::GroupPathIterator(Sdc *sdc) :
-  GroupPathIterator(sdc->group_path_map_)
-{
-}
-
-GroupPathIterator::GroupPathIterator(GroupPathMap &group_path_map) :
-  GroupPathMap::Iterator(group_path_map)
-{
 }
 
 } // namespace

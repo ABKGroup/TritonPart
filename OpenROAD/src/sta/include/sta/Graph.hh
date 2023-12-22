@@ -1,5 +1,5 @@
 // OpenSTA, Static Timing Analyzer
-// Copyright (c) 2022, Parallax Software, Inc.
+// Copyright (c) 2023, Parallax Software, Inc.
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -133,13 +133,13 @@ public:
   virtual Edge *makeEdge(Vertex *from,
 			 Vertex *to,
 			 TimingArcSet *arc_set);
-  virtual void makeWireEdge(Pin *from_pin,
-			    Pin *to_pin);
-  void makePinInstanceEdges(Pin *pin);
+  virtual void makeWireEdge(const Pin *from_pin,
+			    const Pin *to_pin);
+  void makePinInstanceEdges(const Pin *pin);
   void makeInstanceEdges(const Instance *inst);
-  void makeWireEdgesToPin(Pin *to_pin);
-  void makeWireEdgesThruPin(Pin *hpin);
-  virtual void makeWireEdgesFromPin(Pin *drvr_pin);
+  void makeWireEdgesToPin(const Pin *to_pin);
+  void makeWireEdgesThruPin(const Pin *hpin);
+  virtual void makeWireEdgesFromPin(const Pin *drvr_pin);
   virtual void deleteEdge(Edge *edge);
   virtual ArcDelay arcDelay(const Edge *edge,
 			    const TimingArc *arc,
@@ -157,11 +157,11 @@ public:
 			       DcalcAPIndex ap_index,
 			       const ArcDelay &delay);
   // Is timing arc delay annotated.
-  bool arcDelayAnnotated(Edge *edge,
-			 TimingArc *arc,
+  bool arcDelayAnnotated(const Edge *edge,
+			 const TimingArc *arc,
 			 DcalcAPIndex ap_index) const;
   void setArcDelayAnnotated(Edge *edge,
-			    TimingArc *arc,
+			    const TimingArc *arc,
 			    DcalcAPIndex ap_index,
 			    bool annotated);
   bool wireDelayAnnotated(Edge *edge,
@@ -211,10 +211,10 @@ protected:
 		     bool is_reg_clk);
   virtual void makeEdgeArcDelays(Edge *edge);
   void makePinVertices(const Instance *inst);
-  void makeWireEdgesFromPin(Pin *drvr_pin,
+  void makeWireEdgesFromPin(const Pin *drvr_pin,
 			    PinSet &visited_drvrs);
   void makeWireEdges();
-  virtual void makeInstDrvrWireEdges(Instance *inst,
+  virtual void makeInstDrvrWireEdges(const Instance *inst,
 				     PinSet &visited_drvrs);
   virtual void makePortInstanceEdges(const Instance *inst,
 				     LibertyCell *cell,
@@ -232,8 +232,6 @@ protected:
 		     Edge *edge);
   void removeDelays();
   void removeDelayAnnotated(Edge *edge);
-  // User defined predicate to filter graph edges for liberty timing arcs.
-  virtual bool filterEdge(TimingArcSet *) const { return true; }
 
   VertexTable *vertices_;
   EdgeTable *edges_;
@@ -541,7 +539,6 @@ class VertexSet : public Set<Vertex*, VertexIdLess>
 {
 public:
   VertexSet(Graph *&graph);
-  VertexSet(const VertexSet &set);
 };
 
 } // namespace
