@@ -97,26 +97,21 @@ CoarseGraphPtrs Coarsener::LazyFirstChoice(const HGraphPtr& hgraph) const
     evaluator_->InitializeTiming(hgraph);
   }
   hierarchy.push_back(hgraph);  // push original hgraph to hierarchy
-  debugPrint(
-      logger_, PAR, "coarsening", 1, "Running FC Multilevel Coarsening...");
+  logger_->report("=========================================");
+  logger_->report("[STATUS] Running FC multilevel coarsening");
+  logger_->report("=========================================");
   if (timing_flag == true) {
-    debugPrint(logger_,
-               PAR,
-               "coarsening",
-               1,
-               "Level 0 :: num_vertices = {}, num_hyperedges = {}, "
-               "num_timing_paths = {}",
-               hierarchy.back()->GetNumVertices(),
-               hierarchy.back()->GetNumHyperedges(),
-               hierarchy.back()->GetNumTimingPaths());
+    logger_->report(
+        "[COARSEN] Level 0 :: num_vertices = {}, num_hyperedges = {}, "
+        "num_timing_paths = {}",
+        hierarchy.back()->GetNumVertices(),
+        hierarchy.back()->GetNumHyperedges(),
+        hierarchy.back()->GetNumTimingPaths());
   } else {
-    debugPrint(logger_,
-               PAR,
-               "coarsening",
-               1,
-               "Level 0 :: num_vertices = {}, num_hyperedges = {}",
-               hierarchy.back()->GetNumVertices(),
-               hierarchy.back()->GetNumHyperedges());
+    logger_->report(
+        "[COARSEN] Level 0 :: num_vertices = {}, num_hyperedges = {}",
+        hierarchy.back()->GetNumVertices(),
+        hierarchy.back()->GetNumHyperedges());
   }
 
   for (int num_iter = 0; num_iter < max_coarsen_iters_; ++num_iter) {
@@ -130,25 +125,19 @@ CoarseGraphPtrs Coarsener::LazyFirstChoice(const HGraphPtr& hgraph) const
     }
     hierarchy.push_back(hg);
     if (timing_flag == true) {
-      debugPrint(logger_,
-                 PAR,
-                 "coarsening",
-                 1,
-                 "Level {} :: num_vertices = {}, num_hyperedges = {}, "
-                 "num_timing_paths = {}",
-                 num_iter + 1,
-                 hierarchy.back()->GetNumVertices(),
-                 hierarchy.back()->GetNumHyperedges(),
-                 hierarchy.back()->GetNumTimingPaths());
+      logger_->report(
+          "[COARSEN] Level {} :: num_vertices = {}, num_hyperedges = {}, "
+          "num_timing_paths = {}",
+          num_iter + 1,
+          hierarchy.back()->GetNumVertices(),
+          hierarchy.back()->GetNumHyperedges(),
+          hierarchy.back()->GetNumTimingPaths());
     } else {
-      debugPrint(logger_,
-                 PAR,
-                 "coarsening",
-                 1,
-                 "Level {} :: num_vertices = {}, num_hyperedges = {}",
-                 num_iter + 1,
-                 hierarchy.back()->GetNumVertices(),
-                 hierarchy.back()->GetNumHyperedges());
+      logger_->report(
+          "[COARSEN] Level {} :: num_vertices = {}, num_hyperedges = {}",
+          num_iter + 1,
+          hierarchy.back()->GetNumVertices(),
+          hierarchy.back()->GetNumHyperedges());
     }
     // check the early-stop condition
     if (hierarchy.back()->GetNumVertices() <= thr_coarsen_vertices_
@@ -163,12 +152,7 @@ CoarseGraphPtrs Coarsener::LazyFirstChoice(const HGraphPtr& hgraph) const
                           end_timestamp - start_timestamp)
                           .count()
                       * 1e-9;
-  debugPrint(logger_,
-             PAR,
-             "coarsening",
-             1,
-             "Hierarchical coarsening time {} seconds",
-             time_taken);
+  logger_->info(PAR, 1, "Hierarchical coarsening time {} seconds", time_taken);
   return hierarchy;
 }
 

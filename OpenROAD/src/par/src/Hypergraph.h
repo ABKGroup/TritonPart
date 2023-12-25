@@ -55,7 +55,7 @@
 
 namespace par {
 
-class Hypergraph;
+struct Hypergraph;
 using HGraphPtr = std::shared_ptr<Hypergraph>;
 
 // The data structure for critical timing path
@@ -306,15 +306,15 @@ class Hypergraph
   }
 
   // get balance constraints
-  std::vector<std::vector<float>> GetUpperVertexBalance(
-      int num_parts,
-      float ub_factor,
-      std::vector<float> base_balance) const;
+  // TODO:  RePlace the Vertex Balance with UpperVertexBalance
+  std::vector<std::vector<float>> GetVertexBalance(int num_parts,
+                                                   float ub_factor) const;
 
-  std::vector<std::vector<float>> GetLowerVertexBalance(
-      int num_parts,
-      float ub_factor,
-      std::vector<float> base_balance) const;
+  std::vector<std::vector<float>> GetUpperVertexBalance(int num_parts,
+                                                        float ub_factor) const;
+
+  std::vector<std::vector<float>> GetLowerVertexBalance(int num_parts,
+                                                        float ub_factor) const;
 
  private:
   // basic hypergraph

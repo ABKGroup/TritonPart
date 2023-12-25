@@ -101,8 +101,6 @@ void PartitionMgr::init(odb::dbDatabase* db,
 void PartitionMgr::tritonPartHypergraph(
     unsigned int num_parts,
     float balance_constraint,
-    const std::vector<float>& base_balance,
-    const std::vector<float>& scale_factor,
     unsigned int seed,
     int vertex_dimension,
     int hyperedge_dimension,
@@ -173,8 +171,6 @@ void PartitionMgr::tritonPartHypergraph(
 
   triton_part->PartitionHypergraph(num_parts,
                                    balance_constraint,
-                                   base_balance,
-                                   scale_factor,
                                    seed,
                                    vertex_dimension,
                                    hyperedge_dimension,
@@ -193,8 +189,6 @@ void PartitionMgr::tritonPartHypergraph(
 void PartitionMgr::evaluateHypergraphSolution(
     unsigned int num_parts,
     float balance_constraint,
-    const std::vector<float>& base_balance,
-    const std::vector<float>& scale_factor,
     int vertex_dimension,
     int hyperedge_dimension,
     const char* hypergraph_file,
@@ -212,8 +206,6 @@ void PartitionMgr::evaluateHypergraphSolution(
   triton_part->SetVertexWeight(v_wt_factors);
   triton_part->EvaluateHypergraphSolution(num_parts,
                                           balance_constraint,
-                                          base_balance,
-                                          scale_factor,
                                           vertex_dimension,
                                           hyperedge_dimension,
                                           hypergraph_file,
@@ -223,7 +215,7 @@ void PartitionMgr::evaluateHypergraphSolution(
 }
 
 // Top level interface
-// The function for partitioning a netlist
+// The function for partitioning a hypergraph
 // This is the main API for TritonPart
 // Key supports:
 // (1) fixed vertices constraint in fixed_file
@@ -234,8 +226,6 @@ void PartitionMgr::evaluateHypergraphSolution(
 void PartitionMgr::tritonPartDesign(
     unsigned int num_parts_arg,
     float balance_constraint_arg,
-    const std::vector<float>& base_balance_arg,
-    const std::vector<float>& scale_factor_arg,
     unsigned int seed_arg,
     bool timing_aware_flag_arg,
     int top_n_arg,
@@ -320,8 +310,6 @@ void PartitionMgr::tritonPartDesign(
 
   triton_part->PartitionDesign(num_parts_arg,
                                balance_constraint_arg,
-                               base_balance_arg,
-                               scale_factor_arg,
                                seed_arg,
                                timing_aware_flag_arg,
                                top_n_arg,
@@ -348,8 +336,6 @@ void PartitionMgr::tritonPartDesign(
 void PartitionMgr::evaluatePartDesignSolution(
     unsigned int num_parts_arg,
     float balance_constraint_arg,
-    const std::vector<float>& base_balance_arg,
-    const std::vector<float>& scale_factor_arg,
     bool timing_aware_flag_arg,
     int top_n_arg,
     bool fence_flag_arg,
@@ -390,8 +376,6 @@ void PartitionMgr::evaluatePartDesignSolution(
 
   triton_part->EvaluatePartDesignSolution(num_parts_arg,
                                           balance_constraint_arg,
-                                          base_balance_arg,
-                                          scale_factor_arg,
                                           timing_aware_flag_arg,
                                           top_n_arg,
                                           fence_flag_arg,
@@ -759,7 +743,7 @@ void PartitionMgr::writePartitionVerilog(const char* file_name,
     return;
   }
 
-  logger_->info(PAR, 1, "Writing partition to verilog.");
+  logger_->report("Writing partition to verilog.");
   // get top module name
   const std::string top_name = db_network_->name(db_network_->topInstance());
 
@@ -835,7 +819,7 @@ void PartitionMgr::readPartitioningFile(const std::string& filename,
   if (!instance_map_file.empty()) {
     std::ifstream map_file(instance_map_file);
     if (!map_file) {
-      logger_->error(PAR, 25, "Unable to open file {}.", instance_map_file);
+      logger_->error(PAR, 72, "Unable to open file {}.", instance_map_file);
     }
     std::string line;
     while (getline(map_file, line)) {
@@ -844,7 +828,7 @@ void PartitionMgr::readPartitioningFile(const std::string& filename,
       }
       auto inst = block->findInst(line.c_str());
       if (!inst) {
-        logger_->error(PAR, 26, "Unable to find instance {}.", line);
+        logger_->error(PAR, 73, "Unable to find instance {}.", line);
       }
       instance_order.push_back(inst);
     }
@@ -857,7 +841,7 @@ void PartitionMgr::readPartitioningFile(const std::string& filename,
   {
     std::ifstream file(filename);
     if (!file) {
-      logger_->error(PAR, 36, "Unable to open file {}.", filename);
+      logger_->error(PAR, 22, "Unable to open file {}.", filename);
     }
     std::string line;
     while (getline(file, line)) {
@@ -869,7 +853,7 @@ void PartitionMgr::readPartitioningFile(const std::string& filename,
       } catch (const std::logic_error&) {
         logger_->error(
             PAR,
-            27,
+            71,
             "Unable to convert line \"{}\" to an integer in file: {}",
             line,
             filename);
@@ -879,7 +863,7 @@ void PartitionMgr::readPartitioningFile(const std::string& filename,
 
   if (inst_partitions.size() != instance_order.size()) {
     logger_->error(PAR,
-                   28,
+                   74,
                    "Instances in partitioning ({}) does not match instances in "
                    "netlist ({}).",
                    inst_partitions.size(),

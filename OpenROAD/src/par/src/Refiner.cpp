@@ -90,18 +90,13 @@ Refiner::Refiner(
 
 void Refiner::SetMaxMove(const int max_move)
 {
-  debugPrint(logger_, PAR, "refinement", 1, "Set the max_move to {}", max_move);
+  logger_->info(PAR, 163, "Set the max_move to {}", max_move);
   max_move_ = max_move;
 }
 
 void Refiner::SetRefineIters(const int refiner_iters)
 {
-  debugPrint(logger_,
-             PAR,
-             "refinement",
-             1,
-             "Set the refiner_iter to {}",
-             refiner_iters);
+  logger_->info(PAR, 164, "Set the refiner_iter to {}", refiner_iters);
   refiner_iters_ = refiner_iters;
 }
 
@@ -109,14 +104,8 @@ void Refiner::RestoreDefaultParameters()
 {
   max_move_ = max_move_default_;
   refiner_iters_ = refiner_iters_default_;
-  debugPrint(
-      logger_, PAR, "refinement", 1, "Reset the max_move to {}", max_move_);
-  debugPrint(logger_,
-             PAR,
-             "refinement",
-             1,
-             "Reset the refiner_iters to {}",
-             refiner_iters_);
+  logger_->info(PAR, 165, "Reset the max_move to {}", max_move_);
+  logger_->info(PAR, 166, "Reset the refiner_iters to {}", refiner_iters_);
 }
 
 // The main function of refinement class
@@ -126,12 +115,8 @@ void Refiner::Refine(const HGraphPtr& hgraph,
                      Partitions& solution)
 {
   if (max_move_ <= 0) {
-    debugPrint(logger_,
-               PAR,
-               "refinement",
-               1,
-               "max_move = {}. Exiting Refinement.",
-               max_move_);
+    logger_->report("[PARAMS] max_move = {}", max_move_);
+    logger_->info(PAR, 118, "Exit Refinement.");
     return;
   }
   // calculate the basic statistics of current solution
