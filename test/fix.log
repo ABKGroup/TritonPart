@@ -10,18 +10,18 @@ Components of this program may be licensed under more restrictive licenses which
 [INFO PAR-0004] Seed = 2
 [INFO PAR-0005] Vertex dimensions = 1
 [INFO PAR-0006] Hyperedge dimensions = 1
-[INFO PAR-0007] Placement dimensions = 2
+[INFO PAR-0007] Placement dimensions = 0
 [INFO PAR-0008] Hypergraph file = sample.hgr
 [INFO PAR-0009] Solution file = sample.hgr.part.2
 [INFO PAR-0010] Global net threshold = 1000
-[INFO PAR-0014] Placement file = sample.emb
+[INFO PAR-0011] Fixed file  = sample.fix
 [WARNING PAR-0119] Reset the timing_aware_flag to false. Timing-driven mode is not supported
 [INFO PAR-0171] Hypergraph Information**
 [INFO PAR-0172] Vertices = 5
 [INFO PAR-0173] Hyperedges = 3
 [INFO PAR-0077] hyperedge weight factor : [ 1.000000  ]
 [INFO PAR-0078] vertex weight factor : [ 1.000000  ]
-[INFO PAR-0079] placement weight factor : [ 1.000000 1.000000  ]
+[INFO PAR-0079] placement weight factor : [  ]
 [INFO PAR-0080] net_timing_factor : 1.0
 [INFO PAR-0081] path_timing_factor : 1.0
 [INFO PAR-0082] path_snaking_factor : 1.0
@@ -47,19 +47,19 @@ Components of this program may be licensed under more restrictive licenses which
 =========================================
 [STATUS] Running FC multilevel coarsening
 =========================================
-[COARSEN] Level 0 :: num_vertices = 5, num_hyperedges = 3
-[INFO PAR-0001] Hierarchical coarsening time 5.845100000000001e-05 seconds
+[COARSEN] Level 0 :: num_vertices = 4, num_hyperedges = 2
+[INFO PAR-0001] Hierarchical coarsening time 1.73e-05 seconds
 ======================================================================
 [STATUS] Initial Partitioning 
 ======================================================================
-[INFO PAR-0163] Set the max_move to 5
+[INFO PAR-0163] Set the max_move to 4
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 0 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 1 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -70,8 +70,8 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 3 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 4 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -102,8 +102,8 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 11 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 12 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -114,32 +114,32 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 14 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 15 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 16 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 17 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 18 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 19 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 20 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 21 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -174,32 +174,32 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 29 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 30 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 31 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 32 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 33 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 34 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 35 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 36 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -218,24 +218,24 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 40 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 41 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 42 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 43 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 44 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 45 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -258,44 +258,44 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 0 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 1 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 2 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 3 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 4 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 5 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 6 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 7 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 8 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 9 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 10 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -314,8 +314,8 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 14 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 15 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -326,8 +326,8 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 17 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 18 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -338,8 +338,8 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 20 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 21 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -350,20 +350,20 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 23 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 24 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 25 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 26 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 27 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -374,8 +374,8 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 29 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 30 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -386,12 +386,12 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 32 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 33 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 34 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -406,8 +406,8 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 37 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 38 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -426,20 +426,20 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 42 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 43 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 44 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 45 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 46 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -450,8 +450,8 @@ Components of this program may be licensed under more restrictive licenses which
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 48 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 49 :: Random VILE part cutcost = 1.0, balance_flag = true
 [INFO PAR-0165] Reset the max_move to 60
 [INFO PAR-0166] Reset the refiner_iters to 10
@@ -479,19 +479,19 @@ All the hyperedges will be used in the ILP-based partitioning!
 =========================================
 [STATUS] Running FC multilevel coarsening
 =========================================
-[COARSEN] Level 0 :: num_vertices = 5, num_hyperedges = 3
-[INFO PAR-0001] Hierarchical coarsening time 2.0666000000000002e-05 seconds
+[COARSEN] Level 0 :: num_vertices = 4, num_hyperedges = 2
+[INFO PAR-0001] Hierarchical coarsening time 1.8205000000000003e-05 seconds
 ======================================================================
 [STATUS] Initial Partitioning 
 ======================================================================
-[INFO PAR-0163] Set the max_move to 5
+[INFO PAR-0163] Set the max_move to 4
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 0 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 1 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -502,8 +502,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 3 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 4 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -534,8 +534,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 11 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 12 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -546,32 +546,32 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 14 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 15 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 16 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 17 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 18 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 19 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 20 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 21 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -606,32 +606,32 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 29 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 30 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 31 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 32 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 33 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 34 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 35 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 36 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -650,24 +650,24 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 40 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 41 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 42 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 43 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 44 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 45 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -690,44 +690,44 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 0 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 1 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 2 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 3 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 4 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 5 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 6 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 7 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 8 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 9 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 10 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -746,8 +746,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 14 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 15 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -758,8 +758,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 17 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 18 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -770,8 +770,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 20 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 21 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -782,20 +782,20 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 23 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 24 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 25 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 26 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 27 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -806,8 +806,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 29 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 30 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -818,12 +818,12 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 32 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 33 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 34 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -838,8 +838,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 37 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 38 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -858,20 +858,20 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 42 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 43 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 44 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 45 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 46 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -882,8 +882,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 48 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 49 :: Random VILE part cutcost = 1.0, balance_flag = true
 [INFO PAR-0165] Reset the max_move to 60
 [INFO PAR-0166] Reset the refiner_iters to 10
@@ -911,19 +911,19 @@ All the hyperedges will be used in the ILP-based partitioning!
 =========================================
 [STATUS] Running FC multilevel coarsening
 =========================================
-[COARSEN] Level 0 :: num_vertices = 5, num_hyperedges = 3
-[INFO PAR-0001] Hierarchical coarsening time 2.1174e-05 seconds
+[COARSEN] Level 0 :: num_vertices = 4, num_hyperedges = 2
+[INFO PAR-0001] Hierarchical coarsening time 2.6443e-05 seconds
 ======================================================================
 [STATUS] Initial Partitioning 
 ======================================================================
-[INFO PAR-0163] Set the max_move to 5
+[INFO PAR-0163] Set the max_move to 4
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 0 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 1 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -934,8 +934,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 3 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 4 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -966,8 +966,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 11 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 12 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -978,32 +978,32 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 14 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 15 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 16 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 17 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 18 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 19 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 20 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 21 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1038,32 +1038,32 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 29 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 30 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 31 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 32 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 33 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 34 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 35 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 36 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1082,24 +1082,24 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 40 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 41 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 42 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 43 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 44 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 45 :: Random part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1122,44 +1122,44 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 0 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 1 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 2 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 3 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 4 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 5 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 6 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 7 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 8 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 9 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 10 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1178,8 +1178,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 14 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 15 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1190,8 +1190,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 17 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 18 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1202,8 +1202,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 20 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 21 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1214,20 +1214,20 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 23 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 24 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 25 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 26 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 27 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1238,8 +1238,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 29 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 30 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1250,12 +1250,12 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 32 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 33 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 34 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1270,8 +1270,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 37 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 38 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1290,20 +1290,20 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 42 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 43 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 44 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 45 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 46 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
@@ -1314,8 +1314,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 48 :: Random VILE part cutcost = 1.0, balance_flag = true
 [Cutcost of partition : 1.0]
-[Vertex balance of block_0 : 0.60000  ( 3.00000 )    
-[Vertex balance of block_1 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_0 : 0.40000  ( 2.00000 )    
+[Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INIT-PART] 49 :: Random VILE part cutcost = 1.0, balance_flag = true
 [INFO PAR-0165] Reset the max_move to 60
 [INFO PAR-0166] Reset the refiner_iters to 10
@@ -1353,8 +1353,8 @@ All the hyperedges will be used in the ILP-based partitioning!
 =========================================
 [STATUS] Running FC multilevel coarsening
 =========================================
-[COARSEN] Level 0 :: num_vertices = 5, num_hyperedges = 3
-[INFO PAR-0001] Hierarchical coarsening time 3.1629000000000005e-05 seconds
+[COARSEN] Level 0 :: num_vertices = 4, num_hyperedges = 2
+[INFO PAR-0001] Hierarchical coarsening time 2.6422000000000002e-05 seconds
 [STATUS] Optimal ILP-based Partitioning Starts !
 All the hyperedges will be used in the ILP-based partitioning!
 [STATUS] Optimal ILP-based Partitioning Finished !
@@ -1368,13 +1368,13 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
 [INFO PAR-0153] Finish Vcycle Refinement
-hypergraph_.numVertices = 5
+hypergraph_.numVertices = 4
 original_hypergraph_.numVertices = 5
 =========================================
 [STATUS] Running FC multilevel coarsening
 =========================================
 [COARSEN] Level 0 :: num_vertices = 5, num_hyperedges = 3
-[INFO PAR-0001] Hierarchical coarsening time 3.0257000000000002e-05 seconds
+[INFO PAR-0001] Hierarchical coarsening time 2.6076000000000002e-05 seconds
 [STATUS] Optimal ILP-based Partitioning Starts !
 All the hyperedges will be used in the ILP-based partitioning!
 [STATUS] Optimal ILP-based Partitioning Finished !
@@ -1387,23 +1387,12 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
-Test Here:  Finish partitioning
-solution.size() = 5
-block_id = 0
-block_id = 0
-block_id = 1
-block_id = 1
-block_id = 1
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
-print solution
-finish balance constraint
-group satisfied flag
-fixed vertices flag
 Satisfy the balance constraint : true
 Satisfy the group constraint : true
 Satisfy the fixed vertices constraint : true
-[INFO PAR-0109] The runtime of multi-level partitioner : 0.32727831100000004 seconds
+[INFO PAR-0109] The runtime of multi-level partitioner : 0.2086743 seconds
 ===============================================
 Exiting TritonPart

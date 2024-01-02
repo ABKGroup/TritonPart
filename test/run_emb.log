@@ -48,7 +48,7 @@ Components of this program may be licensed under more restrictive licenses which
 [STATUS] Running FC multilevel coarsening
 =========================================
 [COARSEN] Level 0 :: num_vertices = 5, num_hyperedges = 3
-[INFO PAR-0001] Hierarchical coarsening time 5.845100000000001e-05 seconds
+[INFO PAR-0001] Hierarchical coarsening time 1.7854000000000002e-05 seconds
 ======================================================================
 [STATUS] Initial Partitioning 
 ======================================================================
@@ -480,7 +480,7 @@ All the hyperedges will be used in the ILP-based partitioning!
 [STATUS] Running FC multilevel coarsening
 =========================================
 [COARSEN] Level 0 :: num_vertices = 5, num_hyperedges = 3
-[INFO PAR-0001] Hierarchical coarsening time 2.0666000000000002e-05 seconds
+[INFO PAR-0001] Hierarchical coarsening time 2.1701e-05 seconds
 ======================================================================
 [STATUS] Initial Partitioning 
 ======================================================================
@@ -912,7 +912,7 @@ All the hyperedges will be used in the ILP-based partitioning!
 [STATUS] Running FC multilevel coarsening
 =========================================
 [COARSEN] Level 0 :: num_vertices = 5, num_hyperedges = 3
-[INFO PAR-0001] Hierarchical coarsening time 2.1174e-05 seconds
+[INFO PAR-0001] Hierarchical coarsening time 2.9724000000000002e-05 seconds
 ======================================================================
 [STATUS] Initial Partitioning 
 ======================================================================
@@ -1354,7 +1354,7 @@ All the hyperedges will be used in the ILP-based partitioning!
 [STATUS] Running FC multilevel coarsening
 =========================================
 [COARSEN] Level 0 :: num_vertices = 5, num_hyperedges = 3
-[INFO PAR-0001] Hierarchical coarsening time 3.1629000000000005e-05 seconds
+[INFO PAR-0001] Hierarchical coarsening time 2.9228000000000002e-05 seconds
 [STATUS] Optimal ILP-based Partitioning Starts !
 All the hyperedges will be used in the ILP-based partitioning!
 [STATUS] Optimal ILP-based Partitioning Finished !
@@ -1374,7 +1374,7 @@ original_hypergraph_.numVertices = 5
 [STATUS] Running FC multilevel coarsening
 =========================================
 [COARSEN] Level 0 :: num_vertices = 5, num_hyperedges = 3
-[INFO PAR-0001] Hierarchical coarsening time 3.0257000000000002e-05 seconds
+[INFO PAR-0001] Hierarchical coarsening time 2.6638e-05 seconds
 [STATUS] Optimal ILP-based Partitioning Starts !
 All the hyperedges will be used in the ILP-based partitioning!
 [STATUS] Optimal ILP-based Partitioning Finished !
@@ -1387,23 +1387,12 @@ All the hyperedges will be used in the ILP-based partitioning!
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
-Test Here:  Finish partitioning
-solution.size() = 5
-block_id = 0
-block_id = 0
-block_id = 1
-block_id = 1
-block_id = 1
 [Cutcost of partition : 1.0]
 [Vertex balance of block_0 : 0.40000  ( 2.00000 )    
 [Vertex balance of block_1 : 0.60000  ( 3.00000 )    
-print solution
-finish balance constraint
-group satisfied flag
-fixed vertices flag
 Satisfy the balance constraint : true
 Satisfy the group constraint : true
 Satisfy the fixed vertices constraint : true
-[INFO PAR-0109] The runtime of multi-level partitioner : 0.32727831100000004 seconds
+[INFO PAR-0109] The runtime of multi-level partitioner : 0.32051317700000004 seconds
 ===============================================
 Exiting TritonPart

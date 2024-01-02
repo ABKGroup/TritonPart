@@ -37,6 +37,7 @@
 #include <fstream>
 #include <functional>
 #include <numeric>
+#include <iostream>
 
 #include "Hypergraph.h"
 #include "Utilities.h"
@@ -606,6 +607,7 @@ bool GoldenEvaluator::ConstraintAndCutEvaluator(
     bool print_flag) const
 {
   auto solution_token = CutEvaluator(hgraph, solution, print_flag);
+  
   // check block balance
   bool balance_satisfied_flag = true;
   const Matrix<float> upper_block_balance

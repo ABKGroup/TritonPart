@@ -1892,6 +1892,9 @@ void TritonPart::MultiLevelPartition()
   std::vector<int> solution = tritonpart_mlevel_partitioner->Partition(
       hypergraph_, upper_block_balance, lower_block_balance);
 
+  std::cout << "hypergraph_.numVertices = " << hypergraph_->GetNumVertices() << std::endl;
+  std::cout << "original_hypergraph_.numVertices = " << original_hypergraph_->GetNumVertices() << std::endl;
+
   // Translate the solution of hypergraph to original_hypergraph_
   // solution to solution_
   solution_.clear();
@@ -1908,8 +1911,8 @@ void TritonPart::MultiLevelPartition()
   // Perform the last-minute refinement
   tritonpart_coarsener->SetThrCoarsenHyperedgeSizeSkip(global_net_threshold_);
   tritonpart_mlevel_partitioner->VcycleRefinement(
-      hypergraph_, upper_block_balance, lower_block_balance, solution_);
-
+      original_hypergraph_, upper_block_balance, lower_block_balance, solution_);
+  
   // evaluate on the original hypergraph
   // tritonpart_evaluator->CutEvaluator(original_hypergraph_, solution_, true);
   tritonpart_evaluator->ConstraintAndCutEvaluator(
