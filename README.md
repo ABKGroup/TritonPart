@@ -46,6 +46,28 @@ cd test
 source run.sh
 ```
 
+### How to partition a hypergraph with fixed vertices constraints
+The example tcl command is as follows.
+``` shell
+triton_part_hypergraph -hypergraph_file sample.hgr -num_parts 2 -balance_constraint 20 -seed 2 -fixed_file sample.fix
+```
+You can run this example with following comands.
+``` shell
+cd test
+source run_fix.sh
+```
+
+### How to partition a hypergraph with embedding constraints
+The example tcl command is as follows.
+``` shell
+triton_part_hypergraph -hypergraph_file sample.hgr -num_parts 2 -balance_constraint 20 -seed 2 \
+-placement_file sample.emb -placement_wt_factors { 1.0 1.0 } -placement_dimension 2
+```
+You can run this example with following comands.
+``` shell
+cd test
+source run_emb.sh
+```
 
 ## How to run regression test
 We recommend users to specify their parameters by modifying the [regression.py](https://github.com/ABKGroup/TritonPart/blob/main/regression/regression.py) from [Line 131](https://github.com/ABKGroup/TritonPart/blob/68e516145a7090c3b9bae7ac9bf2464e58758b69/regression/regression.py#L131) to 
