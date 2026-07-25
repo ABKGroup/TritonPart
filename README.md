@@ -341,24 +341,6 @@ means an allowed imbalance of:
 
 It does **not** mean an allowed imbalance of 10%.
 
-This interpretation is confirmed by the experiment logs:
-
-* All 440 runs satisfy the balance constraint.
-
-* Observed block-balance fractions fall within:
-
-  ```text
-  [0.49900, 0.50100]
-  ```
-
-* Every run reports:
-
-  ```text
-  Satisfy the balance constraint : true
-  ```
-
-The cuts reported in `summary_best_of_20.csv` therefore correspond to nearly exact bisections.
-
 ### Running with a true 10% imbalance
 
 To allow an actual 10% imbalance, use:
