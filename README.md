@@ -4,7 +4,7 @@ TritonPart is a constraints-driven, multilevel hypergraph partitioner implemente
 
 The partitioner supports multiway partitioning, multidimensional vertex and hyperedge weights, fixed vertices, placement-aware partitioning, community constraints, and timing-driven optimization.
 
-> **Development status:** TritonPart is maintained inside OpenROAD. Please refer to [par](https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/src/par) for the latest implementation. All results reported in this README use OpenROAD v2.0-27290-g5e8f15c075.
+> **Please Note:** TritonPart is maintained inside OpenROAD. Please refer to [par](https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/src/par) for the latest implementation. All results reported in this README use OpenROAD v2.0-27290-g5e8f15c075.
 > Experimental results should be reported together with the exact source commit, command-line configuration, random seeds, and balance constraint used.
 
 ---
