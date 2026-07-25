@@ -232,25 +232,6 @@ at commit:
 | `-coarsening_ratio`                |      `1.6` |   `1.6` |           No          | Target vertex-count reduction ratio between coarsening levels            |
 | `-max_coarsen_iters`               |       `30` |    `30` |           No          | Maximum number of coarsening iterations or levels                        |
 
-Only three non-seed configuration values differ from the tool defaults:
-
-```text
--balance_constraint 0.1
--max_moves 100
--max_num_vcycle 3
-```
-
-The seed also differs across the 20 runs:
-
-```text
--seed 0
--seed 1
-...
--seed 19
-```
-
-All other explicitly passed options match the defaults at the pinned commit.
-
 ---
 
 ## Parameters Left at Their Defaults
