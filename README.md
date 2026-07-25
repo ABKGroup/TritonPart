@@ -217,7 +217,6 @@ at commit:
 | Parameter                          | Value used | Default | Differs from default? | Description                                                              |
 | ---------------------------------- | ---------: | ------: | :-------------------: | ------------------------------------------------------------------------ |
 | `-num_parts`                       |        `2` |     `2` |           No          | Number of output partitions                                              |
-| `-balance_constraint`              |      `0.1` |   `1.0` |        **Yes**        | Allowed imbalance, expressed in percent                                  |
 | `-seed`                            |     `0–19` |     `0` |        **Yes**        | Random seed; 20 runs per design                                          |
 | `-num_initial_solutions`           |       `50` |    `50` |           No          | Number of randomized initial solutions generated at the coarsest level   |
 | `-num_best_initial_solutions`      |       `10` |    `10` |           No          | Number of best initial solutions retained for subsequent refinement      |
